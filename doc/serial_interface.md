@@ -30,7 +30,7 @@ this:
 to start a transaction.
 * __Command[3:0]__ : This is the command nibble.
     * __0__ : Read=1, Write=0.
-    * __3:1__ : The number of bytes to read or write plus 1.  So 1 to 8 bytes
+    * __3:1__ : The number of bytes to read or write minus 1.  So 1 to 8 bytes
     can be transfered in one transaction.  The register address is auto incremented
     after each data byte.
 * __CoreAddress[3:0]__ : The Core Address.  Selects desired core.
