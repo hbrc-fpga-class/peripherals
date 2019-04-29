@@ -14,8 +14,8 @@ the perspective of the raspberry pi (RPI).
 * __rxd (input)__  : Receive data from the FPGA
 * __rts (output)__ : Request to Send. RPI asserts to signal transaction. Active low.
 Holds low until transaction is complete.
-* __intr (input)__ : Indicates that the FPGA has data to be read.
-* __cts (input)__ : Indicates that the FPGA is ready for a byte.  Active low.
+* __intr (input)__ : Interrupt from FPGA. Indicates that the FPGA has data to be read.
+* __cts (input)__ : Clear to Send. Indicates that the FPGA is ready for a byte.  Active low.
 The RPI must check this signal is low before sending a new byte.
 
 ## Protocol
