@@ -35,8 +35,13 @@ to start a transaction.
     after each data byte.
 * __CoreAddress[3:0]__ : The Core Address.  Selects desired core.
 * __RegAddress[7:0]__ : The Register Address.  Selects register index of selected
+* __Read Header (READ ONLY)__ : The First two bytes (Command[3:0], CoreAddress[3:0], RegAddress[7:0])  are echoed back for read operations.
 * __Data0..N-1[7:0]__ : The N bytes of data to read or write.  Data direction
-is specified the Command[0] and N is specified by Command[3:1].
+is specified the Command[0] and N is specified by Command[3:1].  For a read
+the data is returned starting from the lowest reg address first.  Likewise for a write the lowest
+reg address is written first.  The FPGA will auto-increment the reg address after each byte.
+* __ACK/NACK (WRITE ONLY)__ : For a write operation. The FPGA sends an ACK to confirm the writes occured or a NACK
+if there was an error.  The value for ACK is 0xAC, the value for NACK is 0x56.  For read operations no ACK/NACK is returned.
 * __RPI releases rts__ : This signals to the FPGA that the transaction has
   completed.
 
