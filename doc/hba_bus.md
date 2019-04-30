@@ -39,6 +39,7 @@ the following additional signals.
 * __HBA_DBus[7:0] (input)__ : The data bus.
 * __MasterX_request (output)__ : Requests access to the bus. 
 * __Master_ABus[11:0] (output)__ : The target address. Must be zero when inactive.
+* __Master_RNW (output)__ : 1=Read from register. 0=Write to register.
 
 If there is more than one master then the the their __Master_ABus[11:0]__ are OR'd
 together.
