@@ -34,8 +34,9 @@ The outputs of the slaves are OR'd together, except for __SlaveX_Interrupt__.
 
 A peripheral can be both a master and a slave.  To be a master it needs to implement
 the following additional signals.
-* __OPB_MXGrant (input)__ : Master access has be granted. 
-* __OPB_xferAck (input)__ : Asserted when request has been completed.
+* __HBA_MXGrant (input)__ : Master access has be granted. 
+* __HBA_xferAck (input)__ : Asserted when request has been completed.
+* __HBA_DBus[7:0] (input)__ : The data bus.
 * __MasterX_request (output)__ : Requests access to the bus. 
 * __Master_ABus[11:0] (output)__ : The target address. Must be zero when inactive.
 
