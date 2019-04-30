@@ -36,7 +36,6 @@ A peripheral can be both a master and a slave.  To be a master it needs to imple
 the following additional signals.
 * __HBA_MXGrant (input)__ : Master access has be granted. 
 * __HBA_xferAck (input)__ : Asserted when request has been completed.
-* __HBA_DBus[7:0] (input)__ : The read data bus.
 * __MasterX_request (output)__ : Requests access to the bus. 
 * __Master_ABus[11:0] (output)__ : The target address. Must be zero when inactive.
 * __Master_RNW (output)__ : 1=Read from register. 0=Write to register.
