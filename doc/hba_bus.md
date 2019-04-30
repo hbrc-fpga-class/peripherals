@@ -43,7 +43,7 @@ the following additional signals.
 If there is more than one master then the the their __Master_ABus[11:0]__ are OR'd
 together.
 
-Each peripheral master gets dedicated __OPB_MXGrant__ and __OPB_MasterX_request__
+Each peripheral master gets dedicated __HBA_MXGrant__ and __HBA_MasterX_request__
 signals back to the HBA Bus Arbiter. The 'X' represents a unique number.
 
 
