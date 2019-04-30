@@ -42,7 +42,7 @@ the following additional signals.
 * __Master_RNW (output)__ : 1=Read from register. 0=Write to register.
 * __Master_DBus[7:0] (output)__ : The write data bus.
 
-If there is more than one master then the the their __Master_*__ signals are OR'd
+If there is more than one master then the the their Master_* signals are OR'd
 together.
 
 Each peripheral master gets dedicated __HBA_MXGrant__ and __HBA_MasterX_request__
