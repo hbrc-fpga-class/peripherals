@@ -1,8 +1,8 @@
-# Home Brew Automation Bus
+# HomeBrew Automation Bus
 
 ## Description
 
-This document describes the Home Brew Automation (HBA) Bus.
+This document describes the HomeBrew Automation (HBA) Bus.
 This bus is used to interconnect FPGA peripherals together.
 
 ## HBA Bus Slave interface
