@@ -41,6 +41,13 @@ the following additional signals.
 * __Master_RNW (output)__ : 1=Read from register. 0=Write to register.
 * __Master_DBus[7:0] (output)__ : The write data bus.
 
+Additional required signals that are also part of the Slave interface.
+* __HBA_Clk (input)__ : This is the bus clock.  The HBA Bus signals are valid on the
+  rising edge of this clock. 
+* __HBA_Reset (input)__ : This signal indicates the peripheral should be reset.
+* __HBA_DBus[7:0] (input)__ : The read data bus.
+
+
 If there is more than one master then the Master_* signals are OR'd
 together.
 
