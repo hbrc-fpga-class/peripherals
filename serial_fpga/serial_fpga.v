@@ -36,13 +36,13 @@ module serial_fpga #
     output wire intr,
 
     // HBA Bus Master Interface
-    input hba_mgrant,   // Master access has be granted.
-    input hba_xferack,  // Asserted when request has been completed.
-    input [7:0] hba_dbus,       // The read data bus.
-    output masterx_request,     // Requests access to the bus.
-    output [11:0] master_abus,  // The target address. Must be zero when inactive.
-    output master_rnw,          // 1=Read from register. 0=Write to register.
-    output [7:0] master_dbus    // The write data bus.
+    input wire hba_mgrant,   // Master access has be granted.
+    input wire hba_xferack,  // Asserted when request has been completed.
+    input wire [7:0] hba_dbus,       // The read data bus.
+    output wire masterx_request,     // Requests access to the bus.
+    output wire [11:0] master_abus,  // The target address. Must be zero when inactive.
+    output wire master_rnw,          // 1=Read from register. 0=Write to register.
+    output wire [7:0] master_dbus    // The write data bus.
 
 );
 
