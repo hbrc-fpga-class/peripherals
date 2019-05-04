@@ -16,6 +16,7 @@ the perspective of the peripheral.
   rising edge of this clock. 
 * __HBA_Reset (input)__ : This signal indicates the peripheral should be reset.
 * __HBA_RNW (input)__ : 1=Read from register. 0=Write to register.
+* __HBA_Select (input)__ : Indicates a transfer in progress.
 * __HBA_ABus[11:0] (input)__ : The address bus.
     * __bits[11:8]__ : These 4 bits are the peripheral address. Max number of
       peripherals 16.
