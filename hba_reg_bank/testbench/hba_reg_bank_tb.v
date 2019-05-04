@@ -76,9 +76,9 @@ initial begin
     $dumpvars(0, hba_reg_bank_tb);
     hba_clk = 0;
     hba_reset = 0;
-    hba_rnw = 1;
+    hba_rnw = 0;
     hba_select = 0;
-    hba_abus = 12'h5FF;
+    hba_abus = 0;
     hba_dbus = 0;
 
     // Wait 100ns
@@ -90,15 +90,41 @@ initial begin
     @(posedge hba_clk);
     hba_reset = 0;
     @(posedge hba_clk);
-    @(posedge hba_clk);
-    @(posedge hba_clk);
-    @(posedge hba_clk);
-    @(posedge hba_clk);
-    @(posedge hba_clk);
+    // Setup a write to reg1=0x12
+    hba_abus = 12'h501;
+    hba_dbus = 8'h12;
+    hba_rnw = 0;
+    hba_select = 1;
+    @(posedge regbank_xferack);
+    hba_select = 0;
+    $display("");
+    $display("***WRITE to reg1=0x12");
     $display("hba_abus: %x",hba_abus);
+    $display("hba_dbus: %x",hba_dbus);
     $display("periph_addr: %x",dut.periph_addr);
     $display("PERIPH_ADDR: %x",PERIPH_ADDR);
     $display("addr_decode_hit: %x",dut.addr_decode_hit);
+    $display("reg1: %x",dut.reg1);
+    @(negedge regbank_xferack);
+    @(posedge hba_clk);
+    @(posedge hba_clk);
+    $display("");
+    $display("addr_hit: %x, Done so should be 0.",dut.addr_hit);
+    @(posedge hba_clk);
+    // Setup a read from reg1
+    hba_abus = 12'h501;
+    hba_dbus = 8'h00;
+    hba_rnw = 1;
+    hba_select = 1;
+    @(posedge regbank_xferack);
+    hba_select = 0;
+    // Check value on the regbank_dbus
+    $display("");
+    $display("***READ reg1 from regbank_dbus");
+    $display("regbank_dbus: %x",regbank_dbus);
+    @(negedge regbank_xferack);
+    @(posedge hba_clk);
+    @(posedge hba_clk);
     @(posedge hba_clk);
     $finish;
 end
