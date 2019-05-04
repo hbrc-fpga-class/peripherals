@@ -37,31 +37,53 @@ module hba_reg_bank #
     // HBA Bus Slave Interface
     input wire hba_clk,
     input wire hba_reset,
-    input wire hba_rwn,         // 1=Read from register. 0=Write to register.
+    input wire hba_rnw,         // 1=Read from register. 0=Write to register.
+    input wire hba_select,      // Transfer in progress.
     input wire [ADDR_WIDTH-1:0] hba_abus, // The input address bus.
     input wire [DBUS_WIDTH-1:0] hba_dbus,  // The input data bus.
 
-    output wire [DBUS_WIDTH-1:0] slave_dbus,   // The output data bus.
-    output wire slave_interrupt     // Send interrupt back
+    output reg [DBUS_WIDTH-1:0] regbank_dbus,   // The output data bus.
+    output reg regbank_xferack,    // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    output wire regbank_interrupt   // Send interrupt back
 );
 
 /*
 *****************************
-* Signals
+* Signals and Assignments
 *****************************
 */
 
+wire [PERIPH_ADDR_WIDTH-1:0] periph_addr = 
+    hba_abus[ADDR_WIDTH-1:ADDR_WIDTH-PERIPH_ADDR_WIDTH];
+
+// logic to decode addresses
+wire addr_decode_hit = (periph_addr == PERIPH_ADDR);
+wire addr_hit_clear = ~hba_select | regbank_xferack;
+
+assign regbank_interrupt = 0;     // No interrupts
+
+reg addr_hit;
 
 /*
 *****************************
-* Assignments
+* Main
 *****************************
 */
 
-assign slave_interrupt = 0;     // No interrupts
-
-// logic to decode addresses
-assign addr_decode_hit = (hba_abus
+// Generate addr_hit
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        addr_hit <= 0;
+    end else begin
+        if (addr_hit_clear)
+            addr_hit <= 1;
+        else
+            addr_hit <= addr_decode_hit;
+    end
+end
 
 
 endmodule
