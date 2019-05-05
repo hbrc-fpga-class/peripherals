@@ -1,0 +1,36 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Sun May  5 19:44:14 2019
+[*]
+[dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/serial_fpga/uart_tb/uart.vcd"
+[dumpfile_mtime] "Sun May  5 19:42:21 2019"
+[dumpfile_size] 5669410
+[savefile] "/home/brandonb/Projects/fpga_class/peripherals/serial_fpga/uart_tb/uart.gtkw"
+[timestart] 0
+[size] 1483 849
+[pos] -1 -1
+*-25.123262 17700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] uart_tb.
+[treeopen] uart_tb.dut._rx.
+[treeopen] uart_tb.dut._tx.
+[sst_width] 233
+[signals_width] 227
+[sst_expanded] 1
+[sst_vpaned_height] 231
+@28
+uart_tb.clk
+uart_tb.reset
+uart_tb.baudgen_restart
+uart_tb.ser_clk
+uart_tb.rxd
+uart_tb.rx_valid
+@22
+uart_tb.rx_data[7:0]
+@25
+uart_tb.clks_per_tick[9:0]
+@22
+uart_tb.tb_count[7:0]
+@28
+uart_tb.uart0_rd
+[pattern_trace] 1
+[pattern_trace] 0
