@@ -12,11 +12,13 @@ the RPI and the FPGA board. Inputs and output are from
 the perspective of the raspberry pi (RPI).
 * __txd (output)__ : Transmit data to the FPGA.
 * __rxd (input)__  : Receive data from the FPGA
-* __rts (output)__ : Request to Send. RPI asserts to signal transaction. Active low.
-Holds low until transaction is complete.
+* __rts (output)__ : Asserted to indicate the RPI is ready to receive data.
 * __intr (input)__ : Interrupt from FPGA. Indicates that the FPGA has data to be read.
-* __cts (input)__ : Clear to Send. Indicates that the FPGA is ready for a byte.  Active low.
-The RPI must check this signal is low before sending a new byte.
+* __cts (input)__ : Assert by the FPGA to indicate it is ready to receive data.
+
+NOTE: More information about the RTS/CTS handshaking:
+* [Section 3.1 : Hardware Flow Control](https://www.silabs.com/documents/public/application-notes/an0059.0-uart-flow-control.pdf)
+* [Raspberry Pi Hardware Flow Control](https://github.com/mholling/rpirtscts)
 
 ## Protocol
 
