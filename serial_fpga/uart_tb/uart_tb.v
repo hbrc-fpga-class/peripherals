@@ -199,7 +199,7 @@ always @ (posedge clk) begin
     end
 end
 
-// Wait for finsih
+// Wait for finish
 reg [9:0] extra_clocks;
 reg final_send2;
 always @ (posedge clk) 
@@ -214,21 +214,6 @@ begin
             if (extra_clocks == 0) begin
                 $finish;
             end
-        end
-    end
-end
-
-// Run for 1 second
-reg [31:0] counter;
-
-always @ (posedge clk)
-begin
-    if (reset) begin
-        counter <= 0;
-    end else begin
-        counter <= counter + 1;
-        if (counter == 1_000_000) begin
-            $finish;
         end
     end
 end
