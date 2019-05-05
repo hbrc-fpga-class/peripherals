@@ -41,6 +41,7 @@ the following additional signals.
 * __Master_ABus[11:0] (output)__ : The target address. Must be zero when inactive.
 * __Master_RNW (output)__ : 1=Read from register. 0=Write to register.
 * __Master_DBus[7:0] (output)__ : The write data bus.
+* __Master_Select (output)__ : Indicates a transfer in progress.
 
 Additional required signals that are also part of the Slave interface.
 * __HBA_Clk (input)__ : This is the bus clock.  The HBA Bus signals are valid on the
