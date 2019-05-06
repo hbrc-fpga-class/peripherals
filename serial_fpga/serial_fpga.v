@@ -31,7 +31,7 @@ module serial_fpga #
     parameter integer ADDR_WIDTH = PERIPH_ADDR_WIDTH + REG_ADDR_WIDTH
 )
 (
-    // Serial Interfac <= 0;
+    // Serial Interface
     input wire rxd,
     input wire cts,
     output wire txd,
