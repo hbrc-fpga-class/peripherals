@@ -41,14 +41,15 @@ module serial_fpga #
     // HBA Bus Master Interface
     input wire hba_clk,
     input wire hba_reset,
-    input wire hba_mgrant,   // Master access has be granted.
     input wire hba_xferack,  // Asserted when request has been completed.
     input wire [DBUS_WIDTH-1:0] hba_dbus,       // The read data bus.
-    output reg master_request,     // Requests access to the bus.
-    output reg [ADDR_WIDTH-1:0] master_abus,  // The target address. Must be zero when inactive.
-    output reg master_rnw,          // 1=Read from register. 0=Write to register.
-    output reg master_select,       // Transfer in progress
-    output reg [DBUS_WIDTH-1:0] master_dbus    // The write data bus.
+    // FIXME: handling the hba mgrant in this module for now
+    // XXX input wire hba_mgrant,   // Master access has be granted.
+    // XXX output reg master_request,     // Requests access to the bus.
+    output wire [ADDR_WIDTH-1:0] master_abus,  // The target address. Must be zero when inactive.
+    output wire master_rnw,          // 1=Read from register. 0=Write to register.
+    output wire master_select,       // Transfer in progress
+    output wire [DBUS_WIDTH-1:0] master_dbus    // The write data bus.
 
 );
 
@@ -65,6 +66,19 @@ reg [7:0] tx_data;
 wire rx_valid;
 wire tx_busy;
 wire [7:0] rx_data;
+
+// FIXME: Simple aribiter in this module for now.
+reg hba_mgrant;
+wire master_request;
+
+// App hba_master interface
+reg [PERIPH_ADDR_WIDTH-1:0] app_core_addr;
+reg [REG_ADDR_WIDTH-1:0] app_reg_addr;
+reg [DBUS_WIDTH-1:0] app_data_in;
+reg app_rnw;
+reg app_en_strobe;    // rising edge start state machine
+wire [DBUS_WIDTH-1:0] app_data_out;
+wire app_valid_out;    // read or write transfer complete. Assert one clock cycle.
 
 /*
 ****************************
@@ -91,11 +105,53 @@ buart # (
    .rx_data(rx_data)   // [7:0]
 );
 
+hba_master #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH)
+) hba_master_inst
+(
+    // App interface
+    .app_core_addr(app_core_addr),
+    .app_reg_addr(app_reg_addr),
+    .app_data_in(app_data_in),
+    .app_rnw(app_rnw),
+    .app_en_strobe(app_en_strobe),  // rising edge start state machine
+    .app_data_out(app_data_out),
+    .app_valid_out(app_valid_out),  // read or write transfer complete. Assert one clock cycle.
+
+    // HBA Bus Master Interface
+    .hba_clk(hba_clk),
+    .hba_reset(hba_reset),
+    .hba_mgrant(hba_mgrant),   // Master access has be granted.
+    .hba_xferack(hba_xferack),  // Asserted when request has been completed.
+    .hba_dbus(hba_dbus),       // The read data bus.
+    .master_request(master_request),     // Requests access to the bus.
+    .master_abus(master_abus),  // The target address. Must be zero when inactive.
+    .master_rnw(master_rnw),         // 1=Read from register. 0=Write to register.
+    .master_select(master_select),      // Transfer in progress
+    .master_dbus(master_dbus)    // The write data bus.
+
+);
+
 /*
 ****************************
 * Main
 ****************************
 */
+
+// A simple Arbiter.  We only have 1 master for now
+// so always grant access.
+// FIXME : Move this to top level or into it own module.
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        hba_mgrant <= 0;
+    end else begin
+        hba_mgrant <= master_request;
+    end
+end
 
 // register rx_valid to find edges
 reg rx_valid_reg;
@@ -114,6 +170,7 @@ reg [7:0] serial_state;
 
 reg [7:0] cmd_byte;
 reg [7:0] regaddr_byte;
+reg [2:0] transfer_num;
 
 // States
 localparam IDLE                     = 0;
@@ -122,6 +179,7 @@ localparam READ_ECHO_CMD            = 2;
 localparam READ_ECHO_CMD_WAIT       = 3;
 localparam READ_ECHO_RAD            = 4;
 localparam READ_ECHO_RAD_WAIT       = 5;
+localparam READ_TRANSFER            = 6;
 
 localparam WRITE_OP    = 15;
 
@@ -137,6 +195,7 @@ begin
         regaddr_byte <= 0;
         uart0_rd <= 0;
         uart0_wr <= 0;
+        transfer_num <= 0;
     end else begin
         case (serial_state)
             IDLE : begin
@@ -144,11 +203,13 @@ begin
                 rts <= 1;
                 uart0_rd <= 0;
                 uart0_wr <= 0;
+                transfer_num <= 0;
 
                 // Wait for the cmd byte
                 if (rx_valid_posedge) begin
                     uart0_rd <= 1;
                     cmd_byte <= rx_data;
+                    transfer_num <= rx_data[3:1];
                     serial_state <= REG_ADDR;
                 end
             end
@@ -202,8 +263,10 @@ begin
                 if (!tx_busy && rx_valid) begin
                     // Finished tx and received dummy byte
                     uart0_rd <= 1;
-                    // XXX serial_state <= READ_ECHO_RAD_WAIT;
+                    serial_state <= READ_TRANSFER;
                 end
+            end
+            READ_TRANSFER : begin
             end
 
 

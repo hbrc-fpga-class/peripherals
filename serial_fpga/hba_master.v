@@ -28,13 +28,13 @@ module hba_master #
 )
 (
     // App interface
-    input wire [PERIPH_ADDR_WIDTH-1:0] core_addr,
-    input wire [REG_ADDR_WIDTH-1:0] reg_addr,
-    input wire [DBUS_WIDTH:0] data_in,
-    input wire rnw,
-    input en_strobe,    // rising edge start state machine
-    output reg [7:0] data_out,
-    output reg valid_out,    // read or write transfer complete. Assert one clock cycle.
+    input wire [PERIPH_ADDR_WIDTH-1:0] app_core_addr,
+    input wire [REG_ADDR_WIDTH-1:0] app_reg_addr,
+    input wire [DBUS_WIDTH-1:0] app_data_in,
+    input wire app_rnw,
+    input wire app_en_strobe,    // rising edge start state machine
+    output reg [DBUS_WIDTH-1:0] app_data_out,
+    output reg app_valid_out,    // read or write transfer complete. Assert one clock cycle.
 
     // HBA Bus Master Interface
     input wire hba_clk,
@@ -56,9 +56,9 @@ module hba_master #
 ****************************
 */
 
-// When app assert en_strobe request access to the mba bus
+// When app assert app_en_strobe request access to the mba bus
 // from the mba_arbiter.
-assign master_request = en_strobe && (hba_state == IDLE);
+assign master_request = app_en_strobe && (hba_state == IDLE);
 
 
 /*
@@ -71,10 +71,10 @@ assign master_request = en_strobe && (hba_state == IDLE);
 // HBA Master State Machine
 reg [7:0] hba_state;
 
-reg [PERIPH_ADDR_WIDTH-1:0] core_addr_reg;
-reg [REG_ADDR_WIDTH-1:0] reg_addr_reg;
-reg [DBUS_WIDTH:0] data_in_reg;
-reg rnw_reg;
+reg [PERIPH_ADDR_WIDTH-1:0] app_core_addr_reg;
+reg [REG_ADDR_WIDTH-1:0] app_reg_addr_reg;
+reg [DBUS_WIDTH:0] app_data_in_reg;
+reg app_rnw_reg;
 
 // States
 localparam IDLE         = 0;
@@ -90,13 +90,13 @@ begin
         master_select <= 0;
         master_dbus <= 0;
 
-        core_addr_reg <= 0;
-        reg_addr_reg <= 0;
-        data_in_reg <= 0;
-        rnw_reg <= 0;
+        app_core_addr_reg <= 0;
+        app_reg_addr_reg <= 0;
+        app_data_in_reg <= 0;
+        app_rnw_reg <= 0;
 
-        data_out <= 0;
-        valid_out <= 0;
+        app_data_out <= 0;
+        app_valid_out <= 0;
     end else begin
         case (hba_state)
             IDLE : begin
@@ -104,22 +104,22 @@ begin
                 master_rnw <= 0;
                 master_select <= 0;
                 master_dbus <= 0;
-                valid_out <= 0;
-                if (en_strobe) begin
+                app_valid_out <= 0;
+                if (app_en_strobe) begin
                     // register the inputs
-                    core_addr_reg <= core_addr;
-                    reg_addr_reg <= reg_addr;
-                    data_in_reg <= data_in;
-                    rnw_reg <= rnw;
+                    app_core_addr_reg <= app_core_addr;
+                    app_reg_addr_reg <= app_reg_addr;
+                    app_data_in_reg <= app_data_in;
+                    app_rnw_reg <= app_rnw;
                     hba_state <= GRANT_WAIT;
                 end
             end
             GRANT_WAIT : begin
                 if (hba_mgrant) begin
                     // Access Granted. Place data on bus
-                    master_abus <= {core_addr_reg, reg_addr_reg};
-                    master_rnw <= rnw_reg;
-                    master_dbus <= (rnw_reg) ? 0 : data_in_reg ;
+                    master_abus <= {app_core_addr_reg, app_reg_addr_reg};
+                    master_rnw <= app_rnw_reg;
+                    master_dbus <= (app_rnw_reg) ? 0 : app_data_in_reg ;
                     master_select <= 1;
                     hba_state <= XFER_WAIT;
                 end
@@ -127,8 +127,8 @@ begin
             XFER_WAIT : begin
                 if (hba_xferack) begin
                     // Slave replied the xfer has been completed
-                    data_out <= (rnw_reg) ? hba_dbus : 0;
-                    valid_out <= 1;
+                    app_data_out <= (app_rnw_reg) ? hba_dbus : 0;
+                    app_valid_out <= 1;
                     hba_state <= IDLE;
                 end
             end
