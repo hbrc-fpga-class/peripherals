@@ -56,4 +56,6 @@ together.
 Each peripheral master gets dedicated __HBA_MXGrant__ and __HBA_MasterX_request__
 signals back to the HBA Bus Arbiter. The 'X' represents a unique number.
 
+## TODO
+* Update to support burst transactions.
 
