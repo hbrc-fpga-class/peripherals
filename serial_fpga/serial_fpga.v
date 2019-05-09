@@ -209,7 +209,7 @@ begin
                 if (rx_valid_posedge) begin
                     uart0_rd <= 1;
                     cmd_byte <= rx_data;
-                    transfer_num <= rx_data[3:1];
+                    transfer_num <= rx_data[3:1] + 1;
                     serial_state <= REG_ADDR;
                 end
             end
@@ -266,7 +266,15 @@ begin
                     serial_state <= READ_TRANSFER;
                 end
             end
-            READ_TRANSFER : begin
+            READ_HBA : begin
+                if (transfer_num == 0) begin
+                    serial_state <= DONE;
+                end
+                transfer_num <= transfer_num - 1;
+                app_core_addr <= cmd_byte[3:1];
+                app_reg_addr <= regaddr_byte;
+
+
             end
 
 
