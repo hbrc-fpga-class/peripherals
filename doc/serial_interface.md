@@ -28,12 +28,12 @@ parts, core address and register address.  The core address is 4-bits
 So there can be a total of 16 cores.  The register address is 8-bits,
 so each core can have up to 256 registers.  The basic protocol looks like
 this:
-* __Command[3:0]__ : This is the command nibble.
-    * __0__ : Read=1, Write=0.
-    * __3:1__ : The number of bytes to read or write minus 1.  So 1 to 8 bytes
+* __Command[7:0]__ : This is the command nibble.
+    * __7__ : Read=1, Write=0.
+    * __6:4__ : The number of bytes to read or write minus 1.  So 1 to 8 bytes
     can be transfered in one transaction.  The register address is auto incremented
     after each data byte.
-* __CoreAddress[3:0]__ : The Core Address.  Selects desired core.
+    * __3:0__ : The Core Address.  Selects desired core.
 * __RegAddress[7:0]__ : The Register Address.  Selects register index of selected
 * __Read Header (READ ONLY)__ : The First two bytes (Command[3:0], CoreAddress[3:0], RegAddress[7:0])  are echoed back for read operations.  The bytes are echoed back on __rxd__.  Simultaneously the RPI send two dummy bytes on __txd__.  This allows the RPI to control the data rate sent from the FPGA.
 * __Data0..N-1[7:0]__ : The N bytes of data to read or write.  Data direction
