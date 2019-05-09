@@ -43,5 +43,8 @@ reg address is written first.  The FPGA will auto-increment the reg address afte
 * __ACK/NACK (WRITE ONLY)__ : For a write operation. The FPGA sends an ACK to confirm the writes occured or a NACK
 if there was an error.  The value for ACK is 0xAC, the value for NACK is 0x56.  For read operations no ACK/NACK is returned.
 
+## Notes
+* The Handshaking signals __rts__ and __cts__ are probably not necessary.
+* Perhaps we can do away with sending the number of bytes to read or write.  We could have a __done__ signal which is asserted to indicate the end of a read or write packet.
 
 
