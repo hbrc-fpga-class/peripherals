@@ -33,9 +33,7 @@ module serial_fpga #
 (
     // Serial Interface
     input wire rxd,
-    input wire cts,
     output wire txd,
-    output reg rts,
     output reg intr,
 
     // HBA Bus Master Interface
@@ -180,8 +178,10 @@ localparam READ_ECHO_CMD_WAIT       = 3;
 localparam READ_ECHO_RAD            = 4;
 localparam READ_ECHO_RAD_WAIT       = 5;
 localparam READ_TRANSFER            = 6;
+localparam READ_HBA                 = 7;
 
 localparam WRITE_OP    = 15;
+localparam DONE    = 20;
 
 localparam READ             = 1;
 
@@ -189,7 +189,6 @@ always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         serial_state <= IDLE;
-        rts <= 0;
         intr <= 0;
         cmd_byte <= 0;
         regaddr_byte <= 0;
@@ -199,8 +198,6 @@ begin
     end else begin
         case (serial_state)
             IDLE : begin
-                // Assert RTS to indicate we are ready to receive data
-                rts <= 1;
                 uart0_rd <= 0;
                 uart0_wr <= 0;
                 transfer_num <= 0;
@@ -229,12 +226,9 @@ begin
             READ_ECHO_CMD : begin
                 // Echo back the command
                 uart0_rd <= 0;
-                uart0_wr <= 0;
-                if (cts == 1) begin
-                    tx_data <= cmd_byte;
-                    uart0_wr <= 1;
-                    serial_state <= READ_ECHO_CMD_WAIT;
-                end
+                tx_data <= cmd_byte;
+                uart0_wr <= 1;
+                serial_state <= READ_ECHO_CMD_WAIT;
             end
             READ_ECHO_CMD_WAIT : begin
                 // Wait for the send to complete
@@ -249,12 +243,10 @@ begin
             READ_ECHO_RAD : begin
                 // Echo back the Reg ADdr
                 uart0_rd <= 0;
-                uart0_wr <= 0;
-                if (cts == 1) begin
-                    tx_data <= regaddr_byte;
-                    uart0_wr <= 1;
-                    serial_state <= READ_ECHO_RAD_WAIT;
-                end
+
+                tx_data <= regaddr_byte;
+                uart0_wr <= 1;
+                serial_state <= READ_ECHO_RAD_WAIT;
             end
             READ_ECHO_RAD_WAIT : begin
                 // Wait for the send to complete
@@ -279,6 +271,9 @@ begin
 
 
 
+            DONE : begin
+                serial_state <= IDLE;
+            end
 
             WRITE_OP : begin
             end
