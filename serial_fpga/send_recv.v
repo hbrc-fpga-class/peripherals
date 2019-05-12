@@ -22,23 +22,25 @@ module send_recv
     input wire clk,
     input wire reset,
 
-    // user interface
-    input wire [7:0] in_tx_data,
-    input wire in_wr,
-    output reg out_rx_valid,
+    // control interface
+    input wire [7:0] serial_tx_data,
+    input wire serial_wr,
+    input wire serial_rd,
+    output reg serial_valid,
+    output reg [7:0] serial_rx_data,
 
     // TX uart interface
-    output reg [7:0] out_tx_data,
-    output reg out_wr_strobe,
-    input wire in_tx_busy,
+    output reg [7:0] tx_data,
+    output reg tx_wr_strobe,
+    input wire tx_busy,
 
     // RX uart interface
-    input wire [7:0] in_rx_data,
-    input wire in_rx_valid,
-    output reg out_rd_strobe
+    input wire [7:0] rx_data,
+    input wire rx_valid,
+    output reg rx_rd_strobe
 );
 
-reg [7:0] in_tx_data_reg;
+reg [7:0] serial_tx_data_reg;
 reg [2:0] send_recv_state;
 
 // States
@@ -49,38 +51,45 @@ localparam READ_CHAR    = 3;
 always @ (posedge clk)
 begin
     if (reset) begin
-        out_wr_strobe <= 0;
-        out_rd_strobe <= 0;
-        out_rx_valid <= 0;
-        in_tx_data_reg <= 0;
-        out_tx_data <= 0;
+        tx_wr_strobe <= 0;
+        rx_rd_strobe <= 0;
+        serial_valid <= 0;
+        serial_tx_data_reg <= 0;
+        tx_data <= 0;
     end else begin
         case (send_recv_state)
             IDLE : begin
-                out_wr_strobe <= 0;
-                out_rd_strobe <= 0;
-                out_rx_valid <= 0;
+                tx_wr_strobe <= 0;
+                rx_rd_strobe <= 0;
+                serial_valid <= 0;
 
-                if (in_wr) begin
-                    // Start the transaction
-                    in_tx_data_reg <= in_tx_data;
+                if (serial_wr) begin
+                    // Write then read
+                    serial_tx_data_reg <= serial_tx_data;
                     send_recv_state <= WRITE_CHAR;
+                end
+
+                if (serial_rd) begin
+                    // Read only
+                    send_recv_state <= READ_CHAR;
                 end
             end
             WRITE_CHAR : begin
                 // Send the char
-                if (!in_tx_busy) begin
-                    out_tx_data <= in_tx_data_reg;
-                    out_wr_strobe <= 1;
+                if (!tx_busy) begin
+                    tx_data <= serial_tx_data_reg;
+                    tx_wr_strobe <= 1;
                     send_recv_state <= READ_CHAR;
                 end
             end
             READ_CHAR : begin
+                tx_wr_strobe <= 0;
                 // Wait for reception of char to proceed
-                if (in_rx_valid) begin
+                if (rx_valid) begin
                     // Received a byte
-                    out_rd_strobe <= 1;
-                    out_rx_valid <= 1;
+                    rx_rd_strobe <= 1;
+                    serial_valid <= 1;
+                    serial_rx_data <= rx_data;
                     send_recv_state <= IDLE;
                 end
             end

@@ -57,9 +57,9 @@ module serial_fpga #
 ****************************
 */
 
-reg uart0_rd;
-reg uart0_wr;
-reg [7:0] tx_data;
+wire uart0_rd;
+wire uart0_wr;
+wire [7:0] tx_data;
 
 wire rx_valid;
 wire tx_busy;
@@ -78,6 +78,12 @@ reg app_en_strobe;    // rising edge start state machine
 wire [DBUS_WIDTH-1:0] app_data_out;
 wire app_valid_out;    // read or write transfer complete. Assert one clock cycle.
 
+// send_recv UI
+reg [7:0] serial_tx_data;
+reg serial_wr;
+reg serial_rd;
+wire serial_valid;
+wire [7:0] serial_rx_data;
 
 
 /*
@@ -103,6 +109,29 @@ buart # (
    .valid(rx_valid),   // has recv data 
    .busy(tx_busy),     // is transmitting
    .rx_data(rx_data)   // [7:0]
+);
+
+send_recv send_recv_inst
+(
+    .clk(hba_clk),
+    .reset(hba_reset),
+
+    // control interface
+    .serial_tx_data(serial_tx_data), // [7:0]
+    .serial_wr(serial_wr),
+    .serial_rd(serial_rd),
+    .serial_valid(serial_valid),
+    .serial_rx_data(serial_rx_data),
+
+    // TX uart interface
+    .tx_data(tx_data), // [7:0]
+    .tx_wr_strobe(uart0_wr),
+    .tx_busy(tx_busy),
+
+    // RX uart interface
+    .rx_data(rx_data), // [7:0]
+    .rx_valid(rx_valid),
+    .rx_rd_strobe(uart0_rd)
 );
 
 hba_master #
@@ -135,6 +164,7 @@ hba_master #
 
 );
 
+
 /*
 ****************************
 * Main
@@ -153,51 +183,34 @@ begin
     end
 end
 
-// register rx_valid to find edges
-reg rx_valid_reg;
-wire rx_valid_posedge = rx_valid & ~rx_valid_reg;
-always @ (posedge hba_clk)
-begin
-    if (hba_reset) begin
-        rx_valid_reg <= 0;
-    end else begin
-        rx_valid_reg <= rx_valid;
-    end
-end
 
 // Serial Interface State Machine.
-reg [7:0] serial_state;
+reg [2:0] serial_state;
 
 reg [7:0] cmd_byte;
 reg [7:0] regaddr_byte;
 reg [2:0] transfer_num;
 
 wire rnw_bit;
+wire [2:0] num_bytes_bits;
 wire [3:0] core_addr_bits;
 
 assign rnw_bit = cmd_byte[7];
+assign num_bytes_bits = cmd_byte[6:4];
 assign core_addr_bits = cmd_byte[3:0];
 
 // States
 localparam IDLE                     = 0;
 localparam REG_ADDR                 = 1;
-localparam READ_ECHO_CMD            = 2;
-localparam READ_ECHO_CMD_WAIT       = 3;
-localparam READ_ECHO_RAD            = 4;
-localparam READ_ECHO_RAD_WAIT       = 5;
-localparam READ_TRANSFER            = 6;
-
-localparam HBA_SETUP                = 7;
-localparam HBA_WAIT                 = 8;
-
-localparam WRITE_OP                 = 15;
-
-
-localparam DONE    = 20;
+localparam ECHO_CMD                 = 2;
+localparam ECHO_RAD                 = 3;
+localparam HBA_SETUP                = 4;
+localparam HBA_WAIT                 = 5;
+localparam ACK                      = 6;
 
 // rnw values
-localparam WRITE            = 0;
-localparam READ             = 1;
+localparam RPI_WRITE            = 0;
+localparam RPI_READ             = 1;
 
 // ACK constant
 localparam ACK_CHAR         =8'hAC;
@@ -210,8 +223,6 @@ begin
         intr <= 0;
         cmd_byte <= 0;
         regaddr_byte <= 0;
-        uart0_rd <= 0;
-        uart0_wr <= 0;
         transfer_num <= 0;
 
         app_core_addr <= 0;
@@ -219,78 +230,65 @@ begin
         app_data_in <= 0;
         app_rnw <= 0;
 
+        serial_tx_data <= 0;
+        serial_wr <= 0;
+        serial_rd <= 0;
 
     end else begin
         case (serial_state)
             IDLE : begin
-                uart0_rd <= 0;
-                uart0_wr <= 0;
+                serial_wr <= 0;
                 transfer_num <= 0;
                 app_en_strobe <= 0;
 
-                // Wait for the cmd byte
-                if (rx_valid_posedge) begin
-                    uart0_rd <= 1;
-                    cmd_byte <= rx_data;
-                    transfer_num <= rx_data[3:1] + 1;
+                // Read the cmd_byte
+                serial_rd <= 1;
+                if (serial_valid) begin
+                    serial_rd <= 0;
+                    cmd_byte <= serial_rx_data;
+                    transfer_num <= num_bytes_bits + 1;
                     serial_state <= REG_ADDR;
                 end
             end
             REG_ADDR : begin
-                uart0_rd <= 0;
-                // Wait for regAddr byte
-                if (rx_valid_posedge) begin
-                    uart0_rd <= 1;
-                    regaddr_byte <= rx_data;
-                    if (rnw_bit == READ) begin
-                        serial_state <= READ_ECHO_CMD;
+                // Read the regAddr byte
+                serial_rd <= 1;
+                if (serial_valid) begin
+                    serial_rd <= 0;
+                    regaddr_byte <= serial_rx_data;
+                    if (rnw_bit == RPI_READ) begin
+                        serial_state <= ECHO_CMD;
                     end else begin
                         serial_state <= HBA_SETUP;
                     end
                 end
             end
-            READ_ECHO_CMD : begin
+            ECHO_CMD : begin
                 // Echo back the command
-                uart0_rd <= 0;
-                tx_data <= cmd_byte;
-                uart0_wr <= 1;
-                serial_state <= READ_ECHO_CMD_WAIT;
-            end
-            READ_ECHO_CMD_WAIT : begin
-                // Wait for the send to complete
-                uart0_rd <= 0;
-                uart0_wr <= 0;
-                if (!tx_busy && rx_valid) begin
-                    // Finished tx and received dummy byte
-                    uart0_rd <= 1;
-                    serial_state <= READ_ECHO_RAD;
+                serial_tx_data <= cmd_byte;
+                serial_wr <= 1;
+                if (serial_valid) begin
+                    serial_wr <= 0;
+                    serial_state <= ECHO_RAD;
                 end
             end
-            READ_ECHO_RAD : begin
+            ECHO_RAD : begin
                 // Echo back the Reg ADdr
-                uart0_rd <= 0;
-
-                tx_data <= regaddr_byte;
-                uart0_wr <= 1;
-                serial_state <= READ_ECHO_RAD_WAIT;
-            end
-            READ_ECHO_RAD_WAIT : begin
-                // Wait for the send to complete
-                uart0_rd <= 0;
-                uart0_wr <= 0;
-                if (!tx_busy && rx_valid) begin
-                    // Finished tx and received dummy byte
-                    uart0_rd <= 1;
+                serial_tx_data <= regaddr_byte;
+                serial_wr <= 1;
+                if (serial_valid) begin
+                    serial_wr <= 0;
                     serial_state <= HBA_SETUP;
                 end
             end
-
             HBA_SETUP : begin
-                uart0_wr <= 0;
-                uart0_rd <= 0;
+                serial_wr <= 0;
+                serial_rd <= 0;
+                app_en_strobe <= 0;
 
+                // Done with Transfer?
                 if (transfer_num == 0) begin
-                    if (rnw_bit == READ) begin
+                    if (rnw_bit == RPI_READ) begin
                         serial_state <= IDLE;
                     end else begin
                         // Send ACK for a write
@@ -301,64 +299,55 @@ begin
                 transfer_num <= transfer_num - 1;
 
                 // Setup the hba_master core
-                app_en_strobe <= 0;
                 app_core_addr <= core_addr_bits;
                 app_reg_addr <= regaddr_byte;
                 app_rnw <= rnw_bit;
 
-                // Wait for the data byte
-                if (rx_valid_posedge) begin
-                    uart0_rd <= 1;
-                    app_data_in <= rx_data;
+                // Serial Op
+                if (rnw_bit == RPI_WRITE) begin
+                    // read from serial, then write to hba
+                    serial_rd <= 1;
+                    if (serial_valid) begin
+                        serial_rd <= 0;
+                        app_data_in <= serial_rx_data;
+                        app_en_strobe <= 1;
+                        serial_state <= HBA_WAIT;
+                    end
+                end else begin
+                    // read from hba, then write to serial
                     app_en_strobe <= 1;
                     serial_state <= HBA_WAIT;
                 end
+
             end
-
             HBA_WAIT : begin
-                uart0_wr <= 0;
-                uart0_rd <= 0;
-
+                app_en_strobe <= 0;
                 // Wait for hba bus to finish
                 if (app_valid_out) begin
-                    if (rnw_bit == WRITE) begin
+                    if (rnw_bit == RPI_WRITE) begin
                         serial_state <= HBA_SETUP;
                     end else begin
                         // Send read data over serial
-                        if (!tx_busy) begin
-                            tx_data <= app_data_out;
-                            uart0_wr <= 1;
+                        serial_tx_data <= app_data_out;
+                        serial_wr <= 1;
+                        if (serial_valid) begin
+                            serial_wr <= 0;
                             serial_state <= HBA_SETUP;
                         end
                     end
                 end
             end
-
             ACK : begin
-                uart0_rd <= 0;
-                uart0_wr <= 0;
-
-                // Send the ack
-                if (!tx_busy) begin
-                    tx_data <= ACK_CHAR;
-                    uart0_wr <=1;
-                    serial_state <= ACK_WAIT;
-                end
-            end
-
-            ACK_WAIT : begin
-                uart0_rd <= 0;
-                uart0_wr <= 0;
-
-                // Wait for reception of char to proceed
-                if (rx_valid) begin
-                    // Received dummy byte
-                    uart0_rd <= 1;
+                serial_tx_data <= ACK_CHAR;
+                serial_wr <= 1;
+                if (serial_valid) begin
+                    serial_wr <= 0;
                     serial_state <= IDLE;
                 end
             end
-
-
+            default : begin
+                serial_state <= IDLE;
+            end
         endcase
     end
 end
