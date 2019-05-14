@@ -44,9 +44,9 @@ reg [7:0] serial_tx_data_reg;
 reg [2:0] send_recv_state;
 
 // States
-localparam IDLE         = 1;
-localparam WRITE_CHAR   = 2;
-localparam READ_CHAR    = 3;
+localparam IDLE         = 0;
+localparam WRITE_CHAR   = 1;
+localparam READ_CHAR    = 2;
 
 always @ (posedge clk)
 begin
@@ -56,6 +56,7 @@ begin
         serial_valid <= 0;
         serial_tx_data_reg <= 0;
         tx_data <= 0;
+        serial_rx_data <= 0;
     end else begin
         case (send_recv_state)
             IDLE : begin

@@ -129,6 +129,7 @@ begin
                     // Slave replied the xfer has been completed
                     app_data_out <= (app_rnw_reg) ? hba_dbus : 0;
                     app_valid_out <= 1;
+                    master_select <= 0;
                     hba_state <= IDLE;
                 end
             end

@@ -1,0 +1,71 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Tue May 14 20:24:56 2019
+[*]
+[dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_test.vcd"
+[dumpfile_mtime] "Tue May 14 20:03:39 2019"
+[dumpfile_size] 45927679
+[savefile] "/home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_test.gtkw"
+[timestart] 169267
+[size] 1920 995
+[pos] -1 -1
+*-5.000000 169375 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] serial_test_tb.
+[treeopen] serial_test_tb.dut.
+[treeopen] serial_test_tb.dut.serial_fpga_inst.
+[sst_width] 233
+[signals_width] 286
+[sst_expanded] 1
+[sst_vpaned_height] 281
+@28
+serial_test_tb.dut.serial_fpga_inst.hba_clk
+serial_test_tb.dut.serial_fpga_inst.hba_reset
+@2024
+^1 /home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_state.txt
+serial_test_tb.dut.serial_fpga_inst.serial_state[2:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.serial_valid
+@22
+serial_test_tb.dut.serial_fpga_inst.serial_rx_data[7:0]
+serial_test_tb.dut.serial_fpga_inst.serial_tx_data[7:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.serial_wr
+@22
+serial_test_tb.dut.serial_fpga_inst.cmd_byte[7:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.num_bytes_bits[2:0]
+@25
+serial_test_tb.dut.serial_fpga_inst.transfer_num[3:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.rnw_bit
+@22
+serial_test_tb.dut.serial_fpga_inst.regaddr_byte[7:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.serial_rd
+@22
+serial_test_tb.dut.hba_reg_bank_inst.reg0[7:0]
+serial_test_tb.dut.hba_reg_bank_inst.reg1[7:0]
+serial_test_tb.dut.hba_reg_bank_inst.reg2[7:0]
+serial_test_tb.dut.hba_reg_bank_inst.reg3[7:0]
+@2024
+^2 /home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/regbank_state.txt
+serial_test_tb.dut.hba_reg_bank_inst.regbank_state[7:0]
+@28
+serial_test_tb.dut.hba_reg_bank_inst.addr_hit
+serial_test_tb.dut.hba_reg_bank_inst.hba_rnw
+serial_test_tb.dut.hba_reg_bank_inst.regbank_xferack
+@22
+serial_test_tb.dut.hba_reg_bank_inst.hba_abus[11:0]
+serial_test_tb.dut.hba_reg_bank_inst.hba_dbus[7:0]
+@28
+serial_test_tb.dut.hba_reg_bank_inst.addr_hit_clear
+serial_test_tb.dut.hba_reg_bank_inst.hba_select
+@200
+-
+@2024
+^3 /home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/send_recv_state.txt
+serial_test_tb.dut.serial_fpga_inst.send_recv_inst.send_recv_state[2:0]
+@28
+serial_test_tb.dut.serial_fpga_inst.send_recv_inst.rx_valid
+[pattern_trace] 1
+[pattern_trace] 0
