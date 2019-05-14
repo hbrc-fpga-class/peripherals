@@ -243,10 +243,8 @@ begin
                 app_en_strobe <= 0;
 
                 // Read the cmd_byte
-                if (!serial_rd) $display("\n%t: set serial_rd=1",$time);
                 serial_rd <= 1;
                 if (serial_valid) begin
-                    if (serial_rd) $display("\n%t: set serial_rd=0",$time);
                     serial_rd <= 0;
                     cmd_byte <= serial_rx_data;
                     $display("\n%t: *NEXT STATE*: REG_ADDR",$time);
@@ -290,7 +288,6 @@ begin
                 end
             end
             HBA_SETUP : begin
-                $display("\n%t: Enter HBA_SETUP",$time);
                 serial_wr <= 0;
                 // XXX serial_rd <= 0;
                 app_en_strobe <= 0;
@@ -298,18 +295,14 @@ begin
                 // Done with Transfer?
                 if (transfer_num == 0) begin
                     if (rnw_bit == RPI_READ) begin
-                        $display("\n%t: read transfer_num=0, goto IDLE",$time);
                         $display("\n%t: *NEXT STATE*: IDLE",$time);
                         serial_state <= IDLE;
                     end else begin
                         // Send ACK for a write
-                        $display("\n%t: write transfer_num=0, goto ACK",$time);
                         $display("\n%t: *NEXT STATE*: ACK",$time);
-                        $display("\n%t: serial_rd: %x",$time, serial_rd);
                         serial_state <= ACK;
                     end
                 end else begin
-                    $display("\n%t: transfer_num=%d",$time,transfer_num);
                     // Dec the transfer_num
                     transfer_num <= transfer_num - 1;
 
@@ -324,13 +317,11 @@ begin
                     // Serial Op
                     if (rnw_bit == RPI_WRITE) begin
                         // read from serial, then write to hba
-                        $display("\n%t: read from serial, goto HBA_SERIAL_READ",$time);
                         serial_rd <= 1;
                         $display("\n%t: *NEXT STATE*: HBA_SERIAL_READ",$time);
                         serial_state <= HBA_SERIAL_READ;
                     end else begin
                         // read from hba, then write to serial
-                        $display("\n%t: read from hba, goto HBA_WAIT",$time);
                         app_en_strobe <= 1;
                         $display("\n%t: *NEXT STATE*: HBA_WAIT",$time);
                         serial_state <= HBA_WAIT;
@@ -339,9 +330,7 @@ begin
 
             end
             HBA_SERIAL_READ : begin
-                // $display("\n%t: Enter HBA_SERIAL_READ",$time);
                 if (serial_valid) begin
-                    $display("\n%t: HBA_SERIAL_READ got char: %x",$time, serial_rx_data);
                     serial_rd <= 0;
                     app_data_in <= serial_rx_data;
                     app_en_strobe <= 1;
@@ -350,21 +339,17 @@ begin
                 end
             end
             HBA_WAIT : begin
-                // $display("\n%t: Enter HBA_WAIT",$time);
                 app_en_strobe <= 0;
                 // Wait for hba bus to finish
                 if (app_valid_out) begin
                     if (rnw_bit == RPI_WRITE) begin
-                        $display("\n%t: HBA_WAIT, hba write done",$time);
                         $display("\n%t: *NEXT STATE*: HBA_SETUP",$time);
                         serial_state <= HBA_SETUP;
                     end else begin
                         // Send read data over serial
-                        $display("\n%t: HBA_WAIT, app_data_out: %x",$time,app_data_out);
                         serial_tx_data <= app_data_out;
                         serial_wr <= 1;
                         if (serial_valid) begin
-                            $display("\n%t: HBA_WAIT, sent over serial",$time);
                             serial_wr <= 0;
                             $display("\n%t: *NEXT STATE*: HBA_SETUP",$time);
                             serial_state <= HBA_SETUP;
@@ -373,11 +358,9 @@ begin
                 end
             end
             ACK : begin
-                // $display("\n%t: Enter ACK",$time);
                 serial_tx_data <= ACK_CHAR;
                 serial_wr <= 1;
                 if (serial_valid) begin
-                    $display("\n%t: ACK, sent ACK char",$time);
                     serial_wr <= 0;
                     $display("\n%t: *NEXT STATE*: IDLE",$time);
                     serial_state <= IDLE;
