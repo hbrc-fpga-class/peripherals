@@ -68,6 +68,6 @@ VCD info: dumpfile serial_test.vcd opened for output.
 > make view
 ```
 
-![serial_test_tb waveform](images/serial_test.png)
+![serial_test_tb waveform](images/serial_test_tb.png)
 
 
