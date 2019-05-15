@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Tue May 14 20:24:56 2019
+[*] Wed May 15 00:44:15 2019
 [*]
 [dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_test.vcd"
-[dumpfile_mtime] "Tue May 14 20:03:39 2019"
-[dumpfile_size] 45927679
+[dumpfile_mtime] "Wed May 15 00:41:00 2019"
+[dumpfile_size] 69148800
 [savefile] "/home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_test.gtkw"
-[timestart] 169267
+[timestart] 0
 [size] 1920 995
 [pos] -1 -1
-*-5.000000 169375 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-19.000000 603395 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] serial_test_tb.
 [treeopen] serial_test_tb.dut.
 [treeopen] serial_test_tb.dut.serial_fpga_inst.
@@ -22,11 +22,12 @@ serial_test_tb.dut.serial_fpga_inst.hba_clk
 serial_test_tb.dut.serial_fpga_inst.hba_reset
 @2024
 ^1 /home/brandonb/Projects/fpga_class/peripherals/projects/serial_test/serial_test_tb/serial_state.txt
-serial_test_tb.dut.serial_fpga_inst.serial_state[2:0]
+serial_test_tb.dut.serial_fpga_inst.serial_state[3:0]
 @28
 serial_test_tb.dut.serial_fpga_inst.serial_valid
 @22
 serial_test_tb.dut.serial_fpga_inst.serial_rx_data[7:0]
+@23
 serial_test_tb.dut.serial_fpga_inst.serial_tx_data[7:0]
 @28
 serial_test_tb.dut.serial_fpga_inst.serial_wr
@@ -34,7 +35,7 @@ serial_test_tb.dut.serial_fpga_inst.serial_wr
 serial_test_tb.dut.serial_fpga_inst.cmd_byte[7:0]
 @28
 serial_test_tb.dut.serial_fpga_inst.num_bytes_bits[2:0]
-@25
+@24
 serial_test_tb.dut.serial_fpga_inst.transfer_num[3:0]
 @28
 serial_test_tb.dut.serial_fpga_inst.rnw_bit

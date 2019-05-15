@@ -20,7 +20,7 @@ module serial_test_tb;
 // Parameters
 parameter integer CLK_FREQUENCY     = 100_000_000;
 parameter integer BAUD              = 115_200;
-parameter integer NUM_OF_BYTES      = 7;  // (serial_test.dat)
+parameter integer NUM_OF_BYTES      = 15;  // (serial_test.dat)
 
 // Inputs (Registers)
 reg clk_100mhz;
@@ -48,6 +48,7 @@ reg done;
 reg [7:0] echo_cmd;
 reg [7:0] echo_regaddr;
 reg [7:0] read_ack;
+reg [7:0] read_data;
 
 // TestBench memory
 reg [7:0] tv_mem [0:NUM_OF_BYTES-1];
@@ -108,6 +109,7 @@ begin
     echo_cmd = 0;
     echo_regaddr = 0;
     read_ack = 0;
+    read_data = 0;
 
     // 5 clock signals
     @(posedge clk_100mhz);
@@ -120,11 +122,13 @@ begin
     @(posedge clk_100mhz);
 
     write_test;
+    read_test;
 
     @(posedge clk_100mhz);
     @(posedge clk_100mhz);
     @(posedge clk_100mhz);
     @(posedge clk_100mhz);
+
     $finish;
 
 end
@@ -195,7 +199,10 @@ begin
         if (rx_valid==1)
         begin
             char = rx_data;
+            uart0_rd = 1;
             done = 1;
+            @ (posedge clk_100mhz);
+            uart0_rd = 0;
         end
         @ (posedge clk_100mhz);
         i = i + 1;
@@ -213,21 +220,21 @@ task write_test;
 begin
     $display("\n%t: BEGIN write_test",$time);
     // Send the command
-    $display("%t: send cmd=%d",$time,tv_mem[0]);
+    $display("%t: send cmd=%x",$time,tv_mem[0]);
     send_char(tv_mem[0]);
 
     // Send the reg_Addr
-    $display("%t: send regaddr=%d",$time,tv_mem[1]);
+    $display("%t: send regaddr=%x",$time,tv_mem[1]);
     send_char(tv_mem[1]);
 
     // send data
-    $display("%t: send data0=%d",$time,tv_mem[2]);
+    $display("%t: send data0=%x",$time,tv_mem[2]);
     send_char(tv_mem[2]);
-    $display("%t: send data1=%d",$time,tv_mem[3]);
+    $display("%t: send data1=%x",$time,tv_mem[3]);
     send_char(tv_mem[3]);
-    $display("%t: send data2=%d",$time,tv_mem[4]);
+    $display("%t: send data2=%x",$time,tv_mem[4]);
     send_char(tv_mem[4]);
-    $display("%t: send data3=%d",$time,tv_mem[5]);
+    $display("%t: send data3=%x",$time,tv_mem[5]);
     send_char(tv_mem[5]);
 
     // Read ACK
@@ -236,6 +243,56 @@ begin
     $display("%t:   recv read_ack=%x",$time,read_ack);
 
     $display("\n%t: END write_test",$time);
+end
+endtask
+
+// Read test
+task read_test;
+begin
+    $display("\n%t: BEGIN read_test",$time);
+
+    // Send the command
+    $display("%t: send cmd=%x",$time,tv_mem[7]);
+    send_char(tv_mem[7]);
+
+    // Send the reg_Addr
+    $display("%t: send regaddr=%x",$time,tv_mem[8]);
+    send_char(tv_mem[8]);
+
+    // Read echo_cmd
+    $display("%t: send dummy=%x",$time,tv_mem[9]);
+    send_char(tv_mem[9]);
+    read_char(echo_cmd);
+    $display("%t:   recv echo_cmd=%x",$time,echo_cmd);
+
+    // Read echo_regaddr
+    $display("%t: send dummy=%x",$time,tv_mem[10]);
+    send_char(tv_mem[10]);
+    read_char(echo_regaddr);
+    $display("%t:   recv echo_regaddr=%x",$time,echo_regaddr);
+
+    // read the data
+    $display("%t: send dummy0=%x",$time,tv_mem[11]);
+    send_char(tv_mem[11]);
+    read_char(read_data);
+    $display("%t:   recv read_data=%x",$time,read_data);
+
+    $display("%t: send dummy1=%x",$time,tv_mem[12]);
+    send_char(tv_mem[12]);
+    read_char(read_data);
+    $display("%t:   recv read_data=%x",$time,read_data);
+
+    $display("%t: send dummy2=%x",$time,tv_mem[13]);
+    send_char(tv_mem[13]);
+    read_char(read_data);
+    $display("%t:   recv read_data=%x",$time,read_data);
+
+    $display("%t: send dummy3=%x",$time,tv_mem[14]);
+    send_char(tv_mem[14]);
+    read_char(read_data);
+    $display("%t:   recv read_data=%x",$time,read_data);
+
+    $display("\n%t: END read_test",$time);
 end
 endtask
 
