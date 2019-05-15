@@ -6,7 +6,7 @@ This testbench simulates a host (raspberry pi)
 sending read and write packets over an rs232
 serial connection.  It test the protocol
 specified in the 
-[Serial Interface](/home/brandonb/Projects/fpga_class/peripherals/serial_fpga/uart_tb)
+[Serial Interface](https://github.com/hbrc-fpga-class/peripherals/blob/master/doc/serial_interface.md)
 document.
 
 The testbench uses iverilog and gtkwave.  It has a Makefile which
