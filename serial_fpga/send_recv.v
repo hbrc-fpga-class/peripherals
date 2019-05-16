@@ -51,6 +51,7 @@ localparam READ_CHAR    = 2;
 always @ (posedge clk)
 begin
     if (reset) begin
+        send_recv_state <= 0;
         tx_wr_strobe <= 0;
         rx_rd_strobe <= 0;
         serial_valid <= 0;

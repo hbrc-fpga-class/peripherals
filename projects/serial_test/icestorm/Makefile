@@ -1,7 +1,7 @@
 PROJ = top
 
 DEVICE = lp8k
-SOURCES = ../$(PROJ).v ../pll_100mhz.v ../serial_test.v ../../../serial_fpga/uart.v ../../../serial_fpga/send_recv.v ../../../serial_fpga/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v
+SOURCES = ../$(PROJ).v ../pll_50mhz.v ../serial_test.v ../../../serial_fpga/uart.v ../../../serial_fpga/send_recv.v ../../../serial_fpga/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v
 
 PIN_DEF = ../pins.pcf
 

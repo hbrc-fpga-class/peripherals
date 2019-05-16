@@ -1,7 +1,7 @@
 PROJ = top_loopback
 
 DEVICE = lp8k
-SOURCES = ../$(PROJ).v ../pll_100mhz.v ../uart.v
+SOURCES = ../$(PROJ).v ../pll_50mhz.v ../uart.v
 
 PIN_DEF = ../pins.pcf
 

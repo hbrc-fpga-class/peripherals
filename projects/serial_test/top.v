@@ -32,7 +32,7 @@ module top
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 100_000_000;
+parameter integer CLK_FREQUENCY = 50_000_000;
 parameter integer BAUD = 32'd115_200;
 
 parameter integer DBUS_WIDTH = 8;
@@ -45,7 +45,7 @@ parameter integer REG_ADDR_WIDTH = 8;
 ********************************************
 */
 
-wire clk_100mhz;
+wire clk_50mhz;
 wire locked;
 wire rxd;
 wire txd;
@@ -53,7 +53,7 @@ wire txd;
 reg reset = 0;
 reg [7:0] count = 0;
 
-assign PIN_1 = rxd;
+assign rxd = PIN_1;
 assign PIN_2 = txd;
 assign LED = locked;
 
@@ -64,16 +64,16 @@ assign LED = locked;
 ****************************
 */
 
-// Use PLL to get 100mhz clock
-pll_100mhz pll_100mhz_inst (
+// Use PLL to get 50mhz clock
+pll_50mhz pll_50mhz_inst (
     .clock_in(CLK_16MHZ),
-    .clock_out(clk_100mhz),
+    .clock_out(clk_50mhz),
     .locked(locked)
 );
 
 serial_test serial_test_inst
 (
-    .clk_100mhz(clk_100mhz),
+    .clk_100mhz(clk_50mhz),
     .reset(reset),
     .rxd(rxd),
     .txd(txd)
@@ -88,7 +88,7 @@ serial_test serial_test_inst
 // Hold reset on power up then release.
 // ice40 sets all registers to zero on power up.
 // Holding reset will set to default values.
-always @ (posedge clk_100mhz)
+always @ (posedge clk_50mhz)
 begin
     if (count < 10) begin
         reset <= 1;
