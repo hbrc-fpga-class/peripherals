@@ -261,6 +261,7 @@ void usercmd(
     else if ((cmd == EDSET) && (rscid == RSC_RAWOUT)) {
         // User has given us a line of space separated 8-bit hex values.
         // Convert the values to binary 
+        pctx->outidx = 0;
         pbyte = strtok(val, " ");
         while (pbyte) {
             sscanf(pbyte, "%x", &tmp);
