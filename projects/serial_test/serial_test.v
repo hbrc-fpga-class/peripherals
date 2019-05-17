@@ -20,23 +20,25 @@
 // Force error when implicit net has no type.
 `default_nettype none
 
-module serial_test
+module serial_test # 
 (
-    input wire  clk_100mhz,
+    // Parameters
+    parameter integer CLK_FREQUENCY = 100_000_000,
+    parameter integer BAUD = 32'd115_200,
+
+    parameter integer DBUS_WIDTH = 8,
+    parameter integer PERIPH_ADDR_WIDTH = 4,
+    parameter integer REG_ADDR_WIDTH = 8,
+    // Default ADDR_WIDTH = 12
+    parameter integer ADDR_WIDTH = PERIPH_ADDR_WIDTH + REG_ADDR_WIDTH
+)
+(
+    input wire  clk,
     input wire  reset,
     input wire  rxd,
     output wire txd
 );
 
-// Parameters
-parameter integer CLK_FREQUENCY = 100_000_000;
-parameter integer BAUD = 32'd115_200;
-
-parameter integer DBUS_WIDTH = 8;
-parameter integer PERIPH_ADDR_WIDTH = 4;
-parameter integer REG_ADDR_WIDTH = 8;
-// Default ADDR_WIDTH = 12
-parameter integer ADDR_WIDTH = PERIPH_ADDR_WIDTH + REG_ADDR_WIDTH;
 
 /*
 ********************************************
@@ -74,7 +76,7 @@ serial_fpga #
     // XXX .intr(),
 
     // HBA Bus Master Interface
-    .hba_clk(clk_100mhz),
+    .hba_clk(clk),
     .hba_reset(reset),
     .hba_xferack(hba_xferack),  // Asserted when request has been completed.
     .hba_dbus(regbank_dbus),       // The read data bus.
@@ -97,7 +99,7 @@ hba_reg_bank #
 ) hba_reg_bank_inst
 (
     // HBA Bus Slave Interface
-    .hba_clk(clk_100mhz),
+    .hba_clk(clk),
     .hba_reset(reset),
     .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
     .hba_select(hba_select),      // Transfer in progress.

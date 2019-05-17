@@ -23,7 +23,7 @@ parameter integer BAUD              = 115_200;
 parameter integer NUM_OF_BYTES      = 15;  // (serial_test.dat)
 
 // Inputs (Registers)
-reg clk_100mhz;
+reg clk;
 reg reset;
 
 reg uart0_rd;
@@ -59,9 +59,12 @@ reg [7:0] tv_mem [0:NUM_OF_BYTES-1];
 ********************************************
 */
 
-serial_test dut
+serial_test #
 (
-    .clk_100mhz(clk_100mhz),
+    .CLK_FREQUENCY(CLK_FREQUENCY),
+    .BAUD(BAUD)
+) dut (
+    .clk(clk),
     .reset(reset),
     // swap the txd and rxd
     .rxd(txd),
@@ -73,7 +76,7 @@ buart # (
     .CLKFREQ(CLK_FREQUENCY)
 ) uart_inst (
     // inputs
-   .clk(clk_100mhz),
+   .clk(clk),
    .resetq(~reset),
    .baud(BAUD),    // [31:0] max = 32'd921600
    .rx(rxd),            // recv wire
@@ -99,7 +102,7 @@ begin
     $dumpfile("serial_test.vcd");
     $dumpvars;
     $readmemh("serial_test.dat", tv_mem);
-    clk_100mhz = 0;
+    clk = 0;
     reset = 0;
 
     uart0_rd = 0;
@@ -112,22 +115,22 @@ begin
     read_data = 0;
 
     // 5 clock signals
-    @(posedge clk_100mhz);
+    @(posedge clk);
     reset = 1;
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
+    @(posedge clk);
+    @(posedge clk);
     reset = 0;
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
 
     write_test;
     read_test;
 
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
-    @(posedge clk_100mhz);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
 
     $finish;
 
@@ -136,13 +139,13 @@ end
 // Generate 100Mhz clock
 always
 begin
-    #5 clk_100mhz <= ~clk_100mhz;
+    #5 clk <= ~clk;
 end
 
 // Test reading from tv_mem
 /*
 reg [15:0] count;
-always @ (posedge clk_100mhz)
+always @ (posedge clk)
 begin
     if (reset) begin
         count <= 0;
@@ -161,11 +164,11 @@ end
 // Wait for transmitter to not be busy
 task wait_for_transmit_ready;
 begin
-    @ (posedge clk_100mhz);
+    @ (posedge clk);
     done = 0;
     while(!done)
     begin
-        @ (posedge clk_100mhz);
+        @ (posedge clk);
         if (tx_busy == 0)
         begin
             done = 1;
@@ -179,10 +182,10 @@ task send_char;
     input [7:0] char;
 begin
     wait_for_transmit_ready;
-    @ (posedge clk_100mhz);
+    @ (posedge clk);
     tx_data = char;
     uart0_wr = 1;
-    @ (posedge clk_100mhz);
+    @ (posedge clk);
     uart0_wr = 0;
 end
 endtask
@@ -201,10 +204,10 @@ begin
             char = rx_data;
             uart0_rd = 1;
             done = 1;
-            @ (posedge clk_100mhz);
+            @ (posedge clk);
             uart0_rd = 0;
         end
-        @ (posedge clk_100mhz);
+        @ (posedge clk);
         i = i + 1;
         if (i == 100000)
         begin
