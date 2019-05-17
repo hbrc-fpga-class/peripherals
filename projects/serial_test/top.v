@@ -45,7 +45,7 @@ parameter integer REG_ADDR_WIDTH = 8;
 ********************************************
 */
 
-wire clk_50mhz;
+wire clk;
 wire locked;
 wire rxd;
 wire txd;
@@ -67,13 +67,19 @@ assign LED = locked;
 // Use PLL to get 50mhz clock
 pll_50mhz pll_50mhz_inst (
     .clock_in(CLK_16MHZ),
-    .clock_out(clk_50mhz),
+    .clock_out(clk),
     .locked(locked)
 );
 
-serial_test serial_test_inst
+serial_test # 
 (
-    .clk_100mhz(clk_50mhz),
+    .CLK_FREQUENCY(CLK_FREQUENCY),
+    .BAUD(BAUD),
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH)
+) serial_test_inst (
+    .clk(clk),
     .reset(reset),
     .rxd(rxd),
     .txd(txd)
@@ -88,7 +94,7 @@ serial_test serial_test_inst
 // Hold reset on power up then release.
 // ice40 sets all registers to zero on power up.
 // Holding reset will set to default values.
-always @ (posedge clk_50mhz)
+always @ (posedge clk)
 begin
     if (count < 10) begin
         reset <= 1;

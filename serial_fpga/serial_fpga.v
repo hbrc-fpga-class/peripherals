@@ -21,7 +21,7 @@
 
 module serial_fpga #
 (
-    parameter integer CLK_FREQUENCY = 100_000_000,
+    parameter integer CLK_FREQUENCY = 50_000_000,
     parameter integer BAUD = 32'd115_200,
 
     parameter integer DBUS_WIDTH = 8,

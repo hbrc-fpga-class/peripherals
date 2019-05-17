@@ -18,7 +18,7 @@
 module serial_test_tb;
 
 // Parameters
-parameter integer CLK_FREQUENCY     = 100_000_000;
+parameter integer CLK_FREQUENCY     = 50_000_000;
 parameter integer BAUD              = 115_200;
 parameter integer NUM_OF_BYTES      = 15;  // (serial_test.dat)
 
@@ -136,10 +136,10 @@ begin
 
 end
 
-// Generate 100Mhz clock
+// Generate 50Mhz clock
 always
 begin
-    #5 clk <= ~clk;
+    #10 clk <= ~clk;
 end
 
 // Test reading from tv_mem
