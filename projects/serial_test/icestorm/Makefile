@@ -1,9 +1,10 @@
 PROJ = top
 
 DEVICE = lp8k
-SOURCES = ../$(PROJ).v ../pll_50mhz.v ../serial_test.v ../../../serial_fpga/uart.v ../../../serial_fpga/send_recv.v ../../../serial_fpga/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v
+COMMON = ../../../common
+SOURCES = ../$(PROJ).v $(COMMON)/pll_50mhz.v ../serial_test.v $(COMMON)/uart.v ../../../serial_fpga/send_recv.v $(COMMON)/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v
 
-PIN_DEF = ../pins.pcf
+PIN_DEF = $(COMMON)/pins.pcf
 
 all: $(PROJ).rpt $(PROJ).bin
 
