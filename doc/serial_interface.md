@@ -41,6 +41,48 @@ reg address is written first.  The FPGA will auto-increment the reg address afte
 * __ACK/NACK (WRITE ONLY)__ : For a write operation. The FPGA sends an ACK to confirm the writes occured or a NACK
 if there was an error.  The value for ACK is 0xAC, the value for NACK is 0x56.  For read operations no ACK/NACK is returned.
 
+## Example
+
+### Write Transaction
+
+This show the bytes sent to write to peripheral 0.  It writes
+the values 0x10, 0x11, 0x12, 0x13 to the first 4 regsiters.
+The ack value of 0xAC is returned:
+
+```
+// cmd:         0011_0000   - (0x30) write (3+1) at core addr 0
+// reg_addr:    0000_0000   - (0x00) start at address 0
+// data0:       0001_0000   - (0x10) 16
+// data1:       0001_0001   - (0x11) 17
+// data2:       0001_0010   - (0x12) 18
+// data3:       0001_0011   - (0x13) 19
+// dummy:       FFFF_FFFF   - (0xFF) dummy byte to read back ack
+
+sent:  30 00 10 11 12 13 FF
+reply:                   AC
+```
+
+## Read Transaction
+
+This shows the bytes sent to read the first 4 registers of peripheral 0.
+The two command byte are echoed back, plus the 4 register values.
+Note: the RPI sends dummy bytes (in this case 0xFF) to trigger the FPGA to send
+back a value.
+
+```
+// cmd:         1011_0000   - (0xB0) read (3+1) at core addr 0
+// reg_addr:    0000_0000   - (0x00) start at address 0
+// dummy:       FFFF_FFFF   - (0xFF) dummy byte to read back cmd
+// dummy:       FFFF_FFFF   - (0xFF) dummy byte to read back regaddr
+// dummy0:      FFFF_FFFF   - (0xFF) dummy byte to read back reg0
+// dummy1:      FFFF_FFFF   - (0xFF) dummy byte to read back reg1
+// dummy2:      FFFF_FFFF   - (0xFF) dummy byte to read back reg2
+// dummy3:      FFFF_FFFF   - (0xFF) dummy byte to read back reg3
+
+sent:  B0 00 FF FF FF FF FF FF
+reply:       B0 00 10 11 12 13
+```
+
 ## Notes
 * The Handshaking signals __rts__ and __cts__ are probably not necessary.
 * Perhaps we can do away with sending the number of bytes to read or write.  We could have a __done__ signal which is asserted to indicate the end of a read or write packet.
