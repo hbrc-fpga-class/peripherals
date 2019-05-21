@@ -10,9 +10,30 @@
 * Target Board: TinyFPGA BX
 *
 * Author: Brandon Blodget
-* Create Date: 05/12/2019
+* Create Date: 05/21/2019
 *
 ********************************************
+*/
+
+/*
+*****************************
+*
+* Copyright (C) 2019 by Brandon Blodget <brandon.blodget@gmail.com>
+* All rights reserved.
+*
+* License:
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+*****************************
 */
 
 `timescale 1 ns / 1 ns
@@ -20,7 +41,7 @@
 // Force error when implicit net has no type.
 `default_nettype none
 
-module serial_test # 
+module gpio_test # 
 (
     // Parameters
     parameter integer CLK_FREQUENCY = 50_000_000,
@@ -35,8 +56,13 @@ module serial_test #
 (
     input wire  clk,
     input wire  reset,
+
+    // serial_fpga pins
     input wire  rxd,
-    output wire txd
+    output wire txd,
+
+    // hba_gpio pins
+    inout wire [3:0] gpio_port
 );
 
 
@@ -111,6 +137,33 @@ hba_reg_bank #
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     // XXX .regbank_interrupt()   // not used yet
+);
+
+hba_gpio #
+(
+) hba_gpio_inst
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(0)
+)
+(
+    // HBA Bus Slave Interface
+    .hba_clk(hba_clk),
+    .hba_reset(hba_reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .gpio_dbus(gpio_dbus),   // The output data bus.
+    .gpio_xferack(gpio_xferack),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    // XXX .gpio_interrupt(),   // Not used yet
+
+    .gpio_port(gpio_port)
 );
 
 
