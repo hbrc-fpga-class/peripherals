@@ -1,0 +1,8 @@
+serial_test_tb.v
+../serial_test.v
+../../../common/uart.v
+../../../serial_fpga/send_recv.v
+../../../common/hba_master.v
+../../../serial_fpga/serial_fpga.v
+../../../hba_reg_bank/hba_reg_bank.v
+
