@@ -78,7 +78,9 @@ wire [DBUS_WIDTH-1:0] hba_dbus;  // The read data bus.
 wire [ADDR_WIDTH-1:0] hba_abus; // The input address bus.
 wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
-wire [DBUS_WIDTH-1:0] regbank_dbus;   // The output data bus.
+
+// XXX wire [DBUS_WIDTH-1:0] regbank_dbus;   // The output data bus.
+wire [DBUS_WIDTH-1:0] gpio_dbus;   // The output data bus.
 
 /*
 ****************************
@@ -105,7 +107,8 @@ serial_fpga #
     .hba_clk(clk),
     .hba_reset(reset),
     .hba_xferack(hba_xferack),  // Asserted when request has been completed.
-    .hba_dbus(regbank_dbus),       // The read data bus.
+    // XXX .hba_dbus(regbank_dbus),       // The read data bus.
+    .hba_dbus(gpio_dbus),       // The read data bus.
     // FIXME: handling the hba mgrant in this module for now
     // XXX input wire hba_mgrant,   // Master access has be granted.
     // XXX output reg master_request,     // Requests access to the bus.
@@ -116,6 +119,7 @@ serial_fpga #
 
 );
 
+/*
 hba_reg_bank #
 (
     .DBUS_WIDTH(DBUS_WIDTH),
@@ -138,27 +142,26 @@ hba_reg_bank #
                                     // Must be zero when inactive.
     // XXX .regbank_interrupt()   // not used yet
 );
+*/
 
 hba_gpio #
-(
-) hba_gpio_inst
 (
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
     .PERIPH_ADDR(0)
-)
+) hba_gpio_inst
 (
     // HBA Bus Slave Interface
-    .hba_clk(hba_clk),
-    .hba_reset(hba_reset),
+    .hba_clk(clk),
+    .hba_reset(reset),
     .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
     .hba_select(hba_select),      // Transfer in progress.
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
     .gpio_dbus(gpio_dbus),   // The output data bus.
-    .gpio_xferack(gpio_xferack),     // Acknowledge transfer requested. 
+    .gpio_xferack(hba_xferack),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     // XXX .gpio_interrupt(),   // Not used yet
