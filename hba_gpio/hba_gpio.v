@@ -44,7 +44,7 @@
 */
 
 // Force error when implicit net has no type.
-`default_nettype none
+// `default_nettype none
 
 module hba_gpio #
 (
@@ -232,10 +232,10 @@ begin
 
         // Compare pins current state to prev state.
         // To see if need to generate an interrupt.
-        pin_interrupt[0] = reg0[0] != reg0_prev[0];
-        pin_interrupt[1] = reg0[1] != reg0_prev[1];
-        pin_interrupt[2] = reg0[2] != reg0_prev[2];
-        pin_interrupt[3] = reg0[3] != reg0_prev[3];
+        pin_interrupt[0] <= reg0[0] != reg0_prev[0];
+        pin_interrupt[1] <= reg0[1] != reg0_prev[1];
+        pin_interrupt[2] <= reg0[2] != reg0_prev[2];
+        pin_interrupt[3] <= reg0[3] != reg0_prev[3];
 
         // remember the current state of the pins.
         reg0_prev <= reg0;

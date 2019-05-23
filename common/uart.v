@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *************************************
 */
 
-`default_nettype none
+// `default_nettype none
 
 module baudgen(
   input wire clk,

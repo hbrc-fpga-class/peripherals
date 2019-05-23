@@ -39,7 +39,7 @@
 `timescale 1 ns / 1 ns
 
 // Force error when implicit net has no type.
-`default_nettype none
+// `default_nettype none
 
 module top
 (
@@ -77,6 +77,7 @@ wire clk;
 wire locked;
 wire rxd;
 wire txd;
+wire [3:0] gpio_port;
 
 reg reset = 0;
 reg [7:0] count = 0;
@@ -85,6 +86,12 @@ assign rxd = PIN_1;
 assign PIN_2 = txd;
 assign LED = locked;
 
+/*
+assign PIN_3 = gpio_port[0];
+assign PIN_4 = gpio_port[1];
+assign PIN_5 = gpio_port[2];
+assign PIN_6 = gpio_port[3];
+*/
 
 /*
 ****************************
@@ -99,7 +106,7 @@ pll_50mhz pll_50mhz_inst (
     .locked(locked)
 );
 
-serial_test # 
+gpio_test # 
 (
     .CLK_FREQUENCY(CLK_FREQUENCY),
     .BAUD(BAUD),
@@ -110,7 +117,8 @@ serial_test #
     .clk(clk),
     .reset(reset),
     .rxd(rxd),
-    .txd(txd)
+    .txd(txd),
+    .gpio_port({PIN_6, PIN_5, PIN_4, PIN_3})
 );
 
 /*
