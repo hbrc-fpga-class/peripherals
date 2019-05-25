@@ -110,10 +110,10 @@ localparam OUPUT = 1;
 
 // Output is the value of the register.
 // Valid when gpio_out_en is asserted.
-assign gpio_out_sig = reg0;
+assign gpio_out_sig[3:0] = reg0[3:0];
 
 // gpio_out_en is the direction register
-assign gpio_out_en = reg2;
+assign gpio_out_en[3:0] = reg1[3:0];
 
 
 /*
