@@ -39,7 +39,7 @@
 `timescale 1 ns / 1 ns
 
 // Force error when implicit net has no type.
-// `default_nettype none
+`default_nettype none
 
 module gpio_test # 
 (

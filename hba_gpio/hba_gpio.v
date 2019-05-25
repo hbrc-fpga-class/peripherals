@@ -44,7 +44,7 @@
 */
 
 // Force error when implicit net has no type.
-// `default_nettype none
+`default_nettype none
 
 module hba_gpio #
 (
