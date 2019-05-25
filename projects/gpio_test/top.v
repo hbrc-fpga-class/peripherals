@@ -86,12 +86,10 @@ assign rxd = PIN_1;
 assign PIN_2 = txd;
 assign LED = locked;
 
-/*
-assign PIN_3 = gpio_port[0];
-assign PIN_4 = gpio_port[1];
-assign PIN_5 = gpio_port[2];
-assign PIN_6 = gpio_port[3];
-*/
+// hba_gpio wires
+wire [3:0] slot1_gpio_out_en;
+wire [3:0] slot1_gpio_out_sig;
+wire [3:0] slot1_gpio_in_sig;
 
 /*
 ****************************
@@ -106,6 +104,54 @@ pll_50mhz pll_50mhz_inst (
     .locked(locked)
 );
 
+// NOTE: The Icestorm tools don't have good support for infering
+// tri-states.  So we instantiate them manually.
+
+
+// Slot 1 GPIO_PORT bit 0
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot1_gpio_port0_inst  (
+    .PACKAGE_PIN(PIN_3),
+    .OUTPUT_ENABLE(slot1_gpio_out_en[0]),
+    .D_OUT_0(slot1_gpio_out_sig[0]),
+    .D_IN_0(slot1_gpio_in_sig[0])
+);
+
+// Slot 1 GPIO_PORT bit 1
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot1_gpio_port1_inst  (
+    .PACKAGE_PIN(PIN_4),
+    .OUTPUT_ENABLE(slot1_gpio_out_en[1]),
+    .D_OUT_0(slot1_gpio_out_sig[1]),
+    .D_IN_0(slot1_gpio_in_sig[1])
+);
+
+// Slot 1 GPIO_PORT bit 2
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot1_gpio_port2_inst  (
+    .PACKAGE_PIN(PIN_5),
+    .OUTPUT_ENABLE(slot1_gpio_out_en[2]),
+    .D_OUT_0(slot1_gpio_out_sig[2]),
+    .D_IN_0(slot1_gpio_in_sig[2])
+);
+
+// Slot 1 GPIO_PORT bit 3
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot1_gpio_port3_inst  (
+    .PACKAGE_PIN(PIN_6),
+    .OUTPUT_ENABLE(slot1_gpio_out_en[3]),
+    .D_OUT_0(slot1_gpio_out_sig[3]),
+    .D_IN_0(slot1_gpio_in_sig[3])
+);
+
 gpio_test # 
 (
     .CLK_FREQUENCY(CLK_FREQUENCY),
@@ -118,7 +164,9 @@ gpio_test #
     .reset(reset),
     .rxd(rxd),
     .txd(txd),
-    .gpio_port({PIN_6, PIN_5, PIN_4, PIN_3})
+    .gpio_out_en(gpio_out_en),
+    .gpio_out_sig(gpio_out_sig),
+    .gpio_in_sig(gpio_in_sig)
 );
 
 /*

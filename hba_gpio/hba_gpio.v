@@ -72,7 +72,10 @@ module hba_gpio #
                                     // Must be zero when inactive.
     output wire gpio_interrupt,   // Send interrupt back
 
-    inout wire [3:0] gpio_port
+    // hba_gpio pins
+    output wire [3:0] gpio_out_en,
+    output wire [3:0] gpio_out_sig,
+    input wire [3:0] gpio_in_sig
 );
 
 /*
@@ -105,17 +108,13 @@ reg [DBUS_WIDTH-1:0] reg0_prev; // Previous Pins Register
 localparam INPUT = 0;
 localparam OUPUT = 1;
 
-assign gpio_port[0] = (reg1[0]==INPUT) ? 1'bZ : reg0[0];
-assign gpio_port[1] = (reg1[1]==INPUT) ? 1'bZ : reg0[1];
-assign gpio_port[2] = (reg1[2]==INPUT) ? 1'bZ : reg0[2];
-assign gpio_port[3] = (reg1[3]==INPUT) ? 1'bZ : reg0[3];
+// Output is the value of the register.
+// Valid when gpio_out_en is asserted.
+assign gpio_out_sig = reg0;
 
-wire [3:0] gpio_in;
+// gpio_out_en is the direction register
+assign gpio_out_en = reg2;
 
-assign gpio_in[0] = (reg1[0]==INPUT) ? gpio_port[0] : reg0[0];
-assign gpio_in[1] = (reg1[0]==INPUT) ? gpio_port[1] : reg0[1];
-assign gpio_in[2] = (reg1[0]==INPUT) ? gpio_port[2] : reg0[2];
-assign gpio_in[3] = (reg1[0]==INPUT) ? gpio_port[3] : reg0[3];
 
 /*
 *****************************
@@ -156,8 +155,19 @@ begin
         reg2 <= 0;
     end else begin
 
-        // by default reg0 reads gpio_in
-        reg0 <= gpio_in;
+        // For inputs read from gpio_in_sig
+        if (gpio_out_en[0] == 0) begin
+            reg0[0] <= gpio_in_sig[0];
+        end
+        if (gpio_out_en[1] == 0) begin
+            reg0[1] <= gpio_in_sig[1];
+        end
+        if (gpio_out_en[2] == 0) begin
+            reg0[2] <= gpio_in_sig[2];
+        end
+        if (gpio_out_en[3] == 0) begin
+            reg0[3] <= gpio_in_sig[3];
+        end
 
         case (gpio_state)
             IDLE : begin

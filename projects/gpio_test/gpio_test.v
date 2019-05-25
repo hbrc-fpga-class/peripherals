@@ -62,7 +62,9 @@ module gpio_test #
     output wire txd,
 
     // hba_gpio pins
-    inout wire [3:0] gpio_port
+    output wire [3:0] gpio_out_en,
+    output wire [3:0] gpio_out_sig,
+    input wire [3:0] gpio_in_sig
 );
 
 
@@ -166,7 +168,9 @@ hba_gpio #
                                     // Must be zero when inactive.
     // XXX .gpio_interrupt(),   // Not used yet
 
-    .gpio_port(gpio_port)
+    .gpio_out_en(gpio_out_en),
+    .gpio_out_sig(gpio_out_sig),
+    .gpio_in_sig(gpio_in_sig)
 );
 
 
