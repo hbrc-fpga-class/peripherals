@@ -42,11 +42,24 @@ module hba_reg_bank #
     input wire [ADDR_WIDTH-1:0] hba_abus, // The input address bus.
     input wire [DBUS_WIDTH-1:0] hba_dbus,  // The input data bus.
 
-    output reg [DBUS_WIDTH-1:0] regbank_dbus,   // The output data bus.
-    output reg regbank_xferack,     // Acknowledge transfer requested. 
+    output reg [DBUS_WIDTH-1:0] hba_dbus_out,   // The output data bus.
+    output reg hba_xferack_out,     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
-    output wire regbank_interrupt   // Send interrupt back
+
+    // Access to registgers
+    output reg [DBUS_WIDTH-1:0] slv_reg0,
+    output reg [DBUS_WIDTH-1:0] slv_reg1,
+    output reg [DBUS_WIDTH-1:0] slv_reg2,
+    output reg [DBUS_WIDTH-1:0] slv_reg3,
+
+    input wire [DBUS_WIDTH-1:0] slv_reg0_in,
+    input wire [DBUS_WIDTH-1:0] slv_reg1_in,
+    input wire [DBUS_WIDTH-1:0] slv_reg2_in,
+    input wire [DBUS_WIDTH-1:0] slv_reg3_in,
+
+    input wire slv_wr_en,           // Assert to set slv_reg? <= slv_reg?_in
+    input wire [3:0] slv_wr_mask    // 0001, means reg0 is writeable. etc
 );
 
 /*
@@ -60,17 +73,10 @@ wire [PERIPH_ADDR_WIDTH-1:0] periph_addr =
 
 // logic to decode addresses
 wire addr_decode_hit = (periph_addr == PERIPH_ADDR);
-wire addr_hit_clear = ~hba_select | regbank_xferack;
-
-assign regbank_interrupt = 0;     // No interrupts
+wire addr_hit_clear = ~hba_select | hba_xferack_out;
 
 reg addr_hit;
 
-// Define the bank of registers
-reg [DBUS_WIDTH-1:0] reg0;
-reg [DBUS_WIDTH-1:0] reg1;
-reg [DBUS_WIDTH-1:0] reg2;
-reg [DBUS_WIDTH-1:0] reg3;
 
 /*
 *****************************
@@ -104,17 +110,34 @@ always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         regbank_state <= IDLE;
-        regbank_xferack <= 0;
-        regbank_dbus <= 0;
-        reg0 <= 0;
-        reg1 <= 0;
-        reg2 <= 0;
-        reg3 <= 0;
+        hba_xferack_out <= 0;
+        hba_dbus_out <= 0;
+        slv_reg0 <= 0;
+        slv_reg1 <= 0;
+        slv_reg2 <= 0;
+        slv_reg3 <= 0;
     end else begin
+
+        // Handle parent core write to registers.
+        if (slv_wr_en) begin
+            if (slv_wr_mask[0]) begin
+                slv_reg0 <= slv_reg0_in;
+            end
+            if (slv_wr_mask[1]) begin
+                slv_reg1 <= slv_reg1_in;
+            end
+            if (slv_wr_mask[2]) begin
+                slv_reg2 <= slv_reg2_in;
+            end
+            if (slv_wr_mask[3]) begin
+                slv_reg3 <= slv_reg3_in;
+            end
+        end
+
         case (regbank_state)
             IDLE : begin
-                regbank_xferack <= 0;
-                regbank_dbus <= 0;
+                hba_xferack_out <= 0;
+                hba_dbus_out <= 0;
 
                 if (addr_hit)
                 begin
@@ -125,54 +148,54 @@ begin
                 end
             end
             READ : begin
-                regbank_xferack <= 1;
+                hba_xferack_out <= 1;
                 regbank_state <= WAIT;
                 case(hba_abus[REG_ADDR_WIDTH-1:0])
                     0 : begin
-                        regbank_dbus <= reg0;
+                        hba_dbus_out <= slv_reg0;
                     end
                     1 : begin
-                        regbank_dbus <= reg1;
+                        hba_dbus_out <= slv_reg1;
                     end
                     2 : begin
-                        regbank_dbus <= reg2;
+                        hba_dbus_out <= slv_reg2;
                     end
                     3 : begin
-                        regbank_dbus <= reg3;
+                        hba_dbus_out <= slv_reg3;
                     end
                     default : begin
-                        regbank_dbus <= 0;
+                        hba_dbus_out <= 0;
                     end
                 endcase
             end
             WRITE : begin
-                regbank_xferack <= 1;
+                hba_xferack_out <= 1;
                 regbank_state <= WAIT;
                 case(hba_abus[REG_ADDR_WIDTH-1:0])
                     0 : begin
-                        reg0 <= hba_dbus;
+                        slv_reg0 <= hba_dbus;
                     end
                     1 : begin
-                        reg1 <= hba_dbus;
+                        slv_reg1 <= hba_dbus;
                     end
                     2 : begin
-                        reg2 <= hba_dbus;
+                        slv_reg2 <= hba_dbus;
                     end
                     3 : begin
-                        reg3 <= hba_dbus;
+                        slv_reg3 <= hba_dbus;
                     end
                     default : ; // Do Nothing
                 endcase
             end
             WAIT : begin
                 regbank_state <= IDLE;
-                regbank_xferack <= 0;
-                regbank_dbus <= 0;
+                hba_xferack_out <= 0;
+                hba_dbus_out <= 0;
             end
             default begin
                 regbank_state <= IDLE;
-                regbank_xferack <= 0;
-                regbank_dbus <= 0;
+                hba_xferack_out <= 0;
+                hba_dbus_out <= 0;
             end
         endcase
     end

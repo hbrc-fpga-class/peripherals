@@ -82,7 +82,7 @@ wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 
 // XXX wire [DBUS_WIDTH-1:0] regbank_dbus;   // The output data bus.
-wire [DBUS_WIDTH-1:0] gpio_dbus;   // The output data bus.
+wire [DBUS_WIDTH-1:0] gpio_dbus_out;   // The output data bus.
 
 /*
 ****************************
@@ -110,7 +110,7 @@ serial_fpga #
     .hba_reset(reset),
     .hba_xferack(hba_xferack),  // Asserted when request has been completed.
     // XXX .hba_dbus(regbank_dbus),       // The read data bus.
-    .hba_dbus(gpio_dbus),       // The read data bus.
+    .hba_dbus(gpio_dbus_out),       // The read data bus.
     // FIXME: handling the hba mgrant in this module for now
     // XXX input wire hba_mgrant,   // Master access has be granted.
     // XXX output reg master_request,     // Requests access to the bus.
@@ -162,8 +162,8 @@ hba_gpio #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .gpio_dbus(gpio_dbus),   // The output data bus.
-    .gpio_xferack(hba_xferack),     // Acknowledge transfer requested. 
+    .hba_dbus_out(gpio_dbus_out),   // The output data bus.
+    .hba_xferack_out(hba_xferack),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     // XXX .gpio_interrupt(),   // Not used yet

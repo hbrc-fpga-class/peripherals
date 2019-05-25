@@ -2,6 +2,7 @@
 *.sw?
 
 # Ignore implementation files
+a.out
 *.asc
 *.bin
 *.blif
