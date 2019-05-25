@@ -1,2 +1,9 @@
+# Ignore vim swp files
 *.sw?
+
+# Ignore implementation files
+*.asc
+*.bin
+*.blif
+*.rpt
 
