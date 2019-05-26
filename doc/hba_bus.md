@@ -54,11 +54,13 @@ Additional required signals that are also part of the Slave interface.
 
 If there are mutliple slaves then the ports with the postfix __slave__ need to
 be __OR__'d together to create the version without the postfix.  For example
-__hba_xferack__ is created from the __OR__ of all the __hba_xerfack_slave__ signals.
+__hba_xferack__ is created from the __OR__ of all the __hba_xerfack_slave__ signals. 
+Inactive slave peripherals must output 0 on __slave__ ports.
 
 If there are multiple masters then the ports with the postfix __master__ need to
 be __OR__'d together to create the bus with out the prefix.  For example 
 __hba_abus__ is created from the __OR__ of all the __hba_abus_master__ signals.
+Inactive master peripherals must output 0 on __master__ ports.
 
 __hba_dbus__ is created from the __OR__ of all the __hba_dbus_master__ and __hba_dbus_slave__
 signals.  It is unique in both master and slave peripherals can put data on the data bus.
