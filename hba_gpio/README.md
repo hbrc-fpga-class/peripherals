@@ -100,6 +100,9 @@ hbaset serial_fpga rawout 80 00 FF FF FF
 # 80 00 02
 ```
 
+We see it has a value of 02 because the msb_gpio peripheral
+in slot1 asserted bit1 of the interrupt register.
+
 Now if we read it again.  The interrupt register has
 auto-cleared!
 
