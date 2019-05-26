@@ -66,8 +66,8 @@ module hba_gpio #
     input wire [ADDR_WIDTH-1:0] hba_abus, // The input address bus.
     input wire [DBUS_WIDTH-1:0] hba_dbus,  // The input data bus.
 
-    output reg [DBUS_WIDTH-1:0] hba_dbus_out,   // The output data bus.
-    output reg hba_xferack_out,     // Acknowledge transfer requested. 
+    output reg [DBUS_WIDTH-1:0] hba_dbus_slave,   // The output data bus.
+    output reg hba_xferack_slave,     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     output wire interrupt_out,   // Send interrupt back
@@ -124,8 +124,8 @@ hba_reg_bank #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .hba_dbus_out(hba_dbus_out),   // The output data bus.
-    .hba_xferack_out(hba_xferack_out),     // Acknowledge transfer requested. 
+    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
 

@@ -75,14 +75,14 @@ module gpio_test #
 */
 
 // HBA Bus
-wire hba_xferack;   // Asserted when request has been completed.
+wire hba_xferack_slave;   // Asserted when request has been completed.
 wire [DBUS_WIDTH-1:0] hba_dbus;  // The read data bus.
 wire [ADDR_WIDTH-1:0] hba_abus; // The input address bus.
 wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 
 // XXX wire [DBUS_WIDTH-1:0] regbank_dbus;   // The output data bus.
-wire [DBUS_WIDTH-1:0] gpio_dbus_out;   // The output data bus.
+wire [DBUS_WIDTH-1:0] hba_dbus_slave;   // The output data bus.
 
 /*
 ****************************
@@ -108,9 +108,8 @@ serial_fpga #
     // HBA Bus Master Interface
     .hba_clk(clk),
     .hba_reset(reset),
-    .hba_xferack(hba_xferack),  // Asserted when request has been completed.
-    // XXX .hba_dbus(regbank_dbus),       // The read data bus.
-    .hba_dbus(gpio_dbus_out),       // The read data bus.
+    .hba_xferack(hba_xferack_slave),  // Asserted when request has been completed.
+    .hba_dbus(hba_dbus_slave),       // The read data bus.
     // FIXME: handling the hba mgrant in this module for now
     // XXX input wire hba_mgrant,   // Master access has be granted.
     // XXX output reg master_request,     // Requests access to the bus.
@@ -120,31 +119,6 @@ serial_fpga #
     .master_dbus(hba_dbus)    // The write data bus.
 
 );
-
-/*
-hba_reg_bank #
-(
-    .DBUS_WIDTH(DBUS_WIDTH),
-    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
-    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
-    .PERIPH_ADDR(0)
-) hba_reg_bank_inst
-(
-    // HBA Bus Slave Interface
-    .hba_clk(clk),
-    .hba_reset(reset),
-    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
-    .hba_select(hba_select),      // Transfer in progress.
-    .hba_abus(hba_abus), // The input address bus.
-    .hba_dbus(hba_dbus),  // The input data bus.
-
-    .regbank_dbus(regbank_dbus),   // The output data bus.
-    .regbank_xferack(hba_xferack)     // Acknowledge transfer requested. 
-                                    // Asserted when request has been completed. 
-                                    // Must be zero when inactive.
-    // XXX .regbank_interrupt()   // not used yet
-);
-*/
 
 hba_gpio #
 (
@@ -162,8 +136,8 @@ hba_gpio #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .hba_dbus_out(gpio_dbus_out),   // The output data bus.
-    .hba_xferack_out(hba_xferack),     // Acknowledge transfer requested. 
+    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     // XXX .gpio_interrupt(),   // Not used yet

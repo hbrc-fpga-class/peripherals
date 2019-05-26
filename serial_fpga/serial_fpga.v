@@ -16,8 +16,29 @@
 *****************************
 */
 
+/*
+*****************************
+*
+* Copyright (C) 2019 by Brandon Blodget <brandon.blodget@gmail.com>
+* All rights reserved.
+*
+* License:
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+*****************************
+*/
+
 // Force error when implicit net has no type.
-// `default_nettype none
+`default_nettype none
 
 module serial_fpga #
 (
@@ -27,6 +48,7 @@ module serial_fpga #
     parameter integer DBUS_WIDTH = 8,
     parameter integer PERIPH_ADDR_WIDTH = 4,
     parameter integer REG_ADDR_WIDTH = 8,
+    parameter integer PERIPH_ADDR = 0,
     // Default ADDR_WIDTH = 12
     parameter integer ADDR_WIDTH = PERIPH_ADDR_WIDTH + REG_ADDR_WIDTH
 )
@@ -36,18 +58,29 @@ module serial_fpga #
     output wire txd,
     output reg intr,
 
-    // HBA Bus Master Interface
+    // HBA Bus Slave Interface
     input wire hba_clk,
     input wire hba_reset,
+    input wire hba_rnw,         // 1=Read from register. 0=Write to register.
+    input wire hba_select,      // Transfer in progress.
+    input wire [ADDR_WIDTH-1:0] hba_abus, // The input address bus.
+    input wire [DBUS_WIDTH-1:0] hba_dbus,  // The input data bus.
+
+    output reg [DBUS_WIDTH-1:0] hba_dbus_slave,   // The output data bus.
+    output reg hba_xferack_slave,     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+
+    // HBA Bus Master Interface
+    // XXX input wire hba_clk,
+    // XXX input wire hba_reset,
     input wire hba_xferack,  // Asserted when request has been completed.
-    input wire [DBUS_WIDTH-1:0] hba_dbus,       // The read data bus.
-    // FIXME: handling the hba mgrant in this module for now
-    // XXX input wire hba_mgrant,   // Master access has be granted.
-    // XXX output reg master_request,     // Requests access to the bus.
-    output wire [ADDR_WIDTH-1:0] master_abus,  // The target address. Must be zero when inactive.
-    output wire master_rnw,          // 1=Read from register. 0=Write to register.
-    output wire master_select,       // Transfer in progress
-    output wire [DBUS_WIDTH-1:0] master_dbus    // The write data bus.
+    input wire hba_mgrant,   // Master access has be granted.
+    output wire hba_mrequest,     // Requests access to the bus.
+    output wire [ADDR_WIDTH-1:0] hba_abus_master,  // The target address. Must be zero when inactive.
+    output wire hba_rnw_master,          // 1=Read from register. 0=Write to register.
+    output wire hba_select_master,       // Transfer in progress
+    output wire [DBUS_WIDTH-1:0] hba_dbus_master    // The write data bus.
 
 );
 
@@ -64,10 +97,6 @@ wire [7:0] tx_data;
 wire rx_valid;
 wire tx_busy;
 wire [7:0] rx_data;
-
-// FIXME: Simple aribiter in this module for now.
-reg hba_mgrant;
-wire master_request;
 
 // App hba_master interface
 reg [PERIPH_ADDR_WIDTH-1:0] app_core_addr;
@@ -156,12 +185,40 @@ hba_master #
     .hba_mgrant(hba_mgrant),   // Master access has be granted.
     .hba_xferack(hba_xferack),  // Asserted when request has been completed.
     .hba_dbus(hba_dbus),       // The read data bus.
-    .master_request(master_request),     // Requests access to the bus.
-    .master_abus(master_abus),  // The target address. Must be zero when inactive.
-    .master_rnw(master_rnw),         // 1=Read from register. 0=Write to register.
-    .master_select(master_select),      // Transfer in progress
-    .master_dbus(master_dbus)    // The write data bus.
+    .hba_mrequest(hba_mrequest),     // Requests access to the bus.
+    .hba_abus_master(hba_abus_master),  // The target address. Must be zero when inactive.
+    .hba_rnw_master(hba_rnw_master),         // 1=Read from register. 0=Write to register.
+    .hba_select_master(hba_select_master),      // Transfer in progress
+    .hba_dbus_master(hba_dbus_master)    // The write data bus.
+);
 
+hba_reg_bank #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(PERIPH_ADDR)
+) hba_reg_bank_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(hba_clk),
+    .hba_reset(hba_reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+
+    // Access to registgers
+    .slv_reg0(reg_intr),        // read access
+    .slv_reg0_in(reg_intr_in),  // write access
+
+    .slv_wr_en(1'b0),     // No write.
+    .slv_wr_mask(4'b001)  // 0001, Enable writes to slv_reg0.
 );
 
 
@@ -170,19 +227,6 @@ hba_master #
 * Main
 ****************************
 */
-
-// A simple Arbiter.  We only have 1 master for now
-// so always grant access.
-// FIXME : Move this to top level or into it own module.
-always @ (posedge hba_clk)
-begin
-    if (hba_reset) begin
-        hba_mgrant <= 0;
-    end else begin
-        hba_mgrant <= master_request;
-    end
-end
-
 
 // Serial Interface State Machine.
 reg [3:0] serial_state;
