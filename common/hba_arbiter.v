@@ -63,7 +63,7 @@ begin
         hba_mgrant <= 0;
     end else begin
         // Is a master active?
-        if (hba_select | hba_mgrant) begin
+        if (hba_select | (|hba_mgrant) ) begin
             // Yes. Turn of all grants.
             hba_mgrant <= 0;
         end else begin
