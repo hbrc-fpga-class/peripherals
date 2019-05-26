@@ -9,6 +9,18 @@ Inputs on the GPIO port are configured with internal
 weak pullups.  So if not actively being driven they
 will read back as logical 1 values.
 
+## Port Interface
+
+This module implements an HBA Slave interface.
+It also has the following additional ports.
+
+* __slave_interrupt__ : Asserted when an input pin changes state
+and the interrupt is enabled in the reg_intr_en register.
+* __gpio_out_en[3:0]__ : Tri-state control pin. When 1, the associated
+pin is an output, else it is an input.
+* __gpio_out_sig[3:0]__ : The signal to drive the pin.
+* __gpio_in_sig[3:0]__ : The input signal from the pin.
+
 ## Register Interface
 
 There are three 8-bit registers. Since the module only controls 4 GPIOs
