@@ -37,10 +37,10 @@ The outputs of the slaves are OR'd together, except for __SlaveX_Interrupt__.
 
 A peripheral can be both a master and a slave.  To be a master it needs to implement
 the following additional signals.
-* __hba_mgrantX (input)__ : Master access has be granted. From arbiter.
+* __hba_mgrant (input)__ : Master access has be granted. From arbiter.
 * __hba_xferack (input)__ : Asserted when request has been completed. 
     __OR__ of all __hba_xferack_slave__ signals
-* __hba_request_masterX (output)__ : Requests access to the bus. 
+* __hba_mrequest (output)__ : Requests access to the bus. 
 * __hba_abus_master[11:0] (output)__ : The target address. Must be zero when inactive.
 * __hba_rnw_master (output)__ : 1=Read from register. 0=Write to register.
 * __hba_dbus_master[7:0] (output)__ : The write data bus.
@@ -65,7 +65,7 @@ Inactive master peripherals must output 0 on __master__ ports.
 __hba_dbus__ is created from the __OR__ of all the __hba_dbus_master__ and __hba_dbus_slave__
 signals.  It is unique in both master and slave peripherals can put data on the data bus.
 
-Each peripheral master gets dedicated __hba_mgrantX__ and __hba_request_masterX__
+Each peripheral master gets dedicated __hba_mgrantX_ and __hba_mrequest__
 signals back to the HBA Bus Arbiter.
 
 ## Notes
