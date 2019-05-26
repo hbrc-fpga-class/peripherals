@@ -29,4 +29,5 @@ when read from the host interface.
 ## ToDo
 
 * Make the number of registers a parameter.
+* Testbench is out of date.
 
