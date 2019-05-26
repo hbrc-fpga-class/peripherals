@@ -36,14 +36,14 @@ only the lower 4-bit of each register is active.
 
 ## Example
 
-Assume that hba_gpio is at peripheral address 0 (slot0).
+Assume that hba_gpio is at peripheral address 1 (slot1).
 The the following command uses the "raw" bytes interface to set
 * reg0 = 0x0F   // reg_dir, all gpios are outputs
 * reg1 = 0x02   // reg_pins, gpio outputs 0x02
 * reg2 = 0x00   // reg_inter_en, all interrupts are disabled.
 
 ```
-hbaset serial_fpga rawout 20 00 0F 02 00 FF
+hbaset serial_fpga rawout 21 00 0F 02 00 FF
 # Returned byte
 # ac
 ```
@@ -51,7 +51,7 @@ hbaset serial_fpga rawout 20 00 0F 02 00 FF
 Reading the three registers.
 
 ```
-hbaset serial_fpga rawout a0 00 FF FF FF FF FF
+hbaset serial_fpga rawout a1 00 FF FF FF FF FF
 # Returned bytes
 # a0 00 0f 02 00
 ```
@@ -63,7 +63,7 @@ Now lets change reg0[0] to 0, to make the lsb pin and input.
 * reg0 = 0x0e
 
 ```
-hbaset serial_fpga rawout 00 00 0e FF
+hbaset serial_fpga rawout 01 00 0e FF
 # Returned byte
 # ac
 ```
@@ -71,7 +71,7 @@ hbaset serial_fpga rawout 00 00 0e FF
 Now lets read back all three values again:
 
 ```
-hbaset serial_fpga rawout a0 00 FF FF FF FF FF
+hbaset serial_fpga rawout a0 01 FF FF FF FF FF
 # Returned bytes
 # a0 00 0e 03 00
 ```
