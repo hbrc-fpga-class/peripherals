@@ -36,14 +36,15 @@ only the lower 4-bit of each register is active.
 
 ## Example
 
-Assume that hba_gpio is at peripheral address 1 (slot1).
+Assume that serial_fpga is at peripheral address 0 (slot 0) and
+hba_gpio is at peripheral address 1 (slot1).
 The the following command uses the "raw" bytes interface to set
 * reg0 = 0x0F   // reg_dir, all gpios are outputs
 * reg1 = 0x02   // reg_pins, gpio outputs 0x02
-* reg2 = 0x00   // reg_inter_en, all interrupts are disabled.
+* reg2 = 0x01   // reg_inter_en, enable interrupt on gpio[0]
 
 ```
-hbaset serial_fpga rawout 21 00 0F 02 00 FF
+hbaset serial_fpga rawout 21 00 0F 02 01 FF
 # Returned byte
 # ac
 ```
@@ -53,13 +54,25 @@ Reading the three registers.
 ```
 hbaset serial_fpga rawout a1 00 FF FF FF FF FF
 # Returned bytes
-# a0 00 0f 02 00
+# a0 00 0f 02 01
 ```
 
 We can see from the last three returned bytes that 
 that the registers have the values we expect.
 
-Now lets change reg0[0] to 0, to make the lsb pin and input.
+Let's readback the interrupt register (reg0) from the
+slave_fpga in slot 0.
+
+```
+hbaset serial_fpga rawout 80 00 FF FF FF
+# Returned bytes
+# 80 00 00
+```
+
+We can see from the last returned byte that the interrupt has
+not been triggered.
+
+Now lets change slot1 reg0[0] (reg_dir[0]) to 0, to make the lsb pin a input.
 * reg0 = 0x0e
 
 ```
@@ -78,6 +91,24 @@ hbaset serial_fpga rawout a1 00 FF FF FF FF FF
 
 We can see that reg1 as changed form 0x02 to 0x03 because
 the lsb pin is set as an input that has a pull up on it.
+
+Now lets try reading the interrupt register from slot 0.
+
+```
+hbaset serial_fpga rawout 80 00 FF FF FF
+# Returned bytes
+# 80 00 02
+```
+
+Now if we read it again.  The interrupt register has
+auto-cleared!
+
+```
+hbaset serial_fpga rawout 80 00 FF FF FF
+# Returned bytes
+# 80 00 00
+```
+
 
 
 
