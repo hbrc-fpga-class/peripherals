@@ -60,6 +60,7 @@ module gpio_test #
     // serial_fpga pins
     input wire  rxd,
     output wire txd,
+    output wire intr,
 
     // hba_gpio pins
     output wire [3:0] gpio_out_en,
@@ -75,14 +76,42 @@ module gpio_test #
 */
 
 // HBA Bus
-wire hba_xferack_slave;   // Asserted when request has been completed.
 wire [DBUS_WIDTH-1:0] hba_dbus;  // The read data bus.
 wire [ADDR_WIDTH-1:0] hba_abus; // The input address bus.
 wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
+wire hba_xferack;       // Slave ACK transfer complete.
 
-// XXX wire [DBUS_WIDTH-1:0] regbank_dbus;   // The output data bus.
-wire [DBUS_WIDTH-1:0] hba_dbus_slave;   // The output data bus.
+// Only two slave.  Set the others to 0.
+wire [15:0] hba_xferack_slave;
+assign hba_xferack_slave[15:2] = 0;
+wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
+
+// Only slot 1 has generates interrupts, zeros for others.
+wire [15:0] slave_interrupt;
+assign slave_interrupt[0] = 0;
+assign slave_interrupt[15:2] = 0;
+
+// Slot 0
+wire hba_xferack_slave0;   // Asserted when request has been completed.
+wire [DBUS_WIDTH-1:0] hba_dbus_slave0;   // The output data bus.
+
+// Slot 1
+wire hba_xferack_slave1;   // Asserted when request has been completed.
+wire [DBUS_WIDTH-1:0] hba_dbus_slave1;   // The output data bus.
+
+// Master 0 (only 1)
+wire [3:0] hba_rnw_master;
+wire [3:0] hba_select_master;
+assign hba_rnw_master[3:1] = 0;
+assign hba_select_master[3:1] = 0;
+
+wire [DBUS_WIDTH-1:0] hba_dbus_master0;
+wire [ADDR_WIDTH-1:0] hba_abus_master0;
+
+wire [3:0] hba_mrequest;
+wire [3:0] hba_mgrant;
+assign hba_mrequest[3:1] = 0;
 
 /*
 ****************************
@@ -97,27 +126,39 @@ serial_fpga #
 
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
-    .REG_ADDR_WIDTH(REG_ADDR_WIDTH)
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(0)
 ) serial_fpga_inst
 (
     // Serial Interface
-    .rxd(rxd),
-    .txd(txd),
-    // XXX .intr(),
+    .io_rxd(rxd),
+    .io_txd(txd),
+    .io_intr(intr),
 
-    // HBA Bus Master Interface
+    // Interrupts from slaves
+    .slave_interrupt(slave_interrupt),
+
+    // HBA Bus Slave Interface
     .hba_clk(clk),
     .hba_reset(reset),
-    .hba_xferack(hba_xferack_slave),  // Asserted when request has been completed.
-    .hba_dbus(hba_dbus_slave),       // The read data bus.
-    // FIXME: handling the hba mgrant in this module for now
-    // XXX input wire hba_mgrant,   // Master access has be granted.
-    // XXX output reg master_request,     // Requests access to the bus.
-    .master_abus(hba_abus),  // The target address. Must be zero when inactive.
-    .master_rnw(hba_rnw),          // 1=Read from register. 0=Write to register.
-    .master_select(hba_select),       // Transfer in progress
-    .master_dbus(hba_dbus)    // The write data bus.
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
 
+    .hba_dbus_slave(hba_dbus_slave0),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[0]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+
+    // HBA Bus Master Interface
+    .hba_xferack(hba_xferack),  // Asserted when request has been completed.
+    .hba_mgrant(hba_mgrant[0]),   // Master access has be granted.
+    .hba_mrequest(hba_mrequest[0]),     // Requests access to the bus.
+    .hba_abus_master(hba_abus_master0),  // The target address. Must be zero when inactive.
+    .hba_rnw_master(hba_rnw_master[0]),          // 1=Read from register. 0=Write to register.
+    .hba_select_master(hba_select_master[0]),       // Transfer in progress
+    .hba_dbus_master(hba_dbus_master0)    // The write data bus.
 );
 
 hba_gpio #
@@ -125,7 +166,7 @@ hba_gpio #
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
-    .PERIPH_ADDR(0)
+    .PERIPH_ADDR(1)
 ) hba_gpio_inst
 (
     // HBA Bus Slave Interface
@@ -136,17 +177,82 @@ hba_gpio #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
-    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
+    .hba_dbus_slave(hba_dbus_slave1),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[1]),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
-    // XXX .gpio_interrupt(),   // Not used yet
+    .slave_interrupt(slave_interrupt[1]),    // to interrupt controller
 
     .gpio_out_en(gpio_out_en),
     .gpio_out_sig(gpio_out_sig),
     .gpio_in_sig(gpio_in_sig)
 );
 
+hba_or_slaves #
+(
+    .DBUS_WIDTH(DBUS_WIDTH)
+) hba_or_slaves_inst
+(
+    .hba_xferack_slave(hba_xferack_slave),
+
+    .hba_dbus_slave0(hba_dbus_slave0),
+    .hba_dbus_slave1(hba_dbus_slave1),
+    .hba_dbus_slave2(0),
+    .hba_dbus_slave3(0),
+    .hba_dbus_slave4(0),
+    .hba_dbus_slave5(0),
+    .hba_dbus_slave6(0),
+    .hba_dbus_slave7(0),
+
+    .hba_dbus_slave8(0),
+    .hba_dbus_slave9(0),
+    .hba_dbus_slave10(0),
+    .hba_dbus_slave11(0),
+    .hba_dbus_slave12(0),
+    .hba_dbus_slave13(0),
+    .hba_dbus_slave14(0),
+    .hba_dbus_slave15(0),
+
+    .hba_xferack(hba_xferack),
+    .hba_dbus_slave(hba_dbus_slave)
+);
+
+hba_or_masters #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .ADDR_WIDTH(ADDR_WIDTH)
+) hba_or_masters_inst
+(
+    .hba_rnw_master(hba_rnw_master),
+    .hba_select_master(hba_select_master),
+
+    // Need to OR the slave dbus with the masters
+    .hba_dbus_slave(hba_dbus_slave),
+    .hba_dbus_master0(hba_dbus_master0),
+    .hba_dbus_master1(0),
+    .hba_dbus_master2(0),
+    .hba_dbus_master3(0),
+
+    .hba_abus_master0(hba_abus_master0),
+    .hba_abus_master1(0),
+    .hba_abus_master2(0),
+    .hba_abus_master3(0),
+
+    .hba_rnw(hba_rnw),
+    .hba_select(hba_select),
+    .hba_dbus(hba_dbus),
+    .hba_abus(hba_abus)
+);
+
+hba_arbiter hba_arbiter_inst
+(
+    .hba_clk(clk),
+    .hba_reset(reset),
+
+    .hba_select(hba_select),      // indicates active master
+    .hba_mrequest(hba_mrequest),
+    .hba_mgrant(hba_mgrant)
+);
 
 endmodule
 

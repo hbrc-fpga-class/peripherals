@@ -1,6 +1,11 @@
 # Ignore vim swp files
 *.sw?
 
+# Ignore simulation files
+*.log
+*.vcd
+*.vvp
+
 # Ignore implementation files
 a.out
 *.asc

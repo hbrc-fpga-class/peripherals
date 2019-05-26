@@ -70,7 +70,7 @@ module hba_gpio #
     output reg hba_xferack_slave,     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
-    output wire interrupt_out,   // Send interrupt back
+    output wire slave_interrupt,   // Send interrupt back
 
     // hba_gpio pins
     output reg [3:0] gpio_out_en,
@@ -87,7 +87,7 @@ module hba_gpio #
 reg [3:0] pin_interrupt;
 
 // Or all pin-interrupt bits together
-assign interrupt_out = |pin_interrupt;
+assign slave_interrupt = |pin_interrupt;
 
 
 // Define the bank of registers
@@ -138,7 +138,8 @@ hba_reg_bank #
     .slv_reg1_in(reg_pins_in),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b0010)    // 0010, means reg_pins(reg1) is writeable. etc
+    .slv_wr_mask(4'b0010),    // 0010, means reg_pins(reg1) is writeable. etc
+    .slv_autoclr_mask(4'b0000),    // No autoclear
 );
 
 

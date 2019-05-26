@@ -48,12 +48,13 @@ module top
     // serial_fpga pins
     input wire  PIN_1,  // rxd
     output wire PIN_2,  // txd
+    output wire PIN_3,  // intr
 
     // hba_gpio pins
-    inout wire PIN_3,   // gpio_port[0]
-    inout wire PIN_4,   // gpio_port[1]
-    inout wire PIN_5,   // gpio_port[2]
-    inout wire PIN_6,   // gpio_port[3]
+    inout wire PIN_4,   // gpio_port[0]
+    inout wire PIN_5,   // gpio_port[1]
+    inout wire PIN_6,   // gpio_port[2]
+    inout wire PIN_7,   // gpio_port[3]
 
 
     output wire LED     // pll locked
@@ -77,13 +78,14 @@ wire clk;
 wire locked;
 wire rxd;
 wire txd;
-wire [3:0] gpio_port;
+wire intr;
 
 reg reset = 0;
 reg [7:0] count = 0;
 
 assign rxd = PIN_1;
 assign PIN_2 = txd;
+assign PIN_3 = intr;
 assign LED = locked;
 
 // hba_gpio wires
@@ -113,7 +115,7 @@ SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
 ) slot1_gpio_port0_inst  (
-    .PACKAGE_PIN(PIN_3),
+    .PACKAGE_PIN(PIN_4),
     .OUTPUT_ENABLE(slot1_gpio_out_en[0]),
     .D_OUT_0(slot1_gpio_out_sig[0]),
     .D_IN_0(slot1_gpio_in_sig[0])
@@ -124,7 +126,7 @@ SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
 ) slot1_gpio_port1_inst  (
-    .PACKAGE_PIN(PIN_4),
+    .PACKAGE_PIN(PIN_5),
     .OUTPUT_ENABLE(slot1_gpio_out_en[1]),
     .D_OUT_0(slot1_gpio_out_sig[1]),
     .D_IN_0(slot1_gpio_in_sig[1])
@@ -135,7 +137,7 @@ SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
 ) slot1_gpio_port2_inst  (
-    .PACKAGE_PIN(PIN_5),
+    .PACKAGE_PIN(PIN_6),
     .OUTPUT_ENABLE(slot1_gpio_out_en[2]),
     .D_OUT_0(slot1_gpio_out_sig[2]),
     .D_IN_0(slot1_gpio_in_sig[2])
@@ -146,7 +148,7 @@ SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
 ) slot1_gpio_port3_inst  (
-    .PACKAGE_PIN(PIN_6),
+    .PACKAGE_PIN(PIN_7),
     .OUTPUT_ENABLE(slot1_gpio_out_en[3]),
     .D_OUT_0(slot1_gpio_out_sig[3]),
     .D_IN_0(slot1_gpio_in_sig[3])
@@ -164,6 +166,7 @@ gpio_test #
     .reset(reset),
     .rxd(rxd),
     .txd(txd),
+    .intr(intr),
     .gpio_out_en(slot1_gpio_out_en),
     .gpio_out_sig(slot1_gpio_out_sig),
     .gpio_in_sig(slot1_gpio_in_sig)
