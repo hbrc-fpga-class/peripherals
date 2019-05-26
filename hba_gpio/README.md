@@ -71,7 +71,7 @@ hbaset serial_fpga rawout 01 00 0e FF
 Now lets read back all three values again:
 
 ```
-hbaset serial_fpga rawout a0 01 FF FF FF FF FF
+hbaset serial_fpga rawout a1 00 FF FF FF FF FF
 # Returned bytes
 # a0 00 0e 03 00
 ```
