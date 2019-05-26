@@ -54,9 +54,12 @@ module serial_fpga #
 )
 (
     // Serial Interface
-    input wire rxd,
-    output wire txd,
-    output reg intr,
+    input wire  io_rxd,
+    output wire io_txd,
+    output reg  io_intr,
+
+    // Interrupts  from slave
+    input wire [15:0] slave_interrupt,
 
     // HBA Bus Slave Interface
     input wire hba_clk,
@@ -114,6 +117,16 @@ reg serial_rd;
 wire serial_valid;
 wire [7:0] serial_rx_data;
 
+// HBA Slave registers
+reg slv_wr_en;
+
+// slave_interrupt[7:0]
+wire [DBUS_WIDTH-1:0] reg_intr0;
+reg [DBUS_WIDTH-1:0] reg_intr0_in;
+
+// slave_interrupt[15:8]
+wire [DBUS_WIDTH-1:0] reg_intr1;
+reg [DBUS_WIDTH-1:0] reg_intr1_in;
 
 /*
 ****************************
@@ -128,13 +141,13 @@ buart # (
    .clk(hba_clk),
    .resetq(~hba_reset),
    .baud(BAUD),    // [31:0] max = 32'd921600
-   .rx(rxd),            // recv wire
+   .rx(io_rxd),            // recv wire
    .rd(uart0_rd),    // read strobe
    .wr(uart0_wr),   // write strobe
    .tx_data(tx_data),   // [7:0]
 
    // outputs
-   .tx(txd),           // xmit wire
+   .tx(io_txd),           // xmit wire
    .valid(rx_valid),   // has recv data 
    .busy(tx_busy),     // is transmitting
    .rx_data(rx_data)   // [7:0]
@@ -214,11 +227,15 @@ hba_reg_bank #
                                     // Must be zero when inactive.
 
     // Access to registgers
-    .slv_reg0(reg_intr),        // read access
-    .slv_reg0_in(reg_intr_in),  // write access
+    .slv_reg0(reg_intr0),        // read access
+    .slv_reg0_in(reg_intr0_in),  // write access
 
-    .slv_wr_en(1'b0),     // No write.
-    .slv_wr_mask(4'b001)  // 0001, Enable writes to slv_reg0.
+    .slv_reg1(reg_intr1),        // read access
+    .slv_reg1_in(reg_intr1_in),  // write access
+
+    .slv_wr_en(slv_wr_en),     // No write.
+    .slv_wr_mask(4'b011),   // 0011, Enable writes to slv_reg0, and slv_reg1.
+    .slv_autoclr_mask(4'b011)   // 0011, Enable clearing when read
 );
 
 
@@ -267,7 +284,6 @@ always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         serial_state <= IDLE;
-        intr <= 0;
         cmd_byte <= 0;
         regaddr_byte <= 0;
         transfer_num <= 0;
@@ -411,6 +427,48 @@ begin
                 serial_state <= IDLE;
             end
         endcase
+    end
+end
+
+// HBA Slave registers
+reg slv_wr_en;
+
+// slave_interrupt[7:0]
+wire [DBUS_WIDTH-1:0] reg_intr0;
+reg [DBUS_WIDTH-1:0] reg_intr0_in;
+
+// slave_interrupt[15:8]
+wire [DBUS_WIDTH-1:0] reg_intr1;
+reg [DBUS_WIDTH-1:0] reg_intr1_in;
+
+integer i;
+
+// Set the HBA interrupt registers
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        slv_wr_en <= 0;
+        reg_intr0_in <= 0;
+        reg_intr1_in <= 0;
+        io_intr <= 0;
+    end else begin
+        // Generate interrupt to CPU if any interrupt bits are set
+        io_intr <= (|reg_intr0) | (|reg_intr1);
+
+        // default
+        slv_wr_en <= 0;
+
+        for (i=0; i <8; i=i+1)
+        begin
+            if (slave_interrupt[i]) begin
+                reg_intr0_in[i] <= 1'b1;
+                slv_wr_en <= 1;
+            end
+            if (slave_interrupt[i+8]) begin
+                reg_intr1_in[i] <= 1'b1;
+                slv_wr_en <= 1;
+            end
+        end
     end
 end
 

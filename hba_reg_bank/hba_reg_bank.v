@@ -59,7 +59,8 @@ module hba_reg_bank #
     input wire [DBUS_WIDTH-1:0] slv_reg3_in,
 
     input wire slv_wr_en,           // Assert to set slv_reg? <= slv_reg?_in
-    input wire [3:0] slv_wr_mask    // 0001, means reg0 is writeable. etc
+    input wire [3:0] slv_wr_mask,   // 0001, means reg0 is writeable. etc
+    input wire [3:0] slv_autoclr_mask   // 0001, means reg0 is cleared when read
 );
 
 /*
@@ -153,15 +154,27 @@ begin
                 case(hba_abus[REG_ADDR_WIDTH-1:0])
                     0 : begin
                         hba_dbus_slave <= slv_reg0;
+                        if (slv_autoclr_mask[0]) begin
+                            slv_reg0 <= 0;
+                        end
                     end
                     1 : begin
                         hba_dbus_slave <= slv_reg1;
+                        if (slv_autoclr_mask[1]) begin
+                            slv_reg1 <= 0;
+                        end
                     end
                     2 : begin
                         hba_dbus_slave <= slv_reg2;
+                        if (slv_autoclr_mask[2]) begin
+                            slv_reg2 <= 0;
+                        end
                     end
                     3 : begin
                         hba_dbus_slave <= slv_reg3;
+                        if (slv_autoclr_mask[3]) begin
+                            slv_reg3 <= 0;
+                        end
                     end
                     default : begin
                         hba_dbus_slave <= 0;

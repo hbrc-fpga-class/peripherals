@@ -57,7 +57,8 @@ module serial_test #
     input wire  clk,
     input wire  reset,
     input wire  rxd,
-    output wire txd
+    output wire txd,
+    output wire intr
 );
 
 
@@ -72,6 +73,7 @@ wire [DBUS_WIDTH-1:0] hba_dbus;  // The read data bus.
 wire [ADDR_WIDTH-1:0] hba_abus; // The input address bus.
 wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
+wire hba_xferack;       // Slave ACK transfer complete.
 
 // Only two slave.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
@@ -117,13 +119,13 @@ serial_fpga #
 ) serial_fpga_inst
 (
     // Serial Interface
-    .rxd(rxd),
-    .txd(txd),
-    // XXX .intr(),
+    .io_rxd(rxd),
+    .io_txd(txd),
+    .io_intr(intr),
 
     // HBA Bus Slave Interface
-    .hba_clk(hba_clk),
-    .hba_reset(hba_reset),
+    .hba_clk(clk),
+    .hba_reset(reset),
     .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
     .hba_select(hba_select),      // Transfer in progress.
     .hba_abus(hba_abus), // The input address bus.
@@ -135,8 +137,6 @@ serial_fpga #
                                     // Must be zero when inactive.
 
     // HBA Bus Master Interface
-    // XXX input wire hba_clk,
-    // XXX input wire hba_reset,
     .hba_xferack(hba_xferack),  // Asserted when request has been completed.
     .hba_mgrant(hba_mgrant[0]),   // Master access has be granted.
     .hba_mrequest(hba_mrequest[0]),     // Requests access to the bus.
@@ -201,7 +201,7 @@ hba_or_slaves #
 
 hba_or_masters #
 (
-    .DBUS_WIDTH(DBUS_WIDTH,
+    .DBUS_WIDTH(DBUS_WIDTH),
     .ADDR_WIDTH(ADDR_WIDTH)
 ) hba_or_masters_inst
 (
@@ -228,8 +228,8 @@ hba_or_masters #
 
 hba_arbiter hba_arbiter_inst
 (
-    .hba_clk(hba_clk),
-    .hba_reset(hba_reset),
+    .hba_clk(clk),
+    .hba_reset(reset),
 
     .hba_select(hba_select),      // indicates active master
     .hba_mrequest(hba_mrequest),

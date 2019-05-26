@@ -2,7 +2,7 @@ PROJ = top
 
 DEVICE = lp8k
 COMMON = ../../../common
-SOURCES = ../$(PROJ).v $(COMMON)/pll_50mhz.v ../serial_test.v $(COMMON)/uart.v ../../../serial_fpga/send_recv.v $(COMMON)/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v
+SOURCES = ../$(PROJ).v $(COMMON)/pll_50mhz.v ../serial_test.v $(COMMON)/uart.v ../../../serial_fpga/send_recv.v $(COMMON)/hba_master.v ../../../serial_fpga/serial_fpga.v ../../../hba_reg_bank/hba_reg_bank.v $(COMMON)/hba_arbiter.v $(COMMON)/hba_or_slaves.v $(COMMON)/hba_or_masters.v
 
 PIN_DEF = $(COMMON)/pins.pcf
 

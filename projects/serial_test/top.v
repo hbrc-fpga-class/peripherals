@@ -26,6 +26,7 @@ module top
 
     input wire  PIN_1,  // rxd
     output wire PIN_2,  // txd
+    output wire PIN_3,  // intr
 
 
     output wire LED     // pll locked
@@ -49,12 +50,14 @@ wire clk;
 wire locked;
 wire rxd;
 wire txd;
+wire intr;
 
 reg reset = 0;
 reg [7:0] count = 0;
 
 assign rxd = PIN_1;
 assign PIN_2 = txd;
+assign PIN_3 = intr;
 assign LED = locked;
 
 
@@ -82,7 +85,8 @@ serial_test #
     .clk(clk),
     .reset(reset),
     .rxd(rxd),
-    .txd(txd)
+    .txd(txd),
+    .intr(intr)
 );
 
 /*
