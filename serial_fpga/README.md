@@ -18,7 +18,8 @@ Additional ports are:
 the interrupt registers (below) are read.
 * __slave_interrupt[15:0]__ : Interrupts from up to 16 slave peripherals.
 
-The slave interface exposes two registers:
+The slave interface exposes two registers.  These registers are auto-cleared
+after they have been read by the host (or other master).
 
 * __reg0[7:0]__ : (reg_intr0) Interrupt flags for peripherals 7 .. 0.
 * __reg1[7:0]__ : (reg_intr1) Interrupt flags for peripherals 15 .. 8.
