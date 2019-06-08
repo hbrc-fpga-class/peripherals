@@ -150,7 +150,7 @@ hba_reg_bank #
 */
 
 // Read input pins, and write to reg_pins
-always @ (hba_clk)
+always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         reg_pins_in <= 0;
