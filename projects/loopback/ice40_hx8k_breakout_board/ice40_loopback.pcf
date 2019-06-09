@@ -1,0 +1,14 @@
+set_io clk_12mhz J3
+set_io reset_n B16 -pullup yes
+
+set_io rxd B10
+set_io txd B12
+
+set_io led[0] B5
+set_io led[1] B4
+set_io led[2] A2
+set_io led[3] A1
+set_io led[4] C5
+set_io led[5] C4
+set_io led[6] B3
+set_io led[7] C3
