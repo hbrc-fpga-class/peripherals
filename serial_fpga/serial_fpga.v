@@ -430,17 +430,6 @@ begin
     end
 end
 
-// HBA Slave registers
-reg slv_wr_en;
-
-// slave_interrupt[7:0]
-wire [DBUS_WIDTH-1:0] reg_intr0;
-reg [DBUS_WIDTH-1:0] reg_intr0_in;
-
-// slave_interrupt[15:8]
-wire [DBUS_WIDTH-1:0] reg_intr1;
-reg [DBUS_WIDTH-1:0] reg_intr1_in;
-
 integer i;
 
 // Set the HBA interrupt registers
