@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <syslog.h>
 #include <errno.h>
 #include <string.h>
@@ -38,6 +39,9 @@
 #include <unistd.h>
 #include "../include/eedd.h"
 #include "readme.h"
+#define HBAERROR_NOSEND (-1)
+#define HBAERROR_NORECV (-2)
+#define HBA_READ_CMD    (0x80)
 
 
 /**************************************************************
@@ -67,7 +71,7 @@
 /**************************************************************
  *  - Data structures
  **************************************************************/
-    // All state info for an instance of an serial
+    // All state info for an instance of an hba_serial_fpga peripheral
 typedef struct
 {
     void    *pslot;    // handle to plug-in's's slot info
@@ -75,11 +79,10 @@ typedef struct
     void    *ptimer;   // timer with callback to bcast state
     char     port[PATH_MAX]; // full path to serial port node
     int      spfd;     // serial port File Descriptor (=-1 if closed)
-    unsigned char rawinc[MX_MSGLEN];  // data from fpga to host
+    uint8_t  rawinc[MX_MSGLEN];  // data from fpga to host
     int      inidx;    // index into rawinc
-    unsigned char rawoutc[MX_MSGLEN];  // data from host to fpga
+    uint8_t  rawoutc[MX_MSGLEN];  // data from host to fpga
     int      outidx;   // index into rawoutc
-    void    *pnewline; // timer that adds a newline to the output
     char     intrrp[PATH_MAX]; // full path to interrupt input pin
     int      irfd;     // interrupt pin file descriptor (-1 if closed)
 } SERPORT;
@@ -91,7 +94,7 @@ typedef struct
 static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 static void portconfig(SERPORT *pctx);
-
+extern SLOT Slots[];
 
 /**************************************************************
  * Initialize():  - Allocate our permanent storage and set up
@@ -123,8 +126,8 @@ int Initialize(
 
     // Register name and private data
     pslot->name = PLUGIN_NAME;
-    pslot->trans = pctx;
-    pslot->desc = "Serial interface";
+    pslot->priv = pctx;
+    pslot->desc = "Serial interface to the HomeBrew Automation FPGA";
     pslot->help = README;
 
     // Add handlers for the user visible resources
@@ -159,7 +162,6 @@ int Initialize(
     pslot->rsc[RSC_RAWIN].uilock = -1;
     pslot->rsc[RSC_RAWIN].slot = pslot;
 
-    pctx->pnewline = (void *) 0;
     pctx->ptimer = (void *) 0;
 
     // try to open and register the serial port
@@ -181,15 +183,14 @@ void usercmd(
     int     *plen,     // size of buf on input, #char in buf on output
     char    *buf)
 {
-    SERPORT *pctx;     // our local info
-    int      sntcount; // return count
+    SERPORT *pctx;     // serial_fpga private info
     int      ret;      // generic system call return value
     int      nbaud;    // new value to assign the baud
     char    *pbyte;    // used in parsing raw input
     int      tmp;      // used in parsing raw input
 
     // Get this instance of the plug-in
-    pctx = (SERPORT *) pslot->trans;
+    pctx = (SERPORT *) pslot->priv;
 
 
     if ((cmd == EDGET) && (rscid == RSC_PORT)) {
@@ -222,6 +223,7 @@ void usercmd(
         ret = sscanf(val, "%d", &nbaud);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
             return;
         }
         if ((nbaud != 1200) && (nbaud != 1800) && (nbaud != 2400) &&
@@ -231,6 +233,7 @@ void usercmd(
             (nbaud != 576000) && (nbaud != 921600))
         {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
             return;
         }
 
@@ -265,18 +268,24 @@ void usercmd(
         pbyte = strtok(val, " ");
         while (pbyte) {
             sscanf(pbyte, "%x", &tmp);
-            pctx->rawoutc[pctx->outidx] = (unsigned char) (tmp & 0x00ff);
+            pctx->rawoutc[pctx->outidx] = (uint8_t) (tmp & 0x00ff);
             pbyte = strtok((char *) 0, " ");    // space separated
             pctx->outidx++;
             if (pctx->outidx == MX_MSGLEN)      // full buffer ?
                 break;
         }
-        // send them out the serial port 
+        // Send data to serial port
         if (pctx->spfd >= 0) {
-            sntcount = write(pctx->spfd, pctx->rawoutc, pctx->outidx);
-            if (sntcount != pctx->outidx) {
-                // TODO: deal with EAGAIN and parital writes
-                edlog("error writing to serial port in serial_fpga");
+            ret = write(pctx->spfd, pctx->rawoutc, pctx->outidx);
+            if (ret != pctx->outidx) {
+                // Error writing to serial port.  Ignore partial writes
+                // and close fd on errors.  An overloaded serial link might
+                // fail here first.
+                edlog("Error writing to serial_fpga serial port\n");
+                if (ret < 0) {
+                    close(pctx->spfd);
+                    pctx->spfd = -1;
+                }
             }
         }
     }
@@ -304,11 +313,12 @@ static void getevents(
 
     pctx = (SERPORT *) cb_data;
     pslot = pctx->pslot;
-    prsc = &(pslot->rsc[RSC_RAWIN]);  // events resource
 
     // Read from the serial port and output the data if anyone is
-    // watching the rawin resource.  Else build a packet and try
-    // to send it to the right peripheral/plug-in. 
+    // watching the rawin resource.  See if an interrupt is registered
+    // for the (implied) slot in the packet.  If there's a handler then
+    // forward the packet to the slot's interrupt handler.
+
     nrd = read(pctx->spfd, pctx->rawinc, MX_MSGLEN);
 
     // shutdown manager conn on error or on zero bytes read */
@@ -321,6 +331,7 @@ static void getevents(
 
     // Broadcast characters if any UI are monitoring it.
     // '3' because each input byte prints as 'xx '.
+    prsc = &(pslot->rsc[RSC_RAWIN]);  // events resource
     if (prsc->bkey != 0) {
         for(i = 0 ; i < nrd ; i++) {
             sprintf(&msg[i * 3],"%02x ", pctx->rawinc[i]);
@@ -367,8 +378,7 @@ void portconfig(SERPORT *pctx)
         case 921600 : baudrate = B921600; break;
     }
 
-    // Port is open and spfd is valid.  Configure the port
-    // port is open and can be configured
+    // Port is open and spfd is valid.  Configure the port.
     tbuf.c_cflag = CS8 | CREAD | baudrate | CLOCAL;
     tbuf.c_iflag = IGNBRK;
     tbuf.c_oflag = 0;
@@ -377,7 +387,7 @@ void portconfig(SERPORT *pctx)
     tbuf.c_cc[VTIME] = 0;       /* no delay waiting for characters */
     int actions = TCSANOW;
     if (tcsetattr(pctx->spfd, actions, &tbuf) < 0) {
-        //edlog(M_BADPORT, pctx->port, strerror(errno));
+        edlog(M_BADPORT, pctx->spfd, strerror(errno));
         close(pctx->spfd);
         pctx->spfd = -1;
         return;
@@ -387,4 +397,109 @@ void portconfig(SERPORT *pctx)
     add_fd(pctx->spfd, getevents, (void (*)()) NULL, (void *) pctx);
 }
 
+
+/* sendrecv_pkt() : Send a packet to the FPGA.  Wait for the
+ * response.  Write packet receive one byte in response and read
+ * packets receive two less than the number of bytes sent.
+ *     Input is the number of bytes to send and a pointer to a buffer
+ * with the bytes to send.  The buffer does not need to be null terminated.
+ *     On return the buffer is filled with the response bytes.
+ * The return value is the number of bytes sent on success and a negative
+ * error code on error.  Errors include:
+ *  HBAERROR_NOSEND : unable to send the data
+ *  HBAERROR_NORECV : unable to read the response
+ *     This routine is typically called from a driver plug-in to send
+ * a read or write command to the FPGA.  It may be called from within
+ * serial_fpga itself for initialization and to help process interrupts.
+ */
+int sendrecv_pkt(
+    int            count,       // num bytes to send / receive
+    uint8_t       *buff)        // pointer to first char to send
+{
+    SERPORT      *pctx;         // our local info
+    int           sntcount1;    // return from first call to write()
+    int           sntcount2;    // return from second call to write()
+    int           expectrd;     // number of bytes expected in FPGA response
+    int           rdcount;      // return from read()
+    int           rdsofar = 0;  // number of characters we've read so far
+    fd_set        rdfs;         // read FDs for select()
+    struct timeval select_tv;   // timeout for select()
+    int           sret;         // select() return value
+
+    // We could search the slots for a plug-in named "serial_fpga" but
+    // for now we assume that serial_fpga is the first module loaded.
+    pctx = (SERPORT *) Slots[0].priv;
+    if (strncmp(PLUGIN_NAME, Slots[0].name, strlen(PLUGIN_NAME)) != 0) {
+        edlog("Wanted %s in Slot 0.  Exiting...\n", PLUGIN_NAME);
+        exit(1);
+    }
+
+    // Sanity check. Valid count.  Non-null buffer.  Port open.
+    if ((count <= 0) || (buff == (uint8_t *) 0) || (pctx->spfd < 0)) {
+        return(HBAERROR_NOSEND);
+    }
+
+    // send data out the serial port 
+    sntcount1 = write(pctx->spfd, buff, count);
+    if (sntcount1 != count) {
+        if ((sntcount1 < 0) && (errno != EAGAIN) && (errno != EINTR)) {
+            edlog("error writing to serial port in serial_fpga");
+            return(HBAERROR_NOSEND);
+        }
+
+        // Partial send or need to try again.  Pause then try again.
+        usleep(1000);
+        // sntcount1 is offset into xmit buffer.  No negative sntcount1
+        sntcount1 = (sntcount1 < 0) ? 0 : sntcount1;
+        sntcount2 = write(pctx->spfd, &buff[sntcount1], (count - sntcount1));
+        if (sntcount2 != (count - sntcount1)) {
+            // no retry on second failure
+            edlog("error writing to serial port in serial_fpga");
+            return(HBAERROR_NOSEND);
+        }
+    }
+
+    // Read characters from the serial port.  Use a select() loop
+    // so we can detect a timeout error.
+    // Expect response to have one byte for a write and two less than the
+    // write count for a read.
+    expectrd = (HBA_READ_CMD & buff[0]) ? (count -2) : 1 ;
+
+    // We loop as long as we are reading bytes within the timeout period.
+    // Bytes might dripple in especially on a slow link
+    while (1) {
+        select_tv.tv_sec = 0;
+        select_tv.tv_usec = (useconds_t) 100000;   // 0.1 seconds for a timeout
+        FD_ZERO(&rdfs);
+        FD_SET(pctx->spfd, &rdfs);
+        sret = select((pctx->spfd + 1), &rdfs, (fd_set *) 0, (fd_set *) 0, &select_tv);
+        if (sret < 0) {
+            // select error -- bail out on all but EINTR
+            if (errno != EINTR) {
+                edlog("Failure in select() call");
+                exit(-1);
+            }
+        }
+        else if (sret == 0) {
+            // timeout waiting for the response
+            edlog("timeout reading from serial port in serial_fpga");
+            return(HBAERROR_NORECV);
+        }
+        else if ((pctx->spfd >= 0) && FD_ISSET(pctx->spfd, &rdfs)) {
+            // read bytes from serial port
+            rdcount = read(pctx->spfd, &(buff[rdsofar]), (expectrd - rdsofar));
+            if ((rdcount < 0) && (errno != EINTR)) {
+                edlog("error writing to serial port in serial_fpga");
+                return(HBAERROR_NORECV);
+            }
+            if (rdcount > 0) {
+                rdsofar += rdcount;
+                if (rdsofar == expectrd) {   // done?
+                    return(expectrd);
+                }
+                // else more to read, drop back into select() to wait
+            }
+        }
+    }
+}
 // end of serial_fpga.c
