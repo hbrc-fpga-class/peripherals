@@ -1,0 +1,4 @@
+# iverilog -c compile.vf
+hba_basicio.v
+../hba_reg_bank/hba_reg_bank.v
+
