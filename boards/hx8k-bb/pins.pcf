@@ -1,0 +1,37 @@
+# 12MHz clock
+set_io --warn-no-port CLK_12MHZ J3
+
+# Uart 
+set_io --warn-no-port RXD B10
+set_io --warn-no-port TXD B12
+
+# Leds
+set_io --warn-no-port LED[0] B5
+set_io --warn-no-port LED[1] B4
+set_io --warn-no-port LED[2] A2
+set_io --warn-no-port LED[3] A1
+set_io --warn-no-port LED[4] C5
+set_io --warn-no-port LED[5] C4
+set_io --warn-no-port LED[6] B3
+set_io --warn-no-port LED[7] C3
+
+# J2 Header pins
+set_io --warn-no-port J2_4 R15     # PIO1_01
+set_io --warn-no-port J2_6 P15 -pullup yes     # PIO1_03
+
+set_io --warn-no-port J2_10 M15 -pullup yes    # PIO1_14
+set_io --warn-no-port J2_12 L16     # PIO1_16
+set_io --warn-no-port J2_14 K16     # PIO1_21
+
+set_io --warn-no-port J2_18 J14     # PIO1_22
+set_io --warn-no-port J2_20 F14     # PIO1_42
+set_io --warn-no-port J2_22 H14     # PIO1_29
+
+set_io --warn-no-port J2_26 G15     # PIO1_32
+set_io --warn-no-port J2_28 F15     # PIO1_36
+set_io --warn-no-port J2_30 E14     # PIO1_46
+
+set_io --warn-no-port J2_34 D15     # PIO1_44
+set_io --warn-no-port J2_36 D14     # PIO1_51
+set_io --warn-no-port J2_38 B16     # PIO1_49
+

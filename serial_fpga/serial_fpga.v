@@ -69,8 +69,8 @@ module serial_fpga #
     input wire [ADDR_WIDTH-1:0] hba_abus, // The input address bus.
     input wire [DBUS_WIDTH-1:0] hba_dbus,  // The input data bus.
 
-    output reg [DBUS_WIDTH-1:0] hba_dbus_slave,   // The output data bus.
-    output reg hba_xferack_slave,     // Acknowledge transfer requested. 
+    output wire [DBUS_WIDTH-1:0] hba_dbus_slave,   // The output data bus.
+    output wire hba_xferack_slave,     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
 
