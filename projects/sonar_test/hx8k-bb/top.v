@@ -3,14 +3,13 @@
 * MODULE top.v
 *
 * This project implements the serial_fpga master connected
-* to one hba_sonar slave.  It is used to test
-* that we can read and write to the hba_sonar slave
-* registers from the serial port.
+* to one hba_basicio slave.  It is used to test
+* that we can write to the leds and read from the buttons.
 *
-* Target Board: TinyFPGA BX
+* Target Board: hx8k-bb
 *
 * Author: Brandon Blodget
-* Create Date: 06/08/2019
+* Create Date: 06/11/2019
 *
 ********************************************
 */
@@ -43,24 +42,23 @@
 
 module top
 (
-    input wire  CLK_16MHZ,
+    input wire  CLK_12MHZ,
 
     // serial_fpga pins
-    input wire  PIN_1,  // rxd
-    output wire PIN_2,  // txd
-    output wire PIN_3,  // intr
+    input wire  RXD,  // rxd
+    output wire TXD,  // txd
+    output wire J2_4, // intr
 
     // hba_sonar pins
-    output wire PIN_4,  // sonar_trig[0]
-    input  wire PIN_5,  // sonar_echo[0]
-    output wire PIN_6,  // sonar_trig[1]
-    input  wire PIN_7,  // sonar_echo[1]
+    output wire J2_6,   // sonar_trig[0]
+    input  wire J2_10,  // sonar_echo[0]
+    output wire J2_12,  // sonar_trig[1]
+    input  wire J2_14   // sonar_echo[1]
 
-    output wire LED     // pll locked
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 50_000_000;
+parameter integer CLK_FREQUENCY = 50_250_000;
 parameter integer BAUD = 32'd115_200;
 
 parameter integer DBUS_WIDTH = 8;
@@ -79,23 +77,20 @@ wire rxd;
 wire txd;
 wire intr;
 
-// hba_sonar wires
+// hba_sonar pins
 wire [1:0] sonar_trig;
 wire [1:0] sonar_echo;
 
 reg reset = 0;
 reg [7:0] count = 0;
 
-assign rxd = PIN_1;
-assign PIN_2 = txd;
-assign PIN_3 = intr;
-assign PIN_4 = sonar_trig[0];
-assign sonar_echo[0] = PIN_5;
-assign PIN_6 = sonar_trig[1];
-assign sonar_echo[1] = PIN_7;
-
-assign LED = locked;
-
+assign rxd = RXD;
+assign TXD = txd;
+assign J2_4 = intr;
+assign J2_6 = sonar_trig[0];
+assign sonar_echo[0] = J2_10;
+assign J2_12 = sonar_trig[1];
+assign sonar_echo[1] = J2_14;
 
 /*
 ****************************
@@ -105,13 +100,12 @@ assign LED = locked;
 
 // Use PLL to get 50mhz clock
 pll_50mhz pll_50mhz_inst (
-    .clock_in(CLK_16MHZ),
+    .clock_in(CLK_12MHZ),
     .clock_out(clk),
     .locked(locked)
 );
 
-
-sonar_test # 
+sonar_test #
 (
     .CLK_FREQUENCY(CLK_FREQUENCY),
     .BAUD(BAUD),
