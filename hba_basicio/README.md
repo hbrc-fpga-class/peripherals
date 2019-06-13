@@ -26,8 +26,8 @@ It also has the following additional ports.
 
 There are three 8-bit registers.
 
-* __reg0__ : The value to write to the LEDs.
-* __reg1__ : The button value.
-* __reg2__ : Interrupt Enable Register. A value of 1 indicates that
+* __reg0__ : (reg_led) - The value to write to the LEDs.
+* __reg1__ : (reg_button_in) - The buttons value.
+* __reg2__ : (reg_intr_en) - Interrupt Enable Register. A value of 1 indicates that
 change in button state will cause an interrupt.
 
