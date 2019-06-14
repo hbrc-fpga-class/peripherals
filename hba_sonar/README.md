@@ -18,10 +18,7 @@ It also has the following additional ports.
 * __slave_interrupt__ (output) : Asserted when a new sonar value(s) are available.
 * __sonar_trig[1:0]__ (output) : The trigger signals for the two sonars.
 * __sonar_echo[1:0]__ (input) : The return echo.
-* __sonar_sync_in__ (input) : Synchronization input pulse for multiple sonar peripherals.
-Used to stagger trigger, so they don't all trigger at the same time.
-* __sonar_sync_out__ (output) : The master sync pulse.  One of the sonar peripherals
-will be be the master.
+
 
 ## Register Interface
 
@@ -30,15 +27,28 @@ There are four 8-bit registers.
 * __reg0__ : Control register. Enables sonars and interrupts.
     * reg0[0] : Enable sonar 0.
     * reg0[1] : Enable sonar 1.
+* __reg1__ : Last Sonar0 value
+* __reg2__ : Last Sonar1 value
+* __reg3__ : Trigger period.  Granularity 50ms. Default 100ms.
+
+
+## TODO
+
+Add support for the following ports:
+
+* __sonar_sync_in__ (input) : Synchronization input pulse for multiple sonar peripherals.
+Used to stagger trigger, so they don't all trigger at the same time.
+* __sonar_sync_out__ (output) : The master sync pulse.  One of the sonar peripherals
+will be be the master.
+
+Add support for the following bits and registers:
+
+* __reg0__ : Control register. Enables sonars and interrupts.
     * reg0[2] : Slave sync.  If 1 use the sonar_sync_in for trigger.
 Default(0) generate internal sync pulse.
     * reg0[3] : Enable sonar interrupt. Triggered once per cycle.
     * reg0[7:4] : Unused
-* __reg1__ : Last Sonar0 value
-* __reg2__ : Last Sonar1 value
-* __reg3__ : Time slice for sonar 0 trigger after sync. Granularity 1ms.
-* __reg4__ : Time slice for sonar 1 trigger after sync. Granularity 1ms.
-* __reg5__ : Trigger period.  Granularity 50ms. Default 100ms.
-
+* __reg4__ : Time slice for sonar 0 trigger after sync. Granularity 1ms.
+* __reg5__ : Time slice for sonar 1 trigger after sync. Granularity 1ms.
 
 
