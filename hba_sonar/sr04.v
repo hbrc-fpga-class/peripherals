@@ -4,7 +4,7 @@
 *
 * This module provides an interface to a SR04
 * sonar module which has Trig and Echo pins.
-* It outputs dist[7:0] which multiplied by 0.54
+* It outputs dist[7:0] which multiplied by 0.55
 * give approximate distance in inches.
 * This assumes the clk input is at 50mhz.
 *
@@ -135,9 +135,9 @@ begin
             // Receive echo
             if (echo) begin
                 // divide echo_time by 2^12 = 82us resoution 
-                // = .54 inches resolution or
+                // = .55 inches resolution or
                 // = 13.94 mm
-                dist[7:0] <= echo_time[18:11];
+                dist[7:0] <= echo_time[19:12];
                 valid <= 1;
                 timing <= 0;
                 echo_time <= 0;
