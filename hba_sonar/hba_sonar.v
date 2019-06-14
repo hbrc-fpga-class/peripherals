@@ -19,8 +19,8 @@
 *Default(0) generate internal sync pulse.
 *    reg0[3] : Enable sonar interrupt. Triggered once per cycle.
 *    reg0[7:4] : Unused
-* __reg1__ : Time slice for sonar 0 trigger after sync. Granularity 1ms.
-* __reg2__ : Time slice for sonar 1 trigger after sync. Granularity 1ms.
+* __reg1__ : Last Sonar 0 value
+* __reg2__ : Last Sonar 1 value
 * __reg3__ : Trigger period.  Granularity 50ms. Default 100ms.
 *
 * See the README.md in this directory for more information.
@@ -121,6 +121,9 @@ assign slv_wr_en = sonar_valid;
 // TODO : Fix when add 2nd sonar.
 assign sonar_trig[1] = 0;
 
+wire sonar0_en;
+assign sonar0_en = reg_ctrl[0];
+
 /*
 *****************************
 * Instantiation
@@ -171,6 +174,7 @@ sr04 sr04_inst0
 (
     .clk(hba_clk),     // assume 50mhz
     .reset(hba_reset),
+    .en(sonar0_en),
     .sync(sonar_sync),
 
     .trig(sonar_trig[0]),

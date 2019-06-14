@@ -44,6 +44,7 @@ module sr04
 (
     input wire clk,     // assume 50mhz
     input wire reset,
+    input wire en,
     input wire sync,
 
     output reg trig,
@@ -80,17 +81,24 @@ begin
         trig_count <= 0;
         start_timer <= 0;
     end else begin
-        start_timer <= 0;
-        if (posedge_sync) begin
-            trig <= 1;
-        end
-        if (trig) begin
-            trig_count <= trig_count + 1;
-            if (trig_count == TRIG_TIME) begin
-                trig <= 0;
-                trig_count <= 0;
-                start_timer <= 1;
+        if (en) begin
+            start_timer <= 0;
+            if (posedge_sync) begin
+                trig <= 1;
             end
+            if (trig) begin
+                trig_count <= trig_count + 1;
+                if (trig_count == TRIG_TIME) begin
+                    trig <= 0;
+                    trig_count <= 0;
+                    start_timer <= 1;
+                end
+            end
+        end else begin
+            // default values
+            trig <= 0;
+            trig_count <= 0;
+            start_timer <= 0;
         end
     end
 end
