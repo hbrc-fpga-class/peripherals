@@ -73,16 +73,16 @@ end
 // 10us / 20ns(50mhz) = 500
 localparam TRIG_TIME = 500;
 reg [8:0] trig_count;
-reg start_timer;
+reg trig_sent;
 always @ (posedge clk)
 begin
     if (reset) begin
         trig <= 0;
         trig_count <= 0;
-        start_timer <= 0;
+        trig_sent <= 0;
     end else begin
         if (en) begin
-            start_timer <= 0;
+            trig_sent <= 0;
             if (posedge_sync) begin
                 trig <= 1;
             end
@@ -91,15 +91,31 @@ begin
                 if (trig_count == TRIG_TIME) begin
                     trig <= 0;
                     trig_count <= 0;
-                    start_timer <= 1;
+                    trig_sent <= 1;
                 end
             end
         end else begin
             // default values
             trig <= 0;
             trig_count <= 0;
-            start_timer <= 0;
+            trig_sent <= 0;
         end
+    end
+end
+
+// Find edges on echo signal
+reg echo_reg;
+wire echo_posedge;
+wire echo_negedge;
+assign echo_posedge = (echo==1) && (echo_reg==0);
+assign echo_negedge = (echo==0) && (echo_reg==1);
+
+always @ (posedge clk)
+begin
+    if (reset) begin
+        echo_reg <= 0;
+    end else begin
+        echo_reg <= echo;
     end
 end
 
@@ -113,6 +129,7 @@ end
 // time(0.5in) = 0.5(in)*2/13386 =~ 75us = 3750 clocks (50mhz) =~ 2^12
 reg [19:0] echo_time;
 reg timing;
+reg wait_for_echo;
 always @ (posedge clk)
 begin
     if (reset) begin
@@ -120,20 +137,28 @@ begin
         timing <= 0;
         dist <= 0;
         valid <= 0;
+        wait_for_echo <= 0;
     end else begin
         valid <= 0;
 
         // Triger has been sent start timer
-        if (start_timer) begin
-            timing <= 1;
+        if (trig_sent) begin
+            wait_for_echo <= 1;
         end 
+
+        if (wait_for_echo) begin
+            if (echo_posedge) begin
+                timing <= 1;
+                wait_for_echo <= 0;
+            end
+        end
 
         // Wait for echo or timeout
         if (timing) begin
             echo_time <= echo_time + 1;
 
-            // Receive echo
-            if (echo) begin
+            // Echo goes low.  Stop timer
+            if (echo_negedge) begin
                 // divide echo_time by 2^12 = 82us resoution 
                 // = .55 inches resolution or
                 // = 13.94 mm
@@ -147,6 +172,8 @@ begin
             if (echo_time[19]) begin
                 timing <= 0;
                 echo_time <= 0;
+                dist[7:0] <= 0;
+                valid <= 1;
             end
 
         end
