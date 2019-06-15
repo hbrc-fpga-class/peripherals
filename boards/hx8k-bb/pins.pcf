@@ -23,8 +23,8 @@ set_io --warn-no-port J2_10 M15 -pullup yes    # PIO1_14
 set_io --warn-no-port J2_12 L16     # PIO1_16
 set_io --warn-no-port J2_14 K16     # PIO1_21
 
-set_io --warn-no-port J2_18 J14     # PIO1_22
-set_io --warn-no-port J2_20 F14     # PIO1_42
+set_io --warn-no-port J2_18 J14 -pullup yes    # PIO1_22
+set_io --warn-no-port J2_20 F14 -pullup yes    # PIO1_42
 set_io --warn-no-port J2_22 H14     # PIO1_29
 
 set_io --warn-no-port J2_26 G15     # PIO1_32
