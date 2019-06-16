@@ -37,7 +37,7 @@
 #include <limits.h>              // for PATH_MAX
 #include <termios.h>
 #include <unistd.h>
-#include "../include/eedd.h"
+#include "eedd.h"
 #include "readme.h"
 #define HBAERROR_NOSEND (-1)
 #define HBAERROR_NORECV (-2)

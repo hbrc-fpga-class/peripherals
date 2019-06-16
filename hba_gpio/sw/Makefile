@@ -1,7 +1,7 @@
 #
 #  Name: Makefile
 #
-#  Description: This is the Makefile for the gamepad plugin
+#  Description: This is the Makefile for the hba_gpio plugin
 #
 #  Copyright:   Copyright (C) 2019 by Demand Peripherals, Inc.
 #               All rights reserved.
@@ -19,9 +19,9 @@
 
 plugin_name = hba_gpio
 
-INC = ../include
-LIB = ../../build/lib
-OBJ = ../../build/obj
+INC = $(EE_DIR)/plug-ins/include
+LIB = $(EE_DIR)/build/lib
+OBJ = $(EE_DIR)/build/obj
 
 includes = $(INC)/eedd.h readme.h
 
