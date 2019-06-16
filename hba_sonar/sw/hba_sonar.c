@@ -240,7 +240,8 @@ void usercmd(
         else {
             // Got value.  Print and send to user
             pctx->sonar0 = pkt[2];   // first two bytes are echo of header
-            ret = snprintf(buf, *plen, "%f\n", ((float)pctx->sonar0)*0.55);
+            // XXX ret = snprintf(buf, *plen, "%f\n", ((float)pctx->sonar0)*0.55);
+            ret = snprintf(buf, *plen, "%x\n", pctx->sonar0);
             *plen = ret;  // (errors are handled in calling routine)
         }
     } else if ((cmd == EDGET) && (rscid == RSC_SONAR1)) {
