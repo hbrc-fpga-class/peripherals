@@ -75,6 +75,7 @@ try:
 except KeyboardInterrupt:
     # exit on Ctrl^C
     sock_sonar.close()
+    sock_led.close()
     sys.exit()
 
 except socket.error:
