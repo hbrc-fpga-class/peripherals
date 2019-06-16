@@ -11,4 +11,5 @@ hba_system.v
 ../../hba_sonar/hba_sonar.v
 ../../hba_sonar/sr04.v
 ../../hba_basicio/hba_basicio.v
+../../hba_gpio/hba_gpio.v
 

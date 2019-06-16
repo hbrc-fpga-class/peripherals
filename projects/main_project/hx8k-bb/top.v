@@ -49,17 +49,23 @@ module top
     output wire TXD,  // txd
     output wire J2_4, // intr
 
-    // hba_sonar pins (SLOT 2)
+    // hba_basicio pins (SLOT 1)
+    input wire J2_18,       // basicio_button[0]
+    input wire J2_20,       // basicio_button[1]
+    output wire [7:0] LED,  // basicio_led
+
+    // hba_gpio pins (SLOT 2)
+    inout wire J2_22,   // gpio_port[0]
+    inout wire J2_26,   // gpio_port[1]
+    inout wire J2_28,   // gpio_port[2]
+    inout wire J2_30,   // gpio_port[3]
+
+    // hba_sonar pins (SLOT 3)
     output wire J2_6,   // sonar_trig[0]
     input  wire J2_10,  // sonar_echo[0]
     output wire J2_12,  // sonar_trig[1]
-    input  wire J2_14,  // sonar_echo[1]
+    input  wire J2_14   // sonar_echo[1]
 
-    // hba_basicio pins (SLOT 1)
-    input wire J2_18,   // basicio_button[0]
-    input wire J2_20,   // basicio_button[1]
-
-    output wire [7:0] LED     // basicio_led
 );
 
 // Parameters
@@ -107,6 +113,10 @@ assign sonar_echo[0] = J2_10;
 assign J2_12 = sonar_trig[1];
 assign sonar_echo[1] = J2_14;
 
+// hba_gpio wires
+wire [3:0] slot2_gpio_out_en;
+wire [3:0] slot2_gpio_out_sig;
+wire [3:0] slot2_gpio_in_sig;
 
 /*
 ****************************
@@ -143,9 +153,58 @@ hba_system #
     .basicio_led(basicio_led),
     .basicio_button(basicio_button),
 
-    // SLOT(2) : hba_sonar pins
+    // SLOT(2) : hba_gpio pins
+    .gpio_out_en(slot2_gpio_out_en),
+    .gpio_out_sig(slot2_gpio_out_sig),
+    .gpio_in_sig(slot2_gpio_in_sig),
+
+    // SLOT(3) : hba_sonar pins
     .sonar_trig(sonar_trig),
     .sonar_echo(sonar_echo)
+);
+
+// SLOT2: GPIO_PORT bit 0
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot2_gpio_port0_inst  (
+    .PACKAGE_PIN(J2_22),
+    .OUTPUT_ENABLE(slot2_gpio_out_en[0]),
+    .D_OUT_0(slot2_gpio_out_sig[0]),
+    .D_IN_0(slot2_gpio_in_sig[0])
+);
+
+// SLOT2: GPIO_PORT bit 1
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot2_gpio_port1_inst  (
+    .PACKAGE_PIN(J2_26),
+    .OUTPUT_ENABLE(slot2_gpio_out_en[1]),
+    .D_OUT_0(slot2_gpio_out_sig[1]),
+    .D_IN_0(slot2_gpio_in_sig[1])
+);
+
+// SLOT2: GPIO_PORT bit 2
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot2_gpio_port2_inst  (
+    .PACKAGE_PIN(J2_28),
+    .OUTPUT_ENABLE(slot2_gpio_out_en[2]),
+    .D_OUT_0(slot2_gpio_out_sig[2]),
+    .D_IN_0(slot2_gpio_in_sig[2])
+);
+
+// SLOT2: GPIO_PORT bit 3
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot2_gpio_port3_inst  (
+    .PACKAGE_PIN(J2_30),
+    .OUTPUT_ENABLE(slot2_gpio_out_en[3]),
+    .D_OUT_0(slot2_gpio_out_sig[3]),
+    .D_IN_0(slot2_gpio_in_sig[3])
 );
 
 /*

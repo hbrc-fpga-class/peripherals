@@ -6,6 +6,7 @@
 * for the HBRC FPGA class.  The following
 * peripherals are instantiated:
 *
+* Eventually:
 * Slot |    Peripheral
 * ------------------------
 *   0  |    serial_fpga
@@ -21,7 +22,8 @@
 * ------------------------
 *   0  |    serial_fpga
 *   1  |    hba_basicio
-*   2  |    hba_sonar
+*   2  |    hba_gpio
+*   3  |    hba_sonar
 *
 *
 * Author: Brandon Blodget
@@ -81,7 +83,12 @@ module hba_system #
     output wire [7:0] basicio_led,
     input wire [7:0] basicio_button,
 
-    // SLOT(2) : hba_sonar pins
+    // SLOT(2) : hba_gpio pins
+    output wire [3:0] gpio_out_en,
+    output wire [3:0] gpio_out_sig,
+    input wire [3:0] gpio_in_sig,
+
+    // SLOT(3) : hba_sonar pins
     output wire [1:0] sonar_trig,
     input wire [1:0] sonar_echo
 );
@@ -100,15 +107,15 @@ wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 wire hba_xferack;       // Slave ACK transfer complete.
 
-// Only two slave.  Set the others to 0.
+// Four slave.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
-assign hba_xferack_slave[15:3] = 0;
+assign hba_xferack_slave[15:4] = 0;
 wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
 
-// Only slot 1&2 generate interrupts, zeros for others.
+// Slots 1,2,3 generate interrupts, zeros for others.
 wire [15:0] slave_interrupt;
 assign slave_interrupt[0] = 0;
-assign slave_interrupt[15:3] = 0;
+assign slave_interrupt[15:4] = 0;
 
 // Slot 0
 wire [DBUS_WIDTH-1:0] hba_dbus_slave0;   // The output data bus.
@@ -118,6 +125,9 @@ wire [DBUS_WIDTH-1:0] hba_dbus_slave1;   // The output data bus.
 
 // Slot 2
 wire [DBUS_WIDTH-1:0] hba_dbus_slave2;   // The output data bus.
+
+// Slot 3
+wire [DBUS_WIDTH-1:0] hba_dbus_slave3;   // The output data bus.
 
 // Master 0 (only 1)
 wire [3:0] hba_rnw_master;
@@ -208,13 +218,13 @@ hba_basicio #
     .basicio_button(basicio_button)
 );
 
-hba_sonar #
+hba_gpio #
 (
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
     .PERIPH_ADDR(2)
-) hba_sonar_inst
+) hba_gpio_inst
 (
     // HBA Bus Slave Interface
     .hba_clk(clk),
@@ -229,6 +239,33 @@ hba_sonar #
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     .slave_interrupt(slave_interrupt[2]),    // to interrupt controller
+
+    .gpio_out_en(gpio_out_en),
+    .gpio_out_sig(gpio_out_sig),
+    .gpio_in_sig(gpio_in_sig)
+);
+
+hba_sonar #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(3)
+) hba_sonar_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(clk),
+    .hba_reset(reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave3),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[3]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    .slave_interrupt(slave_interrupt[3]),    // to interrupt controller
 
     // hba_sonar pins
     .sonar_trig(sonar_trig[1:0]),
@@ -247,7 +284,7 @@ hba_or_slaves #
     .hba_dbus_slave0(hba_dbus_slave0),
     .hba_dbus_slave1(hba_dbus_slave1),
     .hba_dbus_slave2(hba_dbus_slave2),
-    .hba_dbus_slave3(0),
+    .hba_dbus_slave3(hba_dbus_slave3),
     .hba_dbus_slave4(0),
     .hba_dbus_slave5(0),
     .hba_dbus_slave6(0),
