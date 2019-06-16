@@ -22,7 +22,7 @@ static void sndcmd(int fd, char *cmd); // send a command to the board, get promp
 
 int main()
 {
-    int8_t counter;         // the 8-bit count to display
+    // XXX int8_t counter;         // the 8-bit count to display
     int  tmp_int;           // a temporary integer
     int  cmdfd;             // FD for commands for leds
     int  evtfd;             // FD for sonar data
@@ -31,6 +31,7 @@ int main()
     char strled[99];        // command to set the leds
     char strevt[99];        // where to receive the button press string
     int  sonar_val;           // latest button event as an integer
+    int  RANGE=3;
 
     // Open connection to DPserver daemon
     adrlen = sizeof(struct sockaddr_in);
@@ -69,7 +70,7 @@ int main()
         exit(-1);
     }
 
-    counter = 0;   // leds are already showing zero
+    // XXX counter = 0;   // leds are already showing zero
 
     /* Start the stream of button events */
     // write(evtfd, "dpcat hba_basicio buttons\n", 20);
@@ -78,15 +79,34 @@ int main()
     while(1) {
         /* read sonar data */
         sprintf(strevt, "hbaget hba_sonar sonar0\n");
-        sndcmd(evtfd, strevt);
-        read(evtfd, strevt, 3);    // two digits and a newline
-        sscanf(strevt, "%02x\n", &sonar_val);
+        write(evtfd, strevt, strlen(strevt));
+        read(evtfd, strevt, 4);    // two digits, newline, prompt
+        sscanf(strevt, "%02x\n\\", &sonar_val);
         printf("sonar_val: %02x\n", sonar_val);
 
         /* display new value of count */
-        sprintf(strled, "hbaset hba_basicio leds %02x\n", (counter & 0xff));
+        // XXX sprintf(strled, "hbaset hba_basicio leds %02x\n", (counter & 0xff));
+        if (sonar_val < RANGE*1) {
+            sprintf(strled, "hbaset hba_basicio leds 1\n");
+        } else if (sonar_val < RANGE*2) {
+            sprintf(strled, "hbaset hba_basicio leds 3\n");
+        } else if (sonar_val < RANGE*3) {
+            sprintf(strled, "hbaset hba_basicio leds 7\n");
+        } else if (sonar_val < RANGE*4) {
+            sprintf(strled, "hbaset hba_basicio leds f\n");
+        } else if (sonar_val < RANGE*5) {
+            sprintf(strled, "hbaset hba_basicio leds 1f\n");
+        } else if (sonar_val < RANGE*6) {
+            sprintf(strled, "hbaset hba_basicio leds 3f\n");
+        } else if (sonar_val < RANGE*7) {
+            sprintf(strled, "hbaset hba_basicio leds 7f\n");
+        } else {
+            sprintf(strled, "hbaset hba_basicio leds ff\n");
+        }
+
         sndcmd(cmdfd, strled);
-        counter++;
+        sleep(0.1);
+        // XXX counter++;
     }
 }
 
