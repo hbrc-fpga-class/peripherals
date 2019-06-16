@@ -13,3 +13,6 @@ a.out
 *.blif
 *.rpt
 
+# Auto generated driver file
+readme.h
+
