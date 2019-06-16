@@ -139,7 +139,7 @@ hba_reg_bank #
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
     .slv_wr_mask(4'b0010),    // 0010, means reg_pins(reg1) is writeable. etc
-    .slv_autoclr_mask(4'b0000),    // No autoclear
+    .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
 
