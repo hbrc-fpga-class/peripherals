@@ -1,6 +1,6 @@
 PROJ = ice40_loopback
 DEVICE = hx8k
-SOURCES = $(PROJ).v ../../../common/uart.v pll_96mhz.v
+SOURCES = $(PROJ).v ../../../common/uart.v ../../../boards/hx8k-bb/pll_60mhz.v
 PIN_DEF = $(PROJ).pcf
 
 all: $(PROJ).rpt $(PROJ).bin

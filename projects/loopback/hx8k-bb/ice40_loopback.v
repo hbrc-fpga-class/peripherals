@@ -19,8 +19,8 @@
 
 module ice40_loopback #
 (
-    parameter integer CLK_FREQUENCY = 96_000_000,
-    parameter integer BAUD = 115_200,
+    parameter integer CLK_FREQUENCY = 60_000_000,
+    parameter integer BAUD = 921_600,
     parameter integer NUM_LEDS = 8
 )
 (
@@ -40,7 +40,7 @@ module ice40_loopback #
 ********************************************
 */
 
-wire clk_96mhz;
+wire clk;
 wire locked;
 wire reset;
 
@@ -57,17 +57,17 @@ wire [7:0] rx_data;
 ****************************
 */
 
-// Use PLL to get 50mhz clock
-pll_96mhz pll_96mhz_inst (
+// Use PLL to get 60mhz clock
+pll_60mhz pll_60mhz_inst (
     .clock_in(clk_12mhz),
-    .clock_out(clk_96mhz),
+    .clock_out(clk),
     .locked(locked)
 );
 
 buart # (
     .CLKFREQ(CLK_FREQUENCY)
 ) uart_inst (
-   .clk(clk_96mhz),
+   .clk(clk),
    .resetq(~reset),
    .baud(BAUD),
    .rx(rxd),           // recv wire
@@ -90,7 +90,7 @@ buart # (
 // ice40 sets all registers to zero on power up.
 // Holding reset will set to default values.
 reg [7:0] count = 0;
-always @ (posedge clk_96mhz)
+always @ (posedge clk)
 begin
     if (count < 10) begin
         reset <= 1;
@@ -104,7 +104,7 @@ end
 reg loop_state;
 localparam RECV_CHAR = 0;
 localparam SEND_CHAR = 1;
-always @ (posedge clk_96mhz)
+always @ (posedge clk)
 begin
     if (reset) begin
         uart_rd <= 0;
