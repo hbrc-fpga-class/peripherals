@@ -23,6 +23,16 @@ after they have been read by the host (or other master).
 
 * __reg0[7:0]__ : (reg_intr0) Interrupt flags for peripherals 7 .. 0.
 * __reg1[7:0]__ : (reg_intr1) Interrupt flags for peripherals 15 .. 8.
+* __reg2[7:0]__ : (reg_baud_code) Code for the specified baud rate. Values:
+    * CODE  | Baud rate
+    * 0     | 9600
+    * 1     | 19200
+    * 2     | 38400
+    * 3     | 57600
+    * 4     | 115200 (Default)
+    * 5     | 230400
+    * 6     | 460800
+    * 7     | 921600
 
 ## ToDo
 

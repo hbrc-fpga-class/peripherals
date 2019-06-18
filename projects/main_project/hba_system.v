@@ -61,8 +61,7 @@
 module hba_system # 
 (
     // Parameters
-    parameter integer CLK_FREQUENCY = 50_000_000,
-    parameter integer BAUD = 32'd115_200,
+    parameter integer CLK_FREQUENCY = 60_000_000,
 
     parameter integer DBUS_WIDTH = 8,
     parameter integer PERIPH_ADDR_WIDTH = 4,
@@ -151,7 +150,6 @@ assign hba_mrequest[3:1] = 0;
 serial_fpga #
 (
     .CLK_FREQUENCY(CLK_FREQUENCY),
-    .BAUD(BAUD),
 
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),

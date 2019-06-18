@@ -42,6 +42,12 @@
 #define HBAERROR_NOSEND (-1)
 #define HBAERROR_NORECV (-2)
 #define HBA_READ_CMD    (0x80)
+#define HBA_WRITE_CMD           (0x00)
+#define HBA_MXPKT               (16)
+#define HBA_SFPGA_REG_INTR0     (0)
+#define HBA_SFPGA_REG_INTR1     (1)
+#define HBA_SFPGA_REG_BAUDC     (2)
+#define HBA_ACK                 (0xAC)
 
 
 /**************************************************************
@@ -61,9 +67,10 @@
         // What we are is a ...
 #define PLUGIN_NAME        "serial_fpga"
         // Default serial port
-#define DEFDEV             "/dev/ttyUSB0"
+#define DEFDEV             "/dev/ttyUSB1"
         // Default baudrate
 #define DEFBAUD             115200
+// XXX #define DEFBAUD             921600
         // Maximum size of input/output string
 #define MX_MSGLEN          120
 
@@ -95,6 +102,8 @@ static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 static void portconfig(SERPORT *pctx);
 extern SLOT Slots[];
+
+int sendrecv_pkt(int, uint8_t*);
 
 /**************************************************************
  * Initialize():  - Allocate our permanent storage and set up
@@ -188,6 +197,9 @@ void usercmd(
     int      nbaud;    // new value to assign the baud
     char    *pbyte;    // used in parsing raw input
     int      tmp;      // used in parsing raw input
+    uint8_t  pkt[HBA_MXPKT];
+    uint8_t  baud_code; // FPGA code for specified baud_rate
+    int      nsd;      // number of bytes sent to FPGA
 
     // Get this instance of the plug-in
     pctx = (SERPORT *) pslot->priv;
@@ -237,8 +249,51 @@ void usercmd(
             return;
         }
 
+        // Set the FPGA baud_code
+        switch (nbaud) {
+            case 1200   : baud_code = 0; break;
+            case 1800   : baud_code = 1; break;
+            case 2400   : baud_code = 2; break;
+            case 4800   : baud_code = 3; break;
+            case 9600   : baud_code = 4; break;
+            case 19200  : baud_code = 5; break;
+            case 38400  : baud_code = 6; break;
+            case 57600  : baud_code = 7; break;
+            case 115200 : baud_code = 8; break;
+            case 230400 : baud_code = 9; break;
+            case 460800 : baud_code = 10; break;
+            case 500000 : baud_code = 11; break;
+            case 576000 : baud_code = 12; break;
+            case 921600 : baud_code = 13; break;
+            default :
+                ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+                *plen = ret;
+                return;
+        }
+
         // record the new baudrate and reconfigure serial port
         pctx->baud = nbaud;
+
+        // Update FPGA baud rate
+        // TODO
+        printf("Attempt to change baud rate to: %d\n",nbaud);
+        printf("baud_code: %d\n",baud_code);
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4); // assume periph 0.
+        pkt[1] = HBA_SFPGA_REG_BAUDC;
+        pkt[2] = baud_code;                     // new value
+        pkt[3] = 0;                             // dummy for the ack
+        nsd = sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from serial_fpga port
+            edlog("Error writing serial_fpga leds to FPGA");
+        }
+
+
+        // Wait .30 seconds for FPGA baud rates to take affect
+        // then update linux port baud rate
+        sleep(2);
         portconfig(pctx);
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTRRP)) {

@@ -69,8 +69,7 @@ module top
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 50_250_000;
-parameter integer BAUD = 32'd115_200;
+parameter integer CLK_FREQUENCY = 60_000_000;
 
 parameter integer DBUS_WIDTH = 8;
 parameter integer PERIPH_ADDR_WIDTH = 4;
@@ -124,8 +123,8 @@ wire [3:0] slot2_gpio_in_sig;
 ****************************
 */
 
-// Use PLL to get 50mhz clock
-pll_50mhz pll_50mhz_inst (
+// Use PLL to get 60mhz clock
+pll_60mhz pll_60mhz_inst (
     .clock_in(CLK_12MHZ),
     .clock_out(clk),
     .locked(locked)
@@ -135,7 +134,6 @@ pll_50mhz pll_50mhz_inst (
 hba_system # 
 (
     .CLK_FREQUENCY(CLK_FREQUENCY),
-    .BAUD(BAUD),
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH)
