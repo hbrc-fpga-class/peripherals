@@ -17,6 +17,8 @@
 #include <stddef.h>
 #include <string.h>    /* for memset */
 #include <arpa/inet.h> /* for inet_addr() */
+#include <time.h>
+#include <sys/time.h>
 
 
 static void sndcmd(int fd, char *cmd); // send a command to the board, get prompt
@@ -28,6 +30,9 @@ int main()
     struct sockaddr_in skt; // network address for hbaserver
     int  adrlen;
     char strled[99];        // command to set the leds
+    struct timeval tv1, tv2;
+    double total_time;
+    double writes_per_sec;
 
     // Open connection to DPserver daemon
     adrlen = sizeof(struct sockaddr_in);
@@ -47,6 +52,9 @@ int main()
 
     counter = 0;   // leds are already showing zero
 
+    // Start the timer
+    gettimeofday(&tv1, NULL);
+
     for (int i=0; i<1024; i++)
     {
         /* display new value of count */
@@ -54,6 +62,16 @@ int main()
         sndcmd(cmdfd, strled);
         counter = (counter+1) % 256;
     }
+
+    // Stop the timer
+    gettimeofday(&tv2, NULL);
+
+    total_time = (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+        (double) (tv2.tv_sec - tv1.tv_sec);
+    printf ("Count to 1024. Time = %f seconds \n", total_time);
+    writes_per_sec = 1024 / total_time;
+    printf("Register writes per second: %f\n",writes_per_sec);
+
 }
 
 /* sndcmd():  Send a command to hbaserver and wait for a response.  The
