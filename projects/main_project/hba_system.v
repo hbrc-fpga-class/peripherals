@@ -61,7 +61,7 @@
 module hba_system # 
 (
     // Parameters
-    parameter integer CLK_FREQUENCY = 50_000_000,
+    parameter integer CLK_FREQUENCY = 60_000_000,
     parameter integer BAUD = 32'd115_200,
 
     parameter integer DBUS_WIDTH = 8,

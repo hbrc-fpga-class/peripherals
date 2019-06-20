@@ -47,8 +47,8 @@ int main()
     }
 
     /* Setup peripherals */
-    sndcmd(cmdfd, "hbaset serial_fpga port /dev/ttyUSB1\n");
-    sleep(1);
+    // XXX sndcmd(cmdfd, "hbaset serial_fpga port /dev/ttyUSB1\n");
+    // XXX sleep(1);
 
     counter = 0;   // leds are already showing zero
 
