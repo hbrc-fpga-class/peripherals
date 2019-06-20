@@ -39,7 +39,7 @@ try:
     sock_led.connect(('localhost', 8870))
 
     # Make sure we are talking to the correct serial port
-    set_cmd(sock_sonar,'hbaset serial_fpga port /dev/ttyUSB1\n')
+    # set_cmd(sock_sonar,'hbaset serial_fpga port /dev/ttyUSB1\n')
 
     # Make sure the sonar0 is turned on
     set_cmd(sock_sonar,'hbaset hba_sonar ctrl 1\n')
