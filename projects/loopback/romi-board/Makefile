@@ -1,9 +1,9 @@
 PROJ = top_loopback
-
 DEVICE = lp8k
-SOURCES = ../$(PROJ).v ../../../common/pll_50mhz.v ../../../common/uart.v
+BOARD = romi-board
+SOURCES = ../$(PROJ).v ../../../common/uart.v ../../../boards/$(BOARD)/pll_60mhz.v
 
-PIN_DEF = ../../../common/pins.pcf
+PIN_DEF = ../../../boards/$(BOARD)/pins.pcf
 
 all: $(PROJ).rpt $(PROJ).bin
 

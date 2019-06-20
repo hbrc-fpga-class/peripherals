@@ -21,8 +21,8 @@ module top_loopback
 (
     input wire  CLK_16MHZ,
 
-    input wire  PIN_1,  // rxd
-    output wire PIN_2,  // txd
+    input wire  PIN_23,  // rxd
+    output wire PIN_22,  // txd
 
     output wire PIN_3,  // debug0
     output wire PIN_4,  // debug1
@@ -33,7 +33,7 @@ module top_loopback
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 50_000_000;
+parameter integer CLK_FREQUENCY = 60_000_000;
 parameter integer BAUD = 32'd115_200;
 
 /*
@@ -42,7 +42,7 @@ parameter integer BAUD = 32'd115_200;
 ********************************************
 */
 
-wire clk_50mhz;
+wire clk_60mhz;
 wire locked;
 wire rxd;
 wire txd;
@@ -58,8 +58,8 @@ wire tx_busy;
 wire [7:0] rx_data;
 reg [7:0] tx_data;
 
-assign rxd = PIN_1;
-assign PIN_2 = txd;
+assign rxd = PIN_23;
+assign PIN_22 = txd;
 assign LED = locked;
 
 // debug
@@ -74,17 +74,17 @@ assign PIN_5 = rxd;
 ****************************
 */
 
-// Use PLL to get 50mhz clock
-pll_50mhz pll_50mhz_inst (
+// Use PLL to get 60mhz clock
+pll_60mhz pll_60mhz_inst (
     .clock_in(CLK_16MHZ),
-    .clock_out(clk_50mhz),
+    .clock_out(clk_60mhz),
     .locked(locked)
 );
 
 buart # (
     .CLKFREQ(CLK_FREQUENCY)
 ) uart_inst (
-   .clk(clk_50mhz),
+   .clk(clk_60mhz),
    .resetq(~reset),
    .baud(BAUD),
    .rx(rxd),           // recv wire
@@ -106,7 +106,7 @@ buart # (
 // Hold reset on power up then release.
 // ice40 sets all registers to zero on power up.
 // Holding reset will set to default values.
-always @ (posedge clk_50mhz)
+always @ (posedge clk_60mhz)
 begin
     if (count < 10) begin
         reset <= 1;
@@ -120,7 +120,7 @@ end
 reg loop_state;
 localparam RECV_CHAR = 0;
 localparam SEND_CHAR = 1;
-always @ (posedge clk_50mhz)
+always @ (posedge clk_60mhz)
 begin
     if (reset) begin
         uart_rd <= 0;
