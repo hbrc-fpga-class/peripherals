@@ -69,7 +69,7 @@ module top
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 50_250_000;
+parameter integer CLK_FREQUENCY = 60_000_000;
 parameter integer BAUD = 32'd115_200;
 
 parameter integer DBUS_WIDTH = 8;
@@ -125,7 +125,7 @@ wire [3:0] slot2_gpio_in_sig;
 */
 
 // Use PLL to get 50mhz clock
-pll_50mhz pll_50mhz_inst (
+pll_60mhz pll_60mhz_inst (
     .clock_in(CLK_12MHZ),
     .clock_out(clk),
     .locked(locked)

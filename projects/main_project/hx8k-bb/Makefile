@@ -1,7 +1,7 @@
 PROJ = top
 DEVICE = hx8k
 BOARD = hx8k-bb
-SOURCES = $(PROJ).v ../../../boards/$(BOARD)/pll_50mhz.v ../hba_system.v ../../../serial_fpga/serial_fpga.v ../../../serial_fpga/send_recv.v ../../../common/uart.v ../../../common/hba_master.v ../../../common/hba_arbiter.v ../../../common/hba_or_masters.v ../../../common/hba_or_slaves.v ../../../hba_reg_bank/hba_reg_bank.v ../../../hba_sonar/hba_sonar.v ../../../hba_sonar/sr04.v ../../../hba_basicio/hba_basicio.v ../../../hba_gpio/hba_gpio.v
+SOURCES = $(PROJ).v ../../../boards/$(BOARD)/pll_60mhz.v ../hba_system.v ../../../serial_fpga/serial_fpga.v ../../../serial_fpga/send_recv.v ../../../common/uart.v ../../../common/hba_master.v ../../../common/hba_arbiter.v ../../../common/hba_or_masters.v ../../../common/hba_or_slaves.v ../../../hba_reg_bank/hba_reg_bank.v ../../../hba_sonar/hba_sonar.v ../../../hba_sonar/sr04.v ../../../hba_basicio/hba_basicio.v ../../../hba_gpio/hba_gpio.v
 
 PIN_DEF = ../../../boards/$(BOARD)/pins.pcf
 
