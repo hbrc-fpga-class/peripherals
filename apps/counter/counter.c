@@ -63,6 +63,9 @@ int main()
         counter = (counter+1) % 256;
     }
 
+    // close the socket
+    close(cmdfd);
+
     // Stop the timer
     gettimeofday(&tv2, NULL);
 
