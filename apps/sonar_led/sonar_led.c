@@ -46,7 +46,7 @@ int main()
     }
 
     /* Setup peripherals */
-    sndcmd(cmdfd, "hbaset serial_fpga port /dev/ttyUSB1\n");
+    // XXX sndcmd(cmdfd, "hbaset serial_fpga port /dev/ttyUSB1\n");
     sndcmd(cmdfd, "hbaset hba_sonar ctrl 1\n");
     sleep(1);
 
