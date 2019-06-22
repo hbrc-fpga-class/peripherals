@@ -21,24 +21,28 @@ plugins:
 	make EE_DIR=$(EE_DIR) -C hba_gpio/sw all
 	make EE_DIR=$(EE_DIR) -C hba_sonar/sw all
 	make EE_DIR=$(EE_DIR) -C serial_fpga/sw all
+	make EE_DIR=$(EE_DIR) -C hba_motor/sw all
 
 clean:
 	make EE_DIR=$(EE_DIR) -C hba_basicio/sw clean
 	make EE_DIR=$(EE_DIR) -C hba_gpio/sw clean
 	make EE_DIR=$(EE_DIR) -C hba_sonar/sw clean
 	make EE_DIR=$(EE_DIR) -C serial_fpga/sw clean
+	make EE_DIR=$(EE_DIR) -C hba_motor/sw clean
 
 plugins-install:
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_basicio/sw install
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_gpio/sw install
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_sonar/sw install
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C serial_fpga/sw install
+	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_motor/sw install
 
 plugins-uninstall:
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_basicio/sw uninstall
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_gpio/sw uninstall
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_sonar/sw uninstall
 	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C serial_fpga/sw uninstall
+	make INST_LIB_DIR=$(INST_LIB_DIR) EE_DIR=$(EE_DIR) -C hba_motor/sw uninstall
 
 .PHONY : clean install uninstall
 
