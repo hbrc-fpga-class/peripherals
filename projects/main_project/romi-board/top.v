@@ -62,7 +62,17 @@ module top
     inout wire PIN_16,   // gpio_port[2], QTRR_OUT
     inout wire PIN_17,   // gpio_port[3], QTRR_CTRL
 
-    // hba_sonar pins (SLOT 3)
+    // hba_motor pins (SLOT 3)
+    // Left motor pins
+    output wire PIN_7,  // motor_pwm[0]
+    output wire PIN_6,  // motor_dir[0]
+    output wire PIN_5,  // motor_float_n[0]
+    // Right motor pins
+    output wire PIN_10,  // motor_pwm[1]
+    output wire PIN_9,   // motor_dir[1]
+    output wire PIN_8,   // motor_float_n[1]
+
+    // hba_sonar pins (SLOT 4)
     output wire PIN_21,   // sonar_trig[0], L_TRIG
     input  wire PIN_20,  // sonar_echo[0], L_ECHO
     output wire PIN_19,  // sonar_trig[1], R_TRIG
@@ -121,6 +131,17 @@ wire [3:0] slot2_gpio_out_en;
 wire [3:0] slot2_gpio_out_sig;
 wire [3:0] slot2_gpio_in_sig;
 
+// hba_motor pins
+wire [1:0] motor_pwm;
+wire [1:0] motor_dir;
+wire [1:0] motor_float_n;
+assign PIN_7 = motor_pwm[0];
+assign PIN_6 = motor_dir[0];
+assign PIN_5 = motor_float_n[0];
+assign PIN_10 = motor_pwm[1];
+assign PIN_9 = motor_dir[1];
+assign PIN_8 = motor_float_n[1];
+
 /*
 ****************************
 * Instantiations
@@ -161,7 +182,12 @@ hba_system #
     .gpio_out_sig(slot2_gpio_out_sig),
     .gpio_in_sig(slot2_gpio_in_sig),
 
-    // SLOT(3) : hba_sonar pins
+    // SLOT(3) : hba_motor pins
+    .motor_pwm(motor_pwm[1:0]),
+    .motor_dir(motor_dir[1:0]),
+    .motor_float_n(motor_float_n[1:0]),
+
+    // SLOT(4) : hba_sonar pins
     .sonar_trig(sonar_trig),
     .sonar_echo(sonar_echo)
 );

@@ -12,4 +12,6 @@ hba_system.v
 ../../hba_sonar/sr04.v
 ../../hba_basicio/hba_basicio.v
 ../../hba_gpio/hba_gpio.v
+../../hba_motor/hba_motor.v
+../../hba_motor/pwm_dir.v
 
