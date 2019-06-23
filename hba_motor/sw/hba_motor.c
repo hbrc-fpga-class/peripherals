@@ -4,10 +4,9 @@
  *  Description: HomeBrew Automation (hba) 2x motor peripheral
  *
  *  Resources:
- *    ctrl    -  Enables/Disables motors
- *    float   -  Sets float/coast mode
- *    motor0  -  Power and direction for motor0
- *    motor1  -  Power and direction for motor1
+ *    mode    -  Set the motors modes.
+ *    motor0  -  Power for motor0
+ *    motor1  -  Power for motor1
  */
 
 /*
@@ -29,13 +28,21 @@
 
 /*
  * FPGA Register Interface
- * There are four 8-bit registers.
- * reg0 : Control register. Enables motors
- *    reg0[0] : Enable motor 0.
- *    reg0[1] : Enable motor 1.
- * reg1 : Float register
- * reg2 : Set power and direction for motor0
- * reg2 : Set power and direction for motor1
+ * There are three 8-bit registers.
+ *
+ * reg0 : Mode register. Sets the mode for both motors
+ *    reg0[0] : Enable motor 0. 0=Brake, 1=Active
+ *    reg0[1] : Enable motor 1. 0=Brake, 1=Active
+ *    reg0[2] : Direction motor 0. 0=Forward, 1=Reverse
+ *    reg0[3] : Direction motor 1. 0=Forward, 1=Reverse
+ *    reg0[4] : Coast/Float motor 0. 0=Not Coast, 1=Coast
+ *    reg0[5] : Coast/Float motor 1. 0=Not Coast, 1=Coast
+ * reg2 : Motor 0 power and direction
+ *    reg2[7:0] : Motor 0 duty cycle.  0 (stop) ... 100 (full power)
+ *              Values greater than 100 are ignored.
+ * reg3 : Motor 1 power and direction
+ *    reg2[7:0] : Motor 1 duty cycle.  0 (stop) ... 100 (full power)
+ *              Values greater than 100 are ignored.
  */
 
 #include <stdio.h>
@@ -60,30 +67,35 @@
 #define HBA_MXPKT               (16)
 #define HBA_ACK                 (0xAC)
 
-#define HBA_MOTOR_REG_CTRL    (0)
-#define HBA_MOTOR_REG_FLOAT   (1)
-#define HBA_MOTOR_REG_MOTOR0  (2)
-#define HBA_MOTOR_REG_MOTOR1  (3)
+#define HBA_MOTOR_REG_MODE    (0)
+#define HBA_MOTOR_REG_MOTOR0  (1)
+#define HBA_MOTOR_REG_MOTOR1  (2)
+
+// Mode bits
+#define ML_EN                 (1)
+#define MR_EN                 (2)
+#define ML_REV                (4)
+#define MR_REV                (8)
+#define ML_COAST              (16)
+#define MR_COAST              (32)
 
 
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
         // resource names and numbers
-#define FN_CTRL           "ctrl"
-#define FN_FLOAT          "float"
+#define FN_MODE           "mode"
 #define FN_MOTOR0         "motor0"
 #define FN_MOTOR1         "motor1"
 
-#define RSC_CTRL          0
-#define RSC_FLOAT         1
+#define RSC_MODE          0
 #define RSC_MOTOR0        2
 #define RSC_MOTOR1        3
         // What we are is a ...
 #define PLUGIN_NAME        "hba_motor"
         // Default values
-#define HBA_DEFCTRL        0
-#define HBA_DEFFLOAT       0
+#define HBA_DEFMODE        0
+#define HBA_DEFMODE_CHAR   'b'
 #define HBA_DEFMOTOR0      0
 #define HBA_DEFMOTOR1      0
         // Maximum size of input/output string
@@ -97,8 +109,9 @@
 typedef struct
 {
     void    *pslot;    // handle to plug-in's's slot info
-    int      ctrl;     // most recent value to display on ctrl
-    int      coast;    // most recent "float" value
+    int      mode;     // most recent value to display on mode
+    char     l_mode;   // Left mode char
+    char     r_mode;   // Right mode char
     int      motor0;   // most recent motor0 value
     int      motor1;   // most recent motor. value
     int      coreid;   // FPGA core ID with this MOTOR
@@ -132,10 +145,11 @@ int Initialize(
     }
 
     // Init our HBA_MOTOR structure
-    pctx->ctrl = HBA_DEFCTRL;       // default ctrl value
-    pctx->coast = HBA_DEFFLOAT;     // default coast value
-    pctx->motor0 = HBA_DEFMOTOR0;   // default motor0 value.
-    pctx->motor1 = HBA_DEFMOTOR1;   // default motor1 value.
+    pctx->mode = HBA_DEFMODE;           // default mode value
+    pctx->l_mode =  HBA_DEFMODE_CHAR;   // default mode left char
+    pctx->r_mode =  HBA_DEFMODE_CHAR;   // default mode right char
+    pctx->motor0 = HBA_DEFMOTOR0;       // default motor0 value.
+    pctx->motor1 = HBA_DEFMOTOR1;       // default motor1 value.
     // The following assumes that plug-ins are loaded in the
     // order they appear in the FPGA.  This is the first thing
     // to check when things go wrong.
@@ -148,18 +162,12 @@ int Initialize(
     pslot->help = README;
 
     // Add handlers for the user visible resources
-    pslot->rsc[RSC_CTRL].slot = pslot;
-    pslot->rsc[RSC_CTRL].name = FN_CTRL;
-    pslot->rsc[RSC_CTRL].flags = IS_READABLE | IS_WRITABLE;
-    pslot->rsc[RSC_CTRL].bkey = 0;
-    pslot->rsc[RSC_CTRL].pgscb = usercmd;
-    pslot->rsc[RSC_CTRL].uilock = -1;
-    pslot->rsc[RSC_FLOAT].name = FN_FLOAT;
-    pslot->rsc[RSC_FLOAT].flags = IS_READABLE | IS_WRITABLE;
-    pslot->rsc[RSC_FLOAT].bkey = 0;
-    pslot->rsc[RSC_FLOAT].pgscb = usercmd;
-    pslot->rsc[RSC_FLOAT].uilock = -1;
-    pslot->rsc[RSC_FLOAT].slot = pslot;
+    pslot->rsc[RSC_MODE].slot = pslot;
+    pslot->rsc[RSC_MODE].name = FN_MODE;
+    pslot->rsc[RSC_MODE].flags = IS_READABLE | IS_WRITABLE;
+    pslot->rsc[RSC_MODE].bkey = 0;
+    pslot->rsc[RSC_MODE].pgscb = usercmd;
+    pslot->rsc[RSC_MODE].uilock = -1;
     pslot->rsc[RSC_MOTOR0].name = FN_MOTOR0;
     pslot->rsc[RSC_MOTOR0].flags = IS_READABLE | IS_WRITABLE;
     pslot->rsc[RSC_MOTOR0].bkey = 0;
@@ -204,6 +212,8 @@ void usercmd(
 {
     HBA_MOTOR *pctx;     // hba_motor private info
     int       nval=0;    // new value to write to reg
+    char      lch;       // new left mode char
+    char      rch;       // new right mode char
     int       nsd;       // number of bytes sent to FPGA
     int       ret;       // generic call return value
     uint8_t   pkt[HBA_MXPKT];
@@ -211,61 +221,81 @@ void usercmd(
     // Get this instance of the plug-in
     pctx = (HBA_MOTOR *) pslot->priv;
 
-    if ((cmd == EDSET) && (rscid == RSC_CTRL)) {
-        ret = sscanf(val, "%x", &nval);
-        if (ret != 1) {
+    if ((cmd == EDSET) && (rscid == RSC_MODE)) {
+        ret = sscanf(val, "%c%c", &lch,&rch);
+        if (ret != 2) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
-        if ((nval < 0) || (nval > 0x03)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        // record the new data value 
-        pctx->ctrl = nval;
+        nval = 0;       // next mode value, Clear all bits
 
-        // Send new value to FPGA MOTOR ctrl register
+        // Process left mode char
+        switch (lch)
+        {
+            case 'b' : // left brake (bit0 = 0)
+                // nval =0, already brake by default
+                break;
+            case 'f' : // left forward (bit2 = 0)
+                // forward by default, just turn off brake.
+                nval = ML_EN;
+                break;
+            case 'r' : // left reverse (bit2 = 1)
+                // Reverse and Brake off
+                nval = ML_REV | ML_EN;
+                break;
+            case 'c' : // left coast (bit4 = 1)
+                // Coast and Brake off
+                nval = ML_COAST | ML_EN;
+                break;
+            default :
+                // Invalid character
+                ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+                return;
+        }
+
+        // Process right mode char
+        switch (rch)
+        {
+            case 'b' : // right brake (bit1 = 0)
+                // nval =0, already brake by default
+                break;
+            case 'f' : // right forward (bit3 = 0)
+                // forward by default, just turn off brake.
+                nval = nval | MR_EN;
+                break;
+            case 'r' : // right reverse (bit3 = 1)
+                // Reverse and Brake off
+                nval = nval | MR_REV | MR_EN;
+                break;
+            case 'c' : // right coast (bit5 = 1)
+                // Coast and Brake off
+                nval = nval | MR_COAST | MR_EN;
+                break;
+            default :
+                // Invalid character
+                ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+                return;
+        }
+
+        // record the new data value 
+        pctx->l_mode = lch;
+        pctx->r_mode = rch;
+        pctx->mode = nval;
+
+        // Send new value to FPGA MOTOR mode register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_MOTOR_REG_CTRL;
-        pkt[2] = pctx->ctrl;                     // new value
+        pkt[1] = HBA_MOTOR_REG_MODE;
+        pkt[2] = pctx->mode;                     // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from MOTOR port
-            edlog("Error writing MOTOR ctrl to FPGA");
+            edlog("Error writing MOTOR mode to FPGA");
         }
-    } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
-        ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
-        *plen = ret;  // (errors are handled in calling routine)
-    } else if ((cmd == EDSET) && (rscid == RSC_FLOAT)) {
-        ret = sscanf(val, "%x", &nval);
-        if (ret != 1) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        if ((nval < 0) || (nval > 0x03)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        // record the new data value 
-        pctx->coast = nval;
-
-        // Send new value to FPGA MOTOR coast register
-        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_MOTOR_REG_FLOAT;
-        pkt[2] = pctx->coast;                     // new value
-        pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
-        // We did a write so the sendrecv return value should be 1
-        // and the returned byte should be an ACK
-        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from MOTOR port
-            edlog("Error writing MOTOR coast to FPGA");
-        }
-    } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
-        ret = snprintf(buf, *plen, "%x\n", pctx->coast);
+    } else if ((cmd == EDGET) && (rscid == RSC_MODE)) {
+        ret = snprintf(buf, *plen, "%c%c\n", pctx->l_mode,pctx->r_mode);
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDSET) && (rscid == RSC_MOTOR0)) {
         ret = sscanf(val, "%x", &nval);
