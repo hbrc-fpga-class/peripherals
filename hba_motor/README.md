@@ -29,22 +29,24 @@ It also has the following additional ports.
 
 ## Register Interface
 
-There are four 8-bit registers.
+There are three 8-bit registers.
 
-* __reg0__ : Control register. Enables motor
-    * reg0[0] : Enable motor 0.
-    * reg0[1] : Enable motor 1.
-* __reg1__ : Float/Coast registers
-    * reg1[0] : Motor 0 float. Active=0, Float=1
-    * reg1[1] : Motor 1 float. Active=0, Float=1
+* __reg0__ : Mode register. Sets the mode for both motors
+    * reg0[0] : Enable motor 0. 0=Brake, 1=Active
+    * reg0[1] : Enable motor 1. 0=Brake, 1=Active
+    * reg0[2] : Direction motor 0. 0=Forward, 1=Reverse
+    * reg0[3] : Direction motor 1. 0=Forward, 1=Reverse
+    * reg0[4] : Coast/Float motor 0. 0=Not Coast, 1=Coast
+    * reg0[5] : Coast/Float motor 1. 0=Not Coast, 1=Coast
 * __reg2__ : Motor 0 power and direction
-    * reg2[6:0] : Motor 0 duty cycle.  0 (stop) ... 100 (full power)
-    * reg2[7] : Motor 0 direction. Forward=0, Reverse=1
+    * reg2[7:0] : Motor 0 duty cycle.  0 (stop) ... 100 (full power)
+                Values greater than 100 are ignored.
 * __reg3__ : Motor 1 power and direction
-    * reg2[6:0] : Motor 1 duty cycle.  0 (stop) ... 100 (full power)
-    * reg2[7] : Motor 1 direction. Forward=0, Reverse=1
+    * reg2[7:0] : Motor 1 duty cycle.  0 (stop) ... 100 (full power)
+                Values greater than 100 are ignored.
 
 ## TODO
 
+* Add ramp speed register.
 * Perhaps add control bits to put it into locked-anti-phase mode.
 

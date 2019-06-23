@@ -82,8 +82,15 @@ module hba_motor #
 *****************************
 */
 
-localparam LEFT     = 0;
-localparam RIGHT    = 1;
+localparam LEFT         = 0;
+localparam RIGHT        = 1;
+
+localparam EN_LEFT      = 0;
+localparam EN_RIGHT     = 1;
+localparam DIR_LEFT     = 2;
+localparam DIR_RIGHT    = 3;
+localparam COAST_LEFT   = 4;
+localparam COAST_RIGHT  = 5;
 
 /*
 *****************************
@@ -92,10 +99,9 @@ localparam RIGHT    = 1;
 */
 
 // Define the bank of registers
-wire [DBUS_WIDTH-1:0] reg_ctrl;         // reg0: Control register
-wire [DBUS_WIDTH-1:0] reg_float;        // reg1: Float register
-wire [DBUS_WIDTH-1:0] reg_power_left;   // reg2: Left Power register
-wire [DBUS_WIDTH-1:0] reg_power_right;  // reg3: Right Power register
+wire [DBUS_WIDTH-1:0] reg_mode;         // reg0: Control register
+wire [DBUS_WIDTH-1:0] reg_power_left;   // reg1: Left Power register
+wire [DBUS_WIDTH-1:0] reg_power_right;  // reg2: Right Power register
 
 // No interrupts
 assign slave_interrupt = 0;
@@ -128,10 +134,9 @@ hba_reg_bank #
                                     // Must be zero when inactive.
 
     // Access to registgers
-    .slv_reg0(reg_ctrl),
-    .slv_reg1(reg_float),
-    .slv_reg2(reg_power_left),
-    .slv_reg3(reg_power_right),
+    .slv_reg0(reg_mode),
+    .slv_reg1(reg_power_left),
+    .slv_reg2(reg_power_right),
 
     // writeable registers (none)
     // XXX .slv_reg1_in(),
@@ -150,10 +155,10 @@ pmw_dir #
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(reg_ctrl[LEFT]),
-    .float(reg_float[LEFT]),
+    .en(reg_mode[EN_LEFT]),
+    .float(reg_mode[COAST_LEFT]),
     .duty_cycle(reg_power_left[6:0]),   // [6:0]
-    .dir_in(reg_power_left[7]),
+    .dir_in(reg_mode[DIR_LEFT]),
 
     .pwm(motor_pwm[LEFT]),
     .dir_out(motor_dir[LEFT]),
@@ -168,10 +173,10 @@ pmw_dir #
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(reg_ctrl[RIGHT]),
-    .float(reg_float[RIGHT]),
+    .en(reg_mode[EN_RIGHT]),
+    .float(reg_mode[COAST_RIGHT]),
     .duty_cycle(reg_power_right[6:0]),   // [6:0]
-    .dir_in(reg_power_right[7]),
+    .dir_in(reg_mode[DIR_RIGHT]),
 
     .pwm(motor_pwm[RIGHT]),
     .dir_out(motor_dir[RIGHT]),
