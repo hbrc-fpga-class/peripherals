@@ -203,7 +203,7 @@ void usercmd(
     char     *buf)
 {
     HBA_MOTOR *pctx;     // hba_motor private info
-    int       nctrl=0;   // new ctrl value for MOTOR pins
+    int       nval=0;    // new value to write to reg
     int       nsd;       // number of bytes sent to FPGA
     int       ret;       // generic call return value
     uint8_t   pkt[HBA_MXPKT];
@@ -212,17 +212,17 @@ void usercmd(
     pctx = (HBA_MOTOR *) pslot->priv;
 
     if ((cmd == EDSET) && (rscid == RSC_CTRL)) {
-        ret = sscanf(val, "%x", &nctrl);
+        ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
-        if ((nctrl < 0) || (nctrl > 0x03)) {
+        if ((nval < 0) || (nval > 0x03)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
         // record the new data value 
-        pctx->ctrl = nctrl;
+        pctx->ctrl = nval;
 
         // Send new value to FPGA MOTOR ctrl register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
@@ -240,50 +240,50 @@ void usercmd(
         ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDSET) && (rscid == RSC_FLOAT)) {
-        ret = sscanf(val, "%x", &nctrl);
+        ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
-        if ((nctrl < 0) || (nctrl > 0x03)) {
+        if ((nval < 0) || (nval > 0x03)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
         // record the new data value 
-        pctx->ctrl = nctrl;
+        pctx->coast = nval;
 
-        // Send new value to FPGA MOTOR ctrl register
+        // Send new value to FPGA MOTOR coast register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_MOTOR_REG_FLOAT;
-        pkt[2] = pctx->ctrl;                     // new value
+        pkt[2] = pctx->coast;                     // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from MOTOR port
-            edlog("Error writing MOTOR ctrl to FPGA");
+            edlog("Error writing MOTOR coast to FPGA");
         }
     } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->coast);
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDSET) && (rscid == RSC_MOTOR0)) {
-        ret = sscanf(val, "%x", &nctrl);
+        ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
-        if ((nctrl < 0) || (nctrl > 0xff)) {
+        if ((nval < 0) || (nval > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
         // record the new data value 
-        pctx->ctrl = nctrl;
+        pctx->motor0 = nval;
 
-        // Send new value to FPGA MOTOR ctrl register
+        // Send new value to FPGA MOTOR motor0 register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_MOTOR_REG_MOTOR0;
-        pkt[2] = pctx->ctrl;                     // new value
+        pkt[2] = pctx->motor0;                     // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
@@ -292,26 +292,26 @@ void usercmd(
             // error writing value from MOTOR port
             edlog("Error writing MOTOR motor0 to FPGA");
         }
-    } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
+    } else if ((cmd == EDGET) && (rscid == RSC_MOTOR0)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->motor0);
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDSET) && (rscid == RSC_MOTOR1)) {
-        ret = sscanf(val, "%x", &nctrl);
+        ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
-        if ((nctrl < 0) || (nctrl > 0xff)) {
+        if ((nval < 0) || (nval > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             return;
         }
         // record the new data value 
-        pctx->ctrl = nctrl;
+        pctx->motor1 = nval;
 
-        // Send new value to FPGA MOTOR ctrl register
+        // Send new value to FPGA MOTOR motor1 register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_MOTOR_REG_MOTOR1;
-        pkt[2] = pctx->ctrl;                     // new value
+        pkt[2] = pctx->motor1;                     // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
@@ -320,7 +320,7 @@ void usercmd(
             // error writing value from MOTOR port
             edlog("Error writing MOTOR motor1 to FPGA");
         }
-    } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
+    } else if ((cmd == EDGET) && (rscid == RSC_MOTOR0)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->motor1);
         *plen = ret;  // (errors are handled in calling routine)
     }
