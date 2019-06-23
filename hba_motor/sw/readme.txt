@@ -23,11 +23,11 @@ motor.  Valid characters are 'b' for brake, 'f' for forward,
     - 'cc' : Coast left and right motors.
 This resource works with hbaget and hbaset.
 
-motor0 : Set the power and direction for motor 0.
+motor0 : Set the power for motor 0.
     - 0-100   : Duty cycle in the forward direction. 0=Off, 100=full power
 This resource works with hbaget and hbaset.
 
-motor1 : Set the power and direction for motor 1.
+motor1 : Set the power for motor 1.
     - 0-100   : Duty cycle in the forward direction. 0=Off, 100=full power
 This resource works with hbaget and hbaset.
 
