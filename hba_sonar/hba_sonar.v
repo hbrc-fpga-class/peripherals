@@ -118,11 +118,11 @@ reg sonar_sync;
 assign slave_interrupt = sonar_valid;
 assign slv_wr_en = sonar_valid;
 
-// TODO : Fix when add 2nd sonar.
-assign sonar_trig[1] = 0;
-
 wire sonar0_en;
 assign sonar0_en = reg_ctrl[0];
+
+wire sonar1_en;
+assign sonar1_en = reg_ctrl[1];
 
 /*
 *****************************
@@ -163,16 +163,16 @@ hba_reg_bank #
 
     // writeable registers
     .slv_reg1_in(reg_sonar0_in),
-    // XXX .slv_reg2_in(reg_sonar1_in),
+    .slv_reg2_in(reg_sonar1_in),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b0010),    // 0010, means reg1 is writeable.
+    .slv_wr_mask(4'b0110),    // 0010, means reg1,reg2 is writeable.
     .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
 sr04 sr04_inst0
 (
-    .clk(hba_clk),     // assume 50mhz
+    .clk(hba_clk),
     .reset(hba_reset),
     .en(sonar0_en),
     .sync(sonar_sync),
@@ -184,7 +184,21 @@ sr04 sr04_inst0
     .valid(sonar_valid[0])  // new dist value
 );
 
-// TODO : Add 2nd sonar.
+sr04 sr04_inst1
+(
+    .clk(hba_clk),
+    .reset(hba_reset),
+    .en(sonar1_en),
+    .sync(sonar_sync),
+
+    .trig(sonar_trig[1]),
+    .echo(sonar_echo[1]),
+
+    .dist(reg_sonar1_in),  // actually time which is proportional to dist
+    .valid(sonar_valid[1])  // new dist value
+);
+
+
 
 /*
 *****************************
