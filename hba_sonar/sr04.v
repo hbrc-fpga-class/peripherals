@@ -169,10 +169,11 @@ begin
             end
 
             // No echo seen.  Handle timeout
+            // Return max value.
             if (echo_time[19]) begin
                 timing <= 0;
                 echo_time <= 0;
-                dist[7:0] <= 0;
+                dist[7:0] <= 8'hff;
                 valid <= 1;
             end
 
