@@ -1,3 +1,51 @@
+/*
+*****************************
+* MODULE : qtr.v
+*
+* This module provides an interface to the
+* QTR reflectance sensor from Pololu.
+* It returns an 8-bit value which represents
+* The time it took for the QTR output pin to go
+* low after being charged.  The higher the reflectance
+* the shorter the time for the pin to go low.  The resolution
+* of the 8-bit value is in 10us.  S0 max value of
+* 255 gives a time of 2.55ms.
+    *
+* TODO: Add support for CTRL pin, to turn of led, and change
+*   brightness levels.
+*
+* Status: In development
+*
+* Author : Brandon Blodget
+* Create Date: 06/25/2019
+*
+*****************************
+*/
+
+/*
+*****************************
+*
+* Copyright (C) 2019 by Brandon Blodget <brandon.blodget@gmail.com>
+* All rights reserved.
+*
+* License:
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+*****************************
+*/
+
+// Force error when implicit net has no type.
+`default_nettype none
+
 
 module qtr #
 (
@@ -87,7 +135,9 @@ begin
             TIME_QTR : begin
                 qtr_out_en <= 0;    // switch to input
                 qtr_out_sig <= 0;
-                tmp_value <= tmp_value + 1;
+                if (pulse_10us) begin
+                    tmp_value <= tmp_value + 1;
+                end
 
                 // Check if the sig has gone low
                 // Or if our timer has maxed out (2.55ms)

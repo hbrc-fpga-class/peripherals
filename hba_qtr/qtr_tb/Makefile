@@ -8,7 +8,7 @@
 
 
 #----- Useful variables
-NAME_TOP	:= sr04
+NAME_TOP	:= qtr
 
 #----- Targets, iverilog
 # Use this to compile without running simulation
