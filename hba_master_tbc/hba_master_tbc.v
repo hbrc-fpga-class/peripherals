@@ -82,6 +82,8 @@ reg app_en_strobe;    // rising edge start state machine
 wire [DBUS_WIDTH-1:0] app_data_out;
 wire app_valid_out;    // read or write transfer complete. Assert one clock cycle.
 
+reg start;
+
 /*
 ****************************
 * Instantiations
@@ -153,7 +155,9 @@ begin
     end else begin
         case (tb_state)
             IDLE : begin
-                tb_state <= SETUP_BASICIO;
+                if (start) begin
+                    tb_state <= SETUP_BASICIO;
+                end
             end
             SETUP_BASICIO : begin
                 app_core_addr <= BASICIO_SLOT;
@@ -176,6 +180,22 @@ begin
                 tb_state <= IDLE;
             end
         endcase
+    end
+end
+
+// Delay the start of statemachine
+reg [31:0] count;
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        count <= 0;
+        start <= 0;
+    end else begin
+        if (count == 15_000_000) begin
+            start <= 1;
+        end else begin
+            count <= count + 1;
+        end
     end
 end
 
