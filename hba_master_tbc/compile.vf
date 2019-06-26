@@ -1,0 +1,4 @@
+# iverilog -c compile.vf
+hba_master_tbc.v
+../common/hba_master.v
+
