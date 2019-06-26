@@ -136,7 +136,8 @@ localparam SONAR_SLOT               = 4;
 reg [31:0] tb_state;
 localparam IDLE                     = 0;
 localparam SETUP_BASICIO            = 1;
-localparam DONE                     = 2;
+localparam SETUP_BASICIO_WAIT       = 2;
+localparam DONE                     = 3;
 
 
 always @ (posedge hba_clk)
@@ -162,8 +163,11 @@ begin
                 app_data_in <= 1;
                 app_rnw <= 0;       // write_op
                 app_en_strobe <= 1;
+                tb_state <= SETUP_BASICIO_WAIT;
+            end
+            SETUP_BASICIO_WAIT : begin
+                app_en_strobe <= 0;
                 if (app_valid_out) begin
-                    app_en_strobe <= 0;
                     tb_state <= DONE;
                 end
             end
