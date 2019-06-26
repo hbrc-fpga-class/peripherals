@@ -102,6 +102,7 @@ wire hba_xferack;       // Slave ACK transfer complete.
 
 // Five slave.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
+assign hba_xferack_slave[0] = 0;
 assign hba_xferack_slave[15:5] = 0;
 wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
 
