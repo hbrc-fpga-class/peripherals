@@ -161,10 +161,10 @@ hba_master_tbc #
     .hba_abus_master(hba_abus_master0),  // The target address. Must be zero when inactive.
     .hba_rnw_master(hba_rnw_master[0]),          // 1=Read from register. 0=Write to register.
     .hba_select_master(hba_select_master[0]),       // Transfer in progress
-    .hba_dbus_master(hba_dbus_master0),    // The write data bus.
+    .hba_dbus_master(hba_dbus_master0)    // The write data bus.
 
     // Tablebot pins
-    .tb_en(1'b1)
+    // XXX .tb_en(1'b1)
 );
 
 hba_basicio #

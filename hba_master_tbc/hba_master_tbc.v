@@ -61,10 +61,10 @@ module hba_master_tbc #
     output wire [ADDR_WIDTH-1:0] hba_abus_master,  // The target address. Must be zero when inactive.
     output wire hba_rnw_master,          // 1=Read from register. 0=Write to register.
     output wire hba_select_master,       // Transfer in progress
-    output wire [DBUS_WIDTH-1:0] hba_dbus_master,    // The write data bus.
+    output wire [DBUS_WIDTH-1:0] hba_dbus_master    // The write data bus.
 
     // Tablebot pins
-    input wire tb_en
+    // XXX input wire tb_en
 );
 
 /*
@@ -133,7 +133,7 @@ localparam MOTOR_SLOT               = 3;
 localparam SONAR_SLOT               = 4;
 
 // States
-reg [31:0] tb_state;
+reg [1:0] tb_state;
 localparam IDLE                     = 0;
 localparam SETUP_BASICIO            = 1;
 localparam SETUP_BASICIO_WAIT       = 2;
@@ -153,9 +153,7 @@ begin
     end else begin
         case (tb_state)
             IDLE : begin
-                if (tb_en) begin
-                    tb_state <= SETUP_BASICIO;
-                end
+                tb_state <= SETUP_BASICIO;
             end
             SETUP_BASICIO : begin
                 app_core_addr <= BASICIO_SLOT;
