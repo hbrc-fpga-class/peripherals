@@ -22,7 +22,7 @@
 * ------------------------
 *   0  |    serial_fpga
 *   1  |    hba_basicio
-*   2  |    hba_gpio
+*   2  |    hba_qtr
 *   3  |    hba_motor
 *   4  |    hba_sonar
 *
@@ -84,10 +84,11 @@ module hba_system #
     output wire [7:0] basicio_led,
     input wire [7:0] basicio_button,
 
-    // SLOT(2) : hba_gpio pins
-    output wire [3:0] gpio_out_en,
-    output wire [3:0] gpio_out_sig,
-    input wire [3:0] gpio_in_sig,
+    // SLOT(2) : hba_qtr pins
+    output wire [1:0]  qtr_out_en,
+    output wire [1:0] qtr_out_sig,
+    input wire [1:0] qtr_in_sig,
+    output wire [1:0] qtr_ctrl,
 
     // SLOT(3) : hba_motor pins
     output wire [1:0] motor_pwm,
@@ -227,8 +228,9 @@ hba_basicio #
     .basicio_button(basicio_button)
 );
 
-hba_gpio #
+hba_qtr #
 (
+    .CLK_FREQUENCY(CLK_FREQUENCY),
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
@@ -249,9 +251,10 @@ hba_gpio #
                                     // Must be zero when inactive.
     .slave_interrupt(slave_interrupt[2]),    // to interrupt controller
 
-    .gpio_out_en(gpio_out_en),
-    .gpio_out_sig(gpio_out_sig),
-    .gpio_in_sig(gpio_in_sig)
+    .qtr_out_en(qtr_out_en),
+    .qtr_out_sig(qtr_out_sig),
+    .qtr_in_sig(qtr_in_sig),
+    .qtr_ctrl(qtr_ctrl)
 );
 
 hba_motor #

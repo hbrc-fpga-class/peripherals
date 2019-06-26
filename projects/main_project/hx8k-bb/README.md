@@ -1,5 +1,11 @@
 # Implementation hba_system hx8k-bb
 
+## Status
+
+__This project is out of date!!__
+
+It won't compile as is.
+
 ## Description
 
 The Makefile in this directory builds the hba_system project.
@@ -12,19 +18,6 @@ Timing estimate: 10.57 ns (94.60 MHz)
 
 ## Utilization
 
-Here are the utilization numbers:
-
-```
-After packing:
-IOs          22 / 206
-GBs          0 / 8
-  GB_IOs     0 / 8
-LCs          1034 / 7680
-  DFF        513
-  CARRY      120
-  CARRY, DFF 37
-  DFF PASS   220
-  CARRY PASS 17
 BRAMs        0 / 32
 WARMBOOTs    0 / 1
 PLLs         1 / 2

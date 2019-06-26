@@ -56,11 +56,11 @@ module top
     input wire PIN_2,       // basicio_button[1]
     output wire [7:0] LED,  // basicio_led
 
-    // hba_gpio pins (SLOT 2)
-    inout wire PIN_14,   // gpio_port[0], QTRL_OUT
-    inout wire PIN_15,   // gpio_port[1], QTRL_CTRL
-    inout wire PIN_16,   // gpio_port[2], QTRR_OUT
-    inout wire PIN_17,   // gpio_port[3], QTRR_CTRL
+    // hba_qtr pins (SLOT 2)
+    inout wire PIN_14,   // QTRR_CTRL
+    inout wire PIN_15,   // QTRL_CTRL
+    inout wire PIN_16,   // QTRR_OUT
+    inout wire PIN_17,   // QTRL_OUT
 
     // hba_motor pins (SLOT 3)
     // Left motor pins
@@ -126,10 +126,13 @@ assign sonar_echo[0] = PIN_20;
 assign PIN_19 = sonar_trig[1];
 assign sonar_echo[1] = PIN_18;
 
-// hba_gpio wires
-wire [3:0] slot2_gpio_out_en;
-wire [3:0] slot2_gpio_out_sig;
-wire [3:0] slot2_gpio_in_sig;
+// hba_qtr wires
+wire [1:0] slot2_qtr_out_en;
+wire [1:0] slot2_qtr_out_sig;
+wire [1:0] slot2_qtr_in_sig;
+wire [1:0] slot2_qtr_ctrl;
+assign PIN_15 = slot2_qtr_ctrl[0];  // qtr_left
+assign PIN_14 = slot2_qtr_ctrl[1];  // qtr_right
 
 // hba_motor pins
 wire [1:0] motor_pwm;
@@ -177,10 +180,11 @@ hba_system #
     .basicio_led(basicio_led),
     .basicio_button(basicio_button),
 
-    // SLOT(2) : hba_gpio pins
-    .gpio_out_en(slot2_gpio_out_en),
-    .gpio_out_sig(slot2_gpio_out_sig),
-    .gpio_in_sig(slot2_gpio_in_sig),
+    // SLOT(2) : hba_qtr pins
+    .qtr_out_en(slot2_qtr_out_en),
+    .qtr_out_sig(slot2_qtr_out_sig),
+    .qtr_in_sig(slot2_qtr_in_sig),
+    .qtr_ctrl(slot2_qtr_ctrl),
 
     // SLOT(3) : hba_motor pins
     .motor_pwm(motor_pwm[1:0]),
@@ -192,48 +196,26 @@ hba_system #
     .sonar_echo(sonar_echo)
 );
 
-// SLOT2: GPIO_PORT bit 0
+// SLOT2: QTRL_CTRL
 SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
-) slot2_gpio_port0_inst  (
-    .PACKAGE_PIN(PIN_14),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[0]),
-    .D_OUT_0(slot2_gpio_out_sig[0]),
-    .D_IN_0(slot2_gpio_in_sig[0])
-);
-
-// SLOT2: GPIO_PORT bit 1
-SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b1)
-) slot2_gpio_port1_inst  (
-    .PACKAGE_PIN(PIN_15),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[1]),
-    .D_OUT_0(slot2_gpio_out_sig[1]),
-    .D_IN_0(slot2_gpio_in_sig[1])
-);
-
-// SLOT2: GPIO_PORT bit 2
-SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b1)
-) slot2_gpio_port2_inst  (
-    .PACKAGE_PIN(PIN_16),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[2]),
-    .D_OUT_0(slot2_gpio_out_sig[2]),
-    .D_IN_0(slot2_gpio_in_sig[2])
-);
-
-// SLOT2: GPIO_PORT bit 3
-SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b1)
-) slot2_gpio_port3_inst  (
+) slot2_qtr_port0_inst  (
     .PACKAGE_PIN(PIN_17),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[3]),
-    .D_OUT_0(slot2_gpio_out_sig[3]),
-    .D_IN_0(slot2_gpio_in_sig[3])
+    .OUTPUT_ENABLE(slot2_qtr_out_en[0]),
+    .D_OUT_0(slot2_qtr_out_sig[0]),
+    .D_IN_0(slot2_qtr_in_sig[0])
+);
+
+// SLOT2: QTRR_CTRL
+SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b1)
+) slot2_qtr_port1_inst  (
+    .PACKAGE_PIN(PIN_16),
+    .OUTPUT_ENABLE(slot2_qtr_out_en[1]),
+    .D_OUT_0(slot2_qtr_out_sig[1]),
+    .D_IN_0(slot2_qtr_in_sig[1])
 );
 
 /*
