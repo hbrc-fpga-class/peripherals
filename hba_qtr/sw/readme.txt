@@ -2,38 +2,46 @@
 
 HARDWARE
 
-The hba_sonar peripheral provides an interface to control two
-SR04 sonars.  There is a control register that can be used
-to enable each sonar independently. There is a sonar0_val
-register and a sonar1_val register that reads the last
-recorded sonar values.
-
-This peripheral generates an interrupt when the sonar(s) fire.
-In the future there will be a register to disable the interrupt.
+The hba_qtr provides an interface to two
+QTR reflectance sensors from Pololu.
+Each sensor returns an 8-bit value which represents
+The time it took for the QTR output pin to go
+low after being charged.  The higher the reflectance
+the shorter the time for the pin to go low.  The resolution
+of the 8-bit value is in 10us.  So max value of
+255 gives a time of 2.55ms.
 
 RESOURCES
 
-ctrl : This get/set the control register.  Here are the 
-currently support values:
-    - 0 : Disable both sonars
-    - 1 : Enable Sonar 0.
-    - 2 : Enable Sonar 1.
-    - 3 : Enable both Sonar0 and Sonar1.
+ctrl : This get/set the control register.
+    - Bit 0 : Enable QTR0 (left).
+    - Bit 1 : Enable QTR1 (right).
+    - Bit 2 : Enable interrupt.
+
 This resource works with hbaget and hbaset.
+The startup value is 0, with everything disabled.
+Example values:
+    - 3 : Enable both QTR0 and QTR1, no interrupt.
+    - 7 : Enable both QTR0 and QTR1, enable interrupt.
 
-sonar0 : Reads the last sonar0 value.
+qtr0 : Reads the last qtr0 value.
 This resource works with hbaget and hbacat.
 
-sonar1 : Reads the last sonar1 value.
+qtr1 : Reads the last qtr1 value.
 This resource works with hbaget and hbacat.
+
+period: Sets the trigger period. Granularity 50ms.
+Default/Min 50ms.  time = (period*50ms)+50ms.
 
 
 EXAMPLES
-Enable only Sonar 0.
-Read back the value of Sonar 0.
-Echo back new sonar 0 values.
+Set the trigger period to 100ms.
+Enable both qtr0 and qtr1, no interrupt
+Read back the last value of qtr0.
+Read back the last value of qtr1.
 
- hbaset hba_sonar ctrl 1
- hbaset hba_sonar sonar0
- hbacat hba_sonar sonar0
+ hbaset hba_qtr period 1
+ hbaset hba_qtr ctrl 3
+ hbaset hba_qtr qtr0
+ hbacat hba_qtr qtr1
 
