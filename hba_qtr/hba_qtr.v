@@ -106,8 +106,8 @@ reg qtr_sync;
 // Enable interrupt bit
 wire intr_en = reg_ctrl[2];
 
-assign slave_interrupt = qtr_valid & intr_en;
-assign slv_wr_en = qtr_valid;
+assign slave_interrupt = (|qtr_valid) & intr_en;
+assign slv_wr_en = |qtr_valid;
 
 wire qtr0_en;
 assign qtr0_en = reg_ctrl[0] & qtr_sync;

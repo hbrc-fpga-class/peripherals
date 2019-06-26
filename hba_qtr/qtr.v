@@ -102,9 +102,9 @@ reg [7:0] tmp_value;
 // QTR states
 reg [1:0] qtr_state;
 localparam IDLE         = 0;
-localparam LED_ON       = 1;
-localparam CHARGE_10US  = 2;
-localparam TIME_QTR     = 3;
+localparam CHARGE_10US  = 1;
+localparam TIME_QTR     = 2;
+localparam DONE         = 3;
 
 always @ (posedge clk)
 begin
@@ -124,15 +124,12 @@ begin
                 valid <= 0;
                 reset_count_10us <= 1;
                 qtr_ctrl <= 0;  // led off by default
-                if ((en == 1) && (qtr_in_sig == 0)) begin
-                    qtr_state <= LED_ON;
+                if (en) begin
+                    qtr_state <= CHARGE_10US;
                 end
             end
-            LED_ON : begin
-                qtr_ctrl <= 1;      // turn on the led
-                qtr_state <= CHARGE_10US;
-            end
             CHARGE_10US : begin
+                qtr_ctrl <= 1;      // turn on the led
                 reset_count_10us <= 0;
                 qtr_out_en <= 1;
                 qtr_out_sig <= 1;
@@ -153,9 +150,16 @@ begin
                 if ( (qtr_in_sig == 0) || (tmp_value==255) ) begin
                     value <= tmp_value;
                     valid <= 1;
-                    qtr_state <= IDLE;
+                    qtr_state <= DONE;
                 end
 
+            end
+            DONE : begin
+                valid <= 0;
+                // Wait for signal to go low.
+                if (qtr_in_sig == 0) begin
+                    qtr_state <= IDLE;
+                end
             end
             default : begin
                 qtr_state <= IDLE;
