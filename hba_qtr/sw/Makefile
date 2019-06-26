@@ -1,7 +1,7 @@
 #
 #  Name: Makefile
 #
-#  Description: This is the Makefile for the hba_sonar plugin
+#  Description: This is the Makefile for the hba_qtr plugin
 #
 #  Copyright:   Copyright (C) 2019 by Demand Peripherals, Inc.
 #               All rights reserved.
@@ -17,7 +17,7 @@
 #
 #
 
-plugin_name = hba_sonar
+plugin_name = hba_qtr
 
 INC = $(EE_DIR)/plug-ins/include
 LIB = $(EE_DIR)/build/lib
