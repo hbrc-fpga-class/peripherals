@@ -1,34 +1,23 @@
 /*
 *****************************
-* MODULE : hba_sonar.v
+* MODULE : hba_qtr.v
 *
 * This module is a HBA (HomeBrew Automation) bus peripheral.
-* It provides an interface to control two SR04 sonars.
-* It also has a trigger sync input, and registers for
-* specifying offsets from the trigger sync.  This way
-* if there are multiple sonar peripherals the triggers can
-* be staggered so they don't all fire at the same time and
-* cause a large current draw.
+* This module provides an interface to two
+* QTR reflectance sensors from Pololu.
+* Each sensor returns an 8-bit value which represents
+* The time it took for the QTR output pin to go
+* low after being charged.  The higher the reflectance
+* the shorter the time for the pin to go low.  The resolution
+* of the 8-bit value is in 10us.  So max value of
+* 255 gives a time of 2.55ms.
 *
-* Register Interface
-*
-* __reg0__ : Control register. Enables sonars and interrupts.
-*    reg0[0] : Enable sonar 0.
-*    reg0[1] : Enable sonar 1.
-*    reg0[2] : Slave sync.  If 1 use the sonar_sync_in for trigger.
-*Default(0) generate internal sync pulse.
-*    reg0[3] : Enable sonar interrupt. Triggered once per cycle.
-*    reg0[7:4] : Unused
-* __reg1__ : Last Sonar 0 value
-* __reg2__ : Last Sonar 1 value
-* __reg3__ : Trigger period.  Granularity 50ms. Default 100ms.
-*
-* See the README.md in this directory for more information.
+* See the README.md for information about the register interface.
 *
 * Status: In development
 *
 * Author : Brandon Blodget
-* Create Date: 06/08/2019
+* Create Date: 06/26/2019
 *
 *****************************
 */
@@ -57,11 +46,12 @@
 // Force error when implicit net has no type.
 `default_nettype none
 
-module hba_sonar #
+module hba_qtr #
 (
     // Defaults
     // DBUS_WIDTH = 8
     // ADDR_WIDTH = 12
+    parameter integer CLK_FREQUENCY = 60_000_000,
     parameter integer DBUS_WIDTH = 8,
     parameter integer PERIPH_ADDR_WIDTH = 4,
     parameter integer REG_ADDR_WIDTH = 8,
@@ -83,11 +73,11 @@ module hba_sonar #
                                     // Must be zero when inactive.
     output wire slave_interrupt,   // Send interrupt back
 
-    // hba_sonar pins
-    output wire [1:0] sonar_trig,
-    input wire [1:0] sonar_echo,
-    input wire sonar_sync_in,
-    output wire sonar_sync_out
+    // hba_qtr pins
+    output wire [1:0]  qtr_out_en,
+    output wire [1:0] qtr_out_sig,
+    input wire [1:0] qtr_in_sig,
+    output wire [1:0] qtr_ctrl
 );
 
 /*
@@ -99,30 +89,31 @@ module hba_sonar #
 // Define the bank of registers
 wire [DBUS_WIDTH-1:0] reg_ctrl;  // reg0: Control register
 
-wire [DBUS_WIDTH-1:0] reg_sonar0_in;  // reg1: Sonar0 value
-wire [DBUS_WIDTH-1:0] reg_sonar1_in;  // reg2: Sonar1 value
+wire [DBUS_WIDTH-1:0] reg_qtr0_in;  // reg1: qtr0 value
+wire [DBUS_WIDTH-1:0] reg_qtr1_in;  // reg2: qtr1 value
 
-wire [DBUS_WIDTH-1:0] reg_delay0;  // reg3: Sonar0 trigger delay
-wire [DBUS_WIDTH-1:0] reg_delay1;  // reg4: Sonar1 trigger delay
-wire [DBUS_WIDTH-1:0] reg_period;  // reg5: Trigger period
+wire [DBUS_WIDTH-1:0] reg_period;  // reg3: Trigger period
 
 // Enables writing to slave registers.
 wire slv_wr_en;
 
 // Indicates new sonar data
-wire [1:0] sonar_valid;
+wire [1:0] qtr_valid;
 
 // The trigger sync signal
-reg sonar_sync;
+reg qtr_sync;
 
-assign slave_interrupt = sonar_valid;
-assign slv_wr_en = sonar_valid;
+// Enable interrupt bit
+wire intr_en = reg_ctrl[2];
 
-wire sonar0_en;
-assign sonar0_en = reg_ctrl[0];
+assign slave_interrupt = qtr_valid & intr_en;
+assign slv_wr_en = qtr_valid;
 
-wire sonar1_en;
-assign sonar1_en = reg_ctrl[1];
+wire qtr0_en;
+assign qtr0_en = reg_ctrl[0] & qtr_sync;
+
+wire qtr1_en;
+assign qtr1_en = reg_ctrl[1] & qtr_sync;
 
 /*
 *****************************
@@ -155,6 +146,7 @@ hba_reg_bank #
     .slv_reg0(reg_ctrl),
     //.slv_reg1(),  
     //.slv_reg2(),
+    .slv_reg3(reg_period),
     
     // TODO : Add these later
     // XXX .slv_reg3(reg_delay0),
@@ -162,42 +154,55 @@ hba_reg_bank #
     // XXX .slv_reg5(reg_period),
 
     // writeable registers
-    .slv_reg1_in(reg_sonar0_in),
-    .slv_reg2_in(reg_sonar1_in),
+    .slv_reg1_in(reg_qtr0_in),
+    .slv_reg2_in(reg_qtr1_in),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
     .slv_wr_mask(4'b0110),    // 0010, means reg1,reg2 is writeable.
     .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
-sr04 sr04_inst0
+// Left QTR
+qtr #
+(
+    .CLK_FREQUENCY(CLK_FREQUENCY)
+) qtr_inst0
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(sonar0_en),
-    .sync(sonar_sync),
+    .en(qtr0_en),
 
-    .trig(sonar_trig[0]),
-    .echo(sonar_echo[0]),
+    .value(reg_qtr0_in),    // [7:0]
+    .valid(qtr_valid[0]),
 
-    .dist(reg_sonar0_in),  // actually time which is proportional to dist
-    .valid(sonar_valid[0])  // new dist value
+    // hba_qtr pins
+    .qtr_out_en(qtr_out_en[0]),
+    .qtr_out_sig(qtr_out_sig[0]),
+    .qtr_in_sig(qtr_in_sig[0]),
+    .qtr_ctrl(qtr_ctrl[0])
+
 );
 
-sr04 sr04_inst1
+// Right QTR
+qtr #
+(
+    .CLK_FREQUENCY(CLK_FREQUENCY)
+) qtr_inst1
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(sonar1_en),
-    .sync(sonar_sync),
+    .en(qtr1_en),
 
-    .trig(sonar_trig[1]),
-    .echo(sonar_echo[1]),
+    .value(reg_qtr1_in),    // [7:0]
+    .valid(qtr_valid[1]),
 
-    .dist(reg_sonar1_in),  // actually time which is proportional to dist
-    .valid(sonar_valid[1])  // new dist value
+    // hba_qtr pins
+    .qtr_out_en(qtr_out_en[1]),
+    .qtr_out_sig(qtr_out_sig[1]),
+    .qtr_in_sig(qtr_in_sig[1]),
+    .qtr_ctrl(qtr_ctrl[1])
+
 );
-
 
 
 /*
@@ -206,21 +211,26 @@ sr04 sr04_inst1
 *****************************
 */
 
-// Generate the sonar_sync signal
-// 100ms period = 5_000_000 clocks @ 50mhz
-reg [22:0] sync_count;
-localparam SYNC_COUNT_MAX = 5_000_000;
+// Generate the qtr_sync signal
+reg [22:0] count_50ms;
+reg [7:0] count_period;
+localparam FIFTY_MS_COUNT = ( CLK_FREQUENCY / 20 );
 always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
-        sonar_sync <= 0;
-        sync_count <= 0;
+        qtr_sync <= 0;
+        count_50ms <= 0;
+        count_period <= 0;
     end else begin
-        sonar_sync <= 0;
-        sync_count <= sync_count + 1;
-        if (sync_count == (SYNC_COUNT_MAX-1)) begin
-            sync_count <= 0;
-            sonar_sync <= 1;
+        qtr_sync <= 0;
+        count_50ms <= count_50ms + 1;
+        if (count_50ms == (FIFTY_MS_COUNT-1)) begin
+            count_50ms <= 0;
+            count_period <= count_period + 1;
+            if (count_period == reg_period) begin
+                count_period <= 0;
+                qtr_sync <= 1;
+            end
         end
     end
 end

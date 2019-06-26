@@ -60,9 +60,11 @@ module qtr #
     output reg [7:0] value,
     output reg valid,
 
+    // hba_qtr pins
     output reg qtr_out_en,
     output reg qtr_out_sig,
-    input wire qtr_in_sig
+    input wire qtr_in_sig,
+    output reg qtr_ctrl
 
 );
 
@@ -100,8 +102,9 @@ reg [7:0] tmp_value;
 // QTR states
 reg [1:0] qtr_state;
 localparam IDLE         = 0;
-localparam CHARGE_10US  = 1;
-localparam TIME_QTR     = 2;
+localparam LED_ON       = 1;
+localparam CHARGE_10US  = 2;
+localparam TIME_QTR     = 3;
 
 always @ (posedge clk)
 begin
@@ -112,6 +115,7 @@ begin
         value <= 0;
         reset_count_10us <= 0;
         tmp_value <= 0;
+        qtr_ctrl <= 0;
     end else begin
         case (qtr_state)
             IDLE : begin
@@ -119,9 +123,14 @@ begin
                 qtr_out_sig <= 0;
                 valid <= 0;
                 reset_count_10us <= 1;
+                qtr_ctrl <= 0;  // led off by default
                 if ((en == 1) && (qtr_in_sig == 0)) begin
-                    qtr_state <= CHARGE_10US;
+                    qtr_state <= LED_ON;
                 end
+            end
+            LED_ON : begin
+                qtr_ctrl <= 1;      // turn on the led
+                qtr_state <= CHARGE_10US;
             end
             CHARGE_10US : begin
                 reset_count_10us <= 0;
