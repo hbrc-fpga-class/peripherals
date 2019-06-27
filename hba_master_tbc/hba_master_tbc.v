@@ -83,6 +83,8 @@ wire [DBUS_WIDTH-1:0] app_data_out;
 wire app_valid_out;    // read or write transfer complete. Assert one clock cycle.
 
 reg start;
+reg [DBUS_WIDTH-1:0] qtr0;
+reg [DBUS_WIDTH-1:0] qtr1;
 
 /*
 ****************************
@@ -142,7 +144,10 @@ localparam SETUP_QTR                = 2;
 localparam SETUP_MOTOR0             = 3;
 localparam SETUP_MOTOR1             = 4;
 localparam SETUP_MOTOR_MODE_FF      = 5;
-localparam DONE                     = 6;
+localparam READ_QTR0                = 6;
+localparam READ_QTR1                = 7;
+localparam SETUP_MOTOR_MODE_BB      = 8;
+localparam DONE                     = 9;
 
 
 always @ (posedge hba_clk)
@@ -155,6 +160,8 @@ begin
         app_data_in <= 0;
         app_rnw <= 0;
         app_en_strobe <= 0;
+        qtr0 <= 0;
+        qtr1 <= 0;
     end else begin
         case (tb_state)
             IDLE : begin
@@ -215,6 +222,52 @@ begin
                 app_core_addr <= MOTOR_SLOT;
                 app_reg_addr <= 0;  // reg0 = mode
                 app_data_in <= 8'h03;
+                app_rnw <= 0;       // write_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    app_en_strobe <= 0;
+                    tb_state <= READ_QTR0;
+                end
+            end
+            READ_QTR0 : begin
+                // read reg1 qtr0
+                app_core_addr <= QTR_SLOT;
+                app_reg_addr <= 1;  // reg1 = qtr0
+                app_rnw <= 1;       // read_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    qtr0 <= app_data_out;
+                    app_en_strobe <= 0;
+                    if (app_data_out == 8'hff) begin
+                        // edge detected
+                        tb_state <= SETUP_MOTOR_MODE_BB;
+                    end else begin
+                        tb_state <= READ_QTR1;
+                    end
+                end
+            end
+            READ_QTR1 : begin
+                // read reg2 qtr1
+                app_core_addr <= QTR_SLOT;
+                app_reg_addr <= 2;  // reg2 = qtr1
+                app_rnw <= 1;       // read_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    qtr1 <= app_data_out;
+                    app_en_strobe <= 0;
+                    if (app_data_out == 8'hff) begin
+                        // edge detected
+                        tb_state <= SETUP_MOTOR_MODE_BB;
+                    end else begin
+                        tb_state <= READ_QTR0;
+                    end
+                end
+            end
+            SETUP_MOTOR_MODE_BB : begin
+                // mode 0x00
+                app_core_addr <= MOTOR_SLOT;
+                app_reg_addr <= 0;  // reg0 = mode
+                app_data_in <= 8'h00;
                 app_rnw <= 0;       // write_op
                 app_en_strobe <= 1;
                 if (app_valid_out) begin
