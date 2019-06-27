@@ -135,11 +135,14 @@ localparam MOTOR_SLOT               = 3;
 localparam SONAR_SLOT               = 4;
 
 // States
-reg [1:0] tb_state;
+reg [31:0] tb_state;
 localparam IDLE                     = 0;
 localparam SETUP_BASICIO            = 1;
-localparam SETUP_BASICIO_WAIT       = 2;
-localparam DONE                     = 3;
+localparam SETUP_QTR                = 2;
+localparam SETUP_MOTOR0             = 3;
+localparam SETUP_MOTOR1             = 4;
+localparam SETUP_MOTOR_MODE_FF      = 5;
+localparam DONE                     = 6;
 
 
 always @ (posedge hba_clk)
@@ -160,16 +163,62 @@ begin
                 end
             end
             SETUP_BASICIO : begin
+                // turn on led
                 app_core_addr <= BASICIO_SLOT;
                 app_reg_addr <= 0;  // reg0 = leds
                 app_data_in <= 1;
                 app_rnw <= 0;       // write_op
                 app_en_strobe <= 1;
-                tb_state <= SETUP_BASICIO_WAIT;
-            end
-            SETUP_BASICIO_WAIT : begin
-                app_en_strobe <= 0;
                 if (app_valid_out) begin
+                    app_en_strobe <= 0;
+                    tb_state <= SETUP_QTR;
+                end
+            end
+            SETUP_QTR : begin
+                // ctrl 3
+                app_core_addr <= QTR_SLOT;
+                app_reg_addr <= 0;  // reg0 = ctrl
+                app_data_in <= 3;
+                app_rnw <= 0;       // write_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    app_en_strobe <= 0;
+                    tb_state <= SETUP_MOTOR0;
+                end
+            end
+            SETUP_MOTOR0 : begin
+                // motor0 0x10
+                app_core_addr <= MOTOR_SLOT;
+                app_reg_addr <= 1;  // reg1 = motor0
+                app_data_in <= 8'h10;
+                app_rnw <= 0;       // write_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    app_en_strobe <= 0;
+                    tb_state <= SETUP_MOTOR1;
+                end
+            end
+            SETUP_MOTOR1 : begin
+                // motor0 0x10
+                app_core_addr <= MOTOR_SLOT;
+                app_reg_addr <= 2;  // reg2 = motor1
+                app_data_in <= 8'h10;
+                app_rnw <= 0;       // write_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    app_en_strobe <= 0;
+                    tb_state <= SETUP_MOTOR_MODE_FF;
+                end
+            end
+            SETUP_MOTOR_MODE_FF : begin
+                // mode 0x03
+                app_core_addr <= MOTOR_SLOT;
+                app_reg_addr <= 0;  // reg0 = mode
+                app_data_in <= 8'h03;
+                app_rnw <= 0;       // write_op
+                app_en_strobe <= 1;
+                if (app_valid_out) begin
+                    app_en_strobe <= 0;
                     tb_state <= DONE;
                 end
             end

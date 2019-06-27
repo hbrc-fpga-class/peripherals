@@ -38,10 +38,10 @@ There are three 8-bit registers.
     * reg0[3] : Direction motor 1. 0=Forward, 1=Reverse
     * reg0[4] : Coast/Float motor 0. 0=Not Coast, 1=Coast
     * reg0[5] : Coast/Float motor 1. 0=Not Coast, 1=Coast
-* __reg2__ : Motor 0 power and direction
-    * reg2[7:0] : Motor 0 duty cycle.  0 (stop) ... 100 (full power)
+* __reg1__ : Motor 0 power and direction
+    * reg1[7:0] : Motor 0 duty cycle.  0 (stop) ... 100 (full power)
                 Values greater than 100 are ignored.
-* __reg3__ : Motor 1 power and direction
+* __reg2__ : Motor 1 power and direction
     * reg2[7:0] : Motor 1 duty cycle.  0 (stop) ... 100 (full power)
                 Values greater than 100 are ignored.
 
