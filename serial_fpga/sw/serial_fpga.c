@@ -37,6 +37,8 @@
 #include <limits.h>              // for PATH_MAX
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h> 
+#include <linux/serial.h>
 #include "eedd.h"
 #include "readme.h"
 #define HBAERROR_NOSEND (-1)
@@ -352,9 +354,10 @@ void portconfig(SERPORT *pctx)
 {
     struct termios tbuf;        // termios structure for port
     speed_t baudrate;           // baudrate for cfsetospeed
+    struct serial_struct serial; // for low latency
 
     if (pctx->spfd < 0) {
-        pctx->spfd = open(pctx->port, (O_RDWR | O_NONBLOCK), 0);
+        pctx->spfd = open(pctx->port, (O_RDWR | O_NOCTTY | O_NONBLOCK), 0);
         if (pctx->spfd < 0) {
             return;             // fail quietly
         }
@@ -392,6 +395,11 @@ void portconfig(SERPORT *pctx)
         pctx->spfd = -1;
         return;
     }
+
+    // Configure port for low latency
+    ioctl(pctx->spfd, TIOCGSERIAL, &serial); 
+    serial.flags |= ASYNC_LOW_LATENCY;
+    ioctl(pctx->spfd, TIOCSSERIAL, &serial);
 
     // add callback for received characters
     add_fd(pctx->spfd, getevents, (void (*)()) NULL, (void *) pctx);
