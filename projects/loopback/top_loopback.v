@@ -24,12 +24,11 @@ module top_loopback
     input wire  PIN_23,  // rxd
     output wire PIN_22,  // txd
 
-    output wire PIN_3,  // debug0
-    output wire PIN_4,  // debug1
-    output wire PIN_5,  // debug2
+    // debug outputs
+    output wire PIN_3,  // loop_state
+    output wire PIN_4,  // echo txd
+    output wire PIN_5   // echo rxd
 
-
-    output wire LED     // pll locked
 );
 
 // Parameters
@@ -60,7 +59,6 @@ reg [7:0] tx_data;
 
 assign rxd = PIN_23;
 assign PIN_22 = txd;
-assign LED = locked;
 
 // debug
 assign PIN_3 = loop_state;
