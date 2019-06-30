@@ -1,6 +1,6 @@
 # iverilog -c compile.vf
 top.v
-../../../boards/hx8k-bb/pll_60mhz.v
+../../../boards/hx8k-bb/pll_50mhz.v
 ../hba_system.v
 ../../../serial_fpga/serial_fpga.v
 ../../../serial_fpga/send_recv.v

@@ -1,7 +1,7 @@
 PROJ = top
 DEVICE = lp8k
 BOARD = romi-board
-SOURCES = $(PROJ).v ../../../boards/$(BOARD)/pll_60mhz.v ../hba_system.v ../../../serial_fpga/serial_fpga.v ../../../serial_fpga/send_recv.v ../../../common/uart.v ../../../common/hba_master.v ../../../common/hba_arbiter.v ../../../common/hba_or_masters.v ../../../common/hba_or_slaves.v ../../../hba_reg_bank/hba_reg_bank.v ../../../hba_sonar/hba_sonar.v ../../../hba_sonar/sr04.v ../../../hba_basicio/hba_basicio.v ../../../hba_motor/hba_motor.v ../../../hba_motor/pwm_dir.v ../../../hba_qtr/hba_qtr.v ../../../hba_qtr/qtr.v
+SOURCES = $(PROJ).v ../../../boards/$(BOARD)/pll_50mhz.v ../hba_system.v ../../../serial_fpga/serial_fpga.v ../../../serial_fpga/send_recv.v ../../../common/uart.v ../../../common/hba_master.v ../../../common/hba_arbiter.v ../../../common/hba_or_masters.v ../../../common/hba_or_slaves.v ../../../hba_reg_bank/hba_reg_bank.v ../../../hba_sonar/hba_sonar.v ../../../hba_sonar/sr04.v ../../../hba_basicio/hba_basicio.v ../../../hba_motor/hba_motor.v ../../../hba_motor/pwm_dir.v ../../../hba_qtr/hba_qtr.v ../../../hba_qtr/qtr.v
 
 PIN_DEF = ../../../boards/$(BOARD)/pins.pcf
 
