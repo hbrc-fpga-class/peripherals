@@ -33,8 +33,23 @@ module hba_quad #
     input wire [1:0] quad_enc_b
 );
 
+/*
+*****************************
+* Params, Signals and Assignments
+*****************************
+*/
+
 localparam LEFT     = 0;
 localparam RIGHT    = 1;
+
+// Define the bank of registers
+wire [DBUS_WIDTH-1:0] reg_ctrl;  // reg0: Control register
+
+wire [DBUS_WIDTH-1:0] reg_qtr0_in;  // reg1: qtr0 value
+wire [DBUS_WIDTH-1:0] reg_qtr1_in;  // reg2: qtr1 value
+
+wire [DBUS_WIDTH-1:0] reg_period;  // reg3: Trigger period
+
 
 /*
 *****************************
@@ -108,8 +123,8 @@ pulse_counter left_counter_inst
     .reset(hba_reset),
     .en(),
 
-    .pulse_in(),
-    .dir_in(),
+    .pulse_in(left_pulse),
+    .dir_in(left_dir),
 
     .count(),   // [15:0]
     .valid()
