@@ -2,46 +2,45 @@
 
 HARDWARE
 
-The hba_qtr provides an interface to two
-QTR reflectance sensors from Pololu.
-Each sensor returns an 8-bit value which represents
-The time it took for the QTR output pin to go
-low after being charged.  The higher the reflectance
-the shorter the time for the pin to go low.  The resolution
-of the 8-bit value is in 10us.  So max value of
-255 gives a time of 2.55ms.
+This module provides an interface to two
+quatrature encoders.  This module senses the direction
+and increments or decrements the encoder count as appropriate.
+Each encoder count is a 16-bit value, stored in two
+8-bit registers.  It is recommended to disable the encoder
+updates before reading the encoder values.  Then re-enable
+encoder updates after the values are read.  The encoder
+counts will still be updated internally only the updating
+to the register bank is paused.
 
 RESOURCES
 
 ctrl : This get/set the control register.
-    - Bit 0 : Enable QTR0 (left).
-    - Bit 1 : Enable QTR1 (right).
+    - Bit 0 : Enable left encoder register updates
+    - Bit 1 : Enable right encoder register updates
     - Bit 2 : Enable interrupt.
 
 This resource works with hbaget and hbaset.
 The startup value is 0, with everything disabled.
 Example values:
-    - 3 : Enable both QTR0 and QTR1, no interrupt.
-    - 7 : Enable both QTR0 and QTR1, enable interrupt.
+    - 3 : Enable left and right encoder updates, no interrupt.
+    - 7 : Enable left and right encoder updates, AND enable interrupt.
 
-qtr0 : Reads the last qtr0 value.
+enc0 : Reads 16-bit left encoder value.  Handles disabling
+updates, reading LSB and MSB, and assembling the value.
+Then restores the ctrl value back to saved value.
 This resource works with hbaget and hbacat.
 
-qtr1 : Reads the last qtr1 value.
+enc1 : Reads 16-bit right encoder value.  Handles disabling
+updates, reading LSB and MSB, and assembling the value.
+Then restores the ctrl value back to saved value.
 This resource works with hbaget and hbacat.
-
-period: Sets the trigger period. Granularity 50ms.
-Default/Min 50ms.  time = (period*50ms)+50ms.
-
 
 EXAMPLES
-Set the trigger period to 100ms.
-Enable both qtr0 and qtr1, no interrupt
-Read back the last value of qtr0.
-Read back the last value of qtr1.
+Enable updates and interrupts
+Read the the 16-bit left encoder value
+Read the the 16-bit right encoder value
 
- hbaset hba_qtr period 1
  hbaset hba_qtr ctrl 3
- hbaset hba_qtr qtr0
- hbacat hba_qtr qtr1
+ hbaset hba_qtr enc0
+ hbaset hba_qtr enc1
 

@@ -11,7 +11,7 @@ Each encoder count is a 16-bit value, stored in two
 updates before reading the encoder values.  Then re-enable
 encoder updates after the values are read.  The encoder
 counts will still be updated internally only the updating
-to the register bank is disabled.
+to the register bank is paused.
 
 ## Port Interface
 
