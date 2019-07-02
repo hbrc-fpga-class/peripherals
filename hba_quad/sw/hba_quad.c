@@ -263,7 +263,7 @@ void usercmd(
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
             pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
-            ret = snprintf(buf, *plen, "%02x\n", pctx->enc0);
+            ret = snprintf(buf, *plen, "%04x\n", pctx->enc0);
             *plen = ret;  // (errors are handled in calling routine)
         }
 
