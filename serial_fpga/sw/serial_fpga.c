@@ -4,7 +4,7 @@
  *  Description: Simple interface to a Linux serial port
  *
  *  Resources:
- *    port   -  full path to serial port (/dev/input/ttyUSB0)
+ *    port   -  full path to serial port (/dev/ttyS0)
  *    config -  baudrate in range of 1200 to 921000
  *    intrr_pin -  which pin to monitor as an interrupt
  *    rawin  -  Received characters displayed in hex
@@ -41,9 +41,7 @@
 #include <linux/serial.h>
 #include "eedd.h"
 #include "readme.h"
-#define HBAERROR_NOSEND (-1)
-#define HBAERROR_NORECV (-2)
-#define HBA_READ_CMD    (0x80)
+
 
 
 /**************************************************************
@@ -63,16 +61,33 @@
         // What we are is a ...
 #define PLUGIN_NAME        "serial_fpga"
         // Default serial port
-#define DEFDEV             "/dev/ttyUSB0"
+#define DEFDEV             "/dev/ttyS0"
         // Default baudrate
-#define DEFBAUD             115200
+#define DEFBAUD            115200
+        // Number of possible FPGA cores (peripherals)
+#define NCORE              16
         // Maximum size of input/output string
 #define MX_MSGLEN          120
-
+        // HBA protocol defines
+#define HBAERROR_NOSEND   (-1)
+#define HBAERROR_NORECV   (-2)
+#define HBA_READ_CMD      (0x80)
+#define HBA_WRITE_CMD     (0x00)
+#define HBA_MXPKT         (16)
+#define HBA_ACK           (0xAC)
+        // Defines for serial_fpga
+#define HBA_SF_INT0       (0)
 
 /**************************************************************
  *  - Data structures
  **************************************************************/
+    // Per core information kept by this module
+typedef struct
+{
+    void    (*intr_hndlr) ();    // interrupt handler
+    void     *trans;             // data to pass transparently to handler 
+} COREINFO;
+
     // All state info for an instance of an hba_serial_fpga peripheral
 typedef struct
 {
@@ -87,16 +102,23 @@ typedef struct
     int      outidx;   // index into rawoutc
     char     intrrp[PATH_MAX]; // full path to interrupt input pin
     int      irfd;     // interrupt pin file descriptor (-1 if closed)
+    COREINFO coreinfo[NCORE];
 } SERPORT;
 
 
 /**************************************************************
- *  - Function prototypes
+ *  - Function prototypes and external references
  **************************************************************/
 static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 static void portconfig(SERPORT *pctx);
+static int  gpioconfig(int pin);
+static void do_interrupt(int fd, void *pctx);
+void        register_interupt_handler(int, void (*)());
 extern SLOT Slots[];
+extern int  DebugMode;
+extern int  ForegroundMode;
+
 
 /**************************************************************
  * Initialize():  - Allocate our permanent storage and set up
@@ -116,7 +138,7 @@ int Initialize(
     }
 
     // Init our SERPORT structure
-    pctx->pslot = pslot;       // this instance of the hello demo
+    pctx->pslot = pslot;       // this instance of serial_fpga
     pctx->baud = DEFBAUD;      // default baud rate
     pctx->inidx = 0;           // no bytes in input buffer
     pctx->outidx = 0;          // no bytes in output buffer
@@ -176,7 +198,7 @@ int Initialize(
 /**************************************************************
  * usercmd():  - The user is reading or setting a resource
  **************************************************************/
-void usercmd(
+static void usercmd(
     int      cmd,      //==EDGET if a read, ==EDSET on write
     int      rscid,    // ID of resource being accessed
     char    *val,      // new value for the resource
@@ -190,6 +212,7 @@ void usercmd(
     int      nbaud;    // new value to assign the baud
     char    *pbyte;    // used in parsing raw input
     int      tmp;      // used in parsing raw input
+    int      intrpin;  // new interrupt GPIO pin
 
     // Get this instance of the plug-in
     pctx = (SERPORT *) pslot->priv;
@@ -244,8 +267,7 @@ void usercmd(
         portconfig(pctx);
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTRRP)) {
-        // Val has the new port path.  Just copy it.
-        (void) strncpy(pctx->intrrp, val, PATH_MAX);
+        ret = sscanf(val, "%d", &intrpin);
         // strncpy() does not force a null.  We add one now as a precaution
         pctx->intrrp[PATH_MAX -1] = (char) 0;
         // close and unregister the old port
@@ -254,14 +276,11 @@ void usercmd(
             close(pctx->irfd);
             pctx->irfd = -1;
         }
-
-
-
-        // now open and register the new interrupt pin
-
-
-
-
+        pctx->irfd = gpioconfig(intrpin);
+        if (pctx->irfd >= 0) {
+            // Add fd to exception list for select()
+            add_fd(pctx->irfd, ED_EXCEPT, do_interrupt, (void *) pctx);
+        }
     }
     else if ((cmd == EDSET) && (rscid == RSC_RAWOUT)) {
         // User has given us a line of space separated 8-bit hex values.
@@ -350,7 +369,7 @@ static void getevents(
 /* Open and/or configure the serial port.  Open and config if
  * fd is -1.  Just config if fd is >= 0.
  */
-void portconfig(SERPORT *pctx)
+static void portconfig(SERPORT *pctx)
 {
     struct termios tbuf;        // termios structure for port
     speed_t baudrate;           // baudrate for cfsetospeed
@@ -402,8 +421,67 @@ void portconfig(SERPORT *pctx)
     ioctl(pctx->spfd, TIOCSSERIAL, &serial);
 
     // add callback for received characters
-    add_fd(pctx->spfd, getevents, (void (*)()) NULL, (void *) pctx);
+    add_fd(pctx->spfd, ED_READ, getevents, (void *) pctx);
 }
+
+
+/* Open and configure the gpio port for interrupts.   Return opened
+ * file descriptor on success and -1 on failure.
+ */
+static int gpioconfig(int pin)
+{
+    int           gpfd;         // the fd of the opened GPIO pin
+    int           sysfd;        // fd for /sys/class/gpio/....
+    char          pinname[MX_MSGLEN]; // pin number as an ascii string
+    int           pinlen;       // length of string in pinname
+    int           ret;          // generic system return value
+
+
+    // simple sanity check on pin value
+    if ((pin < 0) || (pin > 1000)) {
+       edlog("Invalid GPIO pin for interrupts");
+       return(-1);
+    }
+    pinlen = snprintf(pinname, MX_MSGLEN, "%d", pin);
+
+    // Open /sys/class/gpio/export and write the pin number to it
+    sysfd =open("/sys/class/gpio/export", (O_RDWR), 0);
+    if (sysfd < 0) {
+        edlog("Unable to open /sys/class/gpio/export.  Are you root?");
+        return(-1);
+    }
+    ret = write(sysfd, pinname, pinlen);
+    if (ret != pinlen) {
+        edlog("Error writing pin name to /sys/class/gpio/export");
+        return(-1);
+    }
+    close(sysfd);
+    usleep(100000);    // give the kernal a chance to set up gpio
+
+    // Open edge for the GPIO pin and configure the port to be
+    // read ready on a rising edge
+    pinlen = snprintf(pinname, MX_MSGLEN, "/sys/class/gpio/gpio%d/edge", pin);
+    sysfd = open(pinname, (O_RDWR), 0);
+    if (sysfd < 0) {
+        edlog("Unable to open %s", pinname);
+        return(-1);
+    }
+    ret = write(sysfd, "rising", 6);      // 6=strlen("rising")
+    if (ret != 6) {
+        edlog("Unable to configure %s", pinname);
+        return(-1);
+    }
+
+    // Open value for the GPIO pin.  This is what we read in select()
+    pinlen = snprintf(pinname, MX_MSGLEN, "/sys/class/gpio/gpio%d/value", pin);
+    gpfd =open(pinname, (O_RDWR), 0);
+    if (gpfd < 0) {
+        edlog("Unable to open %s", pinname);
+        return(-1);
+    }
+ 
+    return(gpfd);
+} 
 
 
 /* sendrecv_pkt() : Send a packet to the FPGA.  Wait for the
@@ -433,6 +511,7 @@ int sendrecv_pkt(
     fd_set        rdfs;         // read FDs for select()
     struct timeval select_tv;   // timeout for select()
     int           sret;         // select() return value
+    int           i;
 
     // We could search the slots for a plug-in named "serial_fpga" but
     // for now we assume that serial_fpga is the first module loaded.
@@ -445,6 +524,14 @@ int sendrecv_pkt(
     // Sanity check. Valid count.  Non-null buffer.  Port open.
     if ((count <= 0) || (buff == (uint8_t *) 0) || (pctx->spfd < 0)) {
         return(HBAERROR_NOSEND);
+    }
+
+    // Print pkt if debug mode and running in foreground
+    if ((DebugMode != 0) && (ForegroundMode != 0)) {
+        printf(">> ");
+        for (i = 0; i < count; i++)
+            printf("%02x ", buff[i]);
+        printf("\n");
     }
 
     // send data out the serial port 
@@ -477,7 +564,7 @@ int sendrecv_pkt(
     // Bytes might dripple in especially on a slow link
     while (1) {
         select_tv.tv_sec = 0;
-        select_tv.tv_usec = (useconds_t) 100000;   // 0.1 seconds for a timeout
+        select_tv.tv_usec = (useconds_t) 1000000;   // 0.1 seconds for a timeout
         FD_ZERO(&rdfs);
         FD_SET(pctx->spfd, &rdfs);
         sret = select((pctx->spfd + 1), &rdfs, (fd_set *) 0, (fd_set *) 0, &select_tv);
@@ -503,6 +590,13 @@ int sendrecv_pkt(
             if (rdcount > 0) {
                 rdsofar += rdcount;
                 if (rdsofar == expectrd) {   // done?
+                    // Print pkt if debug mode and running in foreground
+                    if ((DebugMode != 0) && (ForegroundMode != 0)) {
+                        printf("<< ");
+                        for (i = 0; i < expectrd; i++)
+                            printf("%02x ", buff[i]);
+                        printf("\n");
+                    }
                     return(expectrd);
                 }
                 // else more to read, drop back into select() to wait
@@ -510,4 +604,110 @@ int sendrecv_pkt(
         }
     }
 }
+
+
+/* register_interrupt_handler() : Plug-in modules use this routine
+ * to tell serial_fpga the address of the module's interrupt handler.
+ * The plug-in passes in both the slot number (which equals the core
+ * ID) as well as the address of the handler.  
+ */
+void register_interrupt_handler(
+    int           coreid,       // core ID (same as plugin slot #)
+    void        (*handler)(),   // address of interrupt handler
+    void         *trans)        // transparently pass this to handler
+{
+    SERPORT      *pctx;         // our local info
+
+    // We could search the slots for a plug-in named "serial_fpga" but
+    // for now we assume that serial_fpga is the first module loaded.
+    pctx = (SERPORT *) Slots[0].priv;
+    if (strncmp(PLUGIN_NAME, Slots[0].name, strlen(PLUGIN_NAME)) != 0) {
+        edlog("Wanted %s in Slot 0.  Exiting...\n", PLUGIN_NAME);
+        exit(1);
+    }
+
+    // Sanity check the coreid and handler address
+    if ((coreid < 0) || (coreid >= NCORE) || (handler == 0)) {
+        edlog("Bad calling values to register_interrupt_handler()");
+        return;
+    }
+
+    pctx->coreinfo[coreid].intr_hndlr = handler;
+    pctx->coreinfo[coreid].trans      = trans;
+}
+
+
+/***************************************************************************
+ * do_interrupt(): - Hnadle an interrupt request.  Read the interrupt
+ * pending registers in serial_fpga peripheral and invoke the appropriate
+ * interrupt handlers if one is registered.  Log interrupts that do not
+ * have a handler.
+ ***************************************************************************/
+static void do_interrupt(
+    int       fd_in,         // FD with data to read,
+    void     *cb_data)       // callback date (==*SERPORT)
+{
+    SERPORT  *pctx;          // our context
+    int       nrc;           // number of bytes recieved
+    int       intpending;    // a set bit means and interrupt is pending
+    int       ret;           // generic return value from a system call
+    int       i;             // to walk the cores
+    uint8_t   pkt[HBA_MXPKT];  
+
+
+    pctx = (SERPORT *) cb_data;
+
+    // We need to read the GPIO value to clear the interrupt
+    (void) lseek(pctx->irfd, (off_t) 0, SEEK_SET);
+    ret = read(pctx->irfd, pkt, HBA_MXPKT);
+    if (ret <= 0) {
+        edlog("Error reading interrupt GPIO pin");
+        return;
+    }
+
+    // Noise on the interrupt line can trigger a rising edge.
+    // Verify that the interrupt pin really is high
+    if (pkt[0] != '1') {
+        //return;
+    }
+
+    // Read the two interrupt registers in serial_fpga
+    //  (2-1) is # byte to read -1, and 0 is our coreID
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | 0;
+    pkt[1] = HBA_SF_INT0;
+    pkt[2] = 0;                     // dummy byte
+    pkt[3] = 0;                     // dummy byte
+    pkt[4] = 0;                     // dummy byte
+    pkt[5] = 0;                     // dummy byte
+    nrc = sendrecv_pkt(6, pkt);
+    // We sent header + two bytes so the sendrecv return value should be 4
+    if (nrc != 4) {
+        // error reading value from GPIO port
+        edlog("Error reading interrupt pending register from FPGA");
+        return;
+    }
+    intpending = pkt[2] | (pkt[3] << 8);
+
+    // Sanity check
+    if (intpending == 0) {
+        edlog("Interrupt but no bits set in pending registers");
+        return;
+    }
+
+    // walk the pending interrupts invoking the handlers.  No need to check
+    // at zero since that's us.
+    for (i = 1;  i < NCORE; i++) {
+        intpending = intpending >> 1;
+        if ((intpending & 0x01) == 1) {
+            // interrupt is pending on this core.  Invoke its handler
+            if (pctx->coreinfo[i].intr_hndlr == 0) {
+                edlog("Received unhandled interrupt in core %d", i);
+                continue;
+            }
+            // invoke handler
+            (pctx->coreinfo[i].intr_hndlr) (pctx->coreinfo[i].trans);
+        }
+    }
+}
+
 // end of serial_fpga.c
