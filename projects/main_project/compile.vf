@@ -15,4 +15,7 @@ hba_system.v
 ../../hba_qtr/qtr.v
 ../../hba_motor/hba_motor.v
 ../../hba_motor/pwm_dir.v
+../../hba_quad/hba_quad.v
+../../hba_quad/quadrature.v
+../../hba_quad/pulse_counter.v
 

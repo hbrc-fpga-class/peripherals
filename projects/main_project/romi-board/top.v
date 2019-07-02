@@ -76,7 +76,13 @@ module top
     output wire PIN_21,   // sonar_trig[0], L_TRIG
     input  wire PIN_20,  // sonar_echo[0], L_ECHO
     output wire PIN_19,  // sonar_trig[1], R_TRIG
-    input  wire PIN_18   // sonar_echo[1], R_ECHO
+    input  wire PIN_18,   // sonar_echo[1], R_ECHO
+
+    // hba_quad pins (SLOT 5)
+    input  wire PIN_3,  // quad_enc_a[0], Left
+    input  wire PIN_4,  // quad_enc_b[0], Left
+    input  wire PIN_11, // quad_enc_a[1], Right
+    input  wire PIN_12  // quad_enc_b[1], Right
 
 );
 
@@ -145,6 +151,14 @@ assign PIN_10 = motor_pwm[1];
 assign PIN_9 = motor_dir[1];
 assign PIN_8 = motor_float_n[1];
 
+// hba_quad pins
+wire [1:0] quad_enc_a;
+wire [1:0] quad_enc_b;
+assign quad_enc_a[0] = PIN_3;
+assign quad_enc_b[0] = PIN_4;
+assign quad_enc_a[1] = PIN_11;
+assign quad_enc_b[1] = PIN_12;
+
 /*
 ****************************
 * Instantiations
@@ -193,7 +207,11 @@ hba_system #
 
     // SLOT(4) : hba_sonar pins
     .sonar_trig(sonar_trig),
-    .sonar_echo(sonar_echo)
+    .sonar_echo(sonar_echo),
+
+    // SLOT(5) : hba_quad pins
+    .quad_enc_a(quad_enc_a),
+    .quad_enc_b(quad_enc_b)
 );
 
 // SLOT2: QTRL_CTRL

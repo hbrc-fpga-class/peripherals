@@ -97,7 +97,11 @@ module hba_system #
 
     // SLOT(4) : hba_sonar pins
     output wire [1:0] sonar_trig,
-    input wire [1:0] sonar_echo
+    input wire [1:0] sonar_echo,
+
+    // SLOT(5) : hba_quad pins
+    input wire [1:0] quad_enc_a,
+    input wire [1:0] quad_enc_b
 );
 
 
@@ -114,15 +118,15 @@ wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 wire hba_xferack;       // Slave ACK transfer complete.
 
-// Five slave.  Set the others to 0.
+// Six slaves.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
-assign hba_xferack_slave[15:5] = 0;
+assign hba_xferack_slave[15:6] = 0;
 wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
 
-// Slots 1,2,3,4 generate interrupts, zeros for others.
+// Slots 1,2,3,4,5 generate interrupts, zeros for others.
 wire [15:0] slave_interrupt;
 assign slave_interrupt[0] = 0;
-assign slave_interrupt[15:5] = 0;
+assign slave_interrupt[15:6] = 0;
 
 // Slot 0
 wire [DBUS_WIDTH-1:0] hba_dbus_slave0;   // The output data bus.
@@ -138,6 +142,9 @@ wire [DBUS_WIDTH-1:0] hba_dbus_slave3;   // The output data bus.
 
 // Slot 4
 wire [DBUS_WIDTH-1:0] hba_dbus_slave4;   // The output data bus.
+
+// Slot 5
+wire [DBUS_WIDTH-1:0] hba_dbus_slave5;   // The output data bus.
 
 // Master 0 (only 1)
 wire [3:0] hba_rnw_master;
@@ -313,6 +320,33 @@ hba_sonar #
     .sonar_echo(sonar_echo[1:0])
     // XXX .sonar_sync_in(),
     // XXX .sonar_sync_out()
+);
+
+hba_quad #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(5)
+) hba_quad_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(clk),
+    .hba_reset(reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave5),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[5]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    .slave_interrupt(slave_interrupt[5]),   // Send interrupt back
+
+    // hba_quad pins
+    .quad_enc_a(quad_enc_a[1:0]),
+    .quad_enc_b(quad_enc_b[1:0])
 );
 
 hba_or_slaves #
