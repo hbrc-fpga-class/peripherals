@@ -1,13 +1,12 @@
 /*
- *  Name: hba_qtr.c
+ *  Name: hba_quad.c
  *
- *  Description: HomeBrew Automation (hba) 2x qtr peripheral
+ *  Description: HomeBrew Automation (hba) 2x quadrature peripheral
  *
  *  Resources:
- *    ctrl      -  Enables/Disables qtr sensors and interrupt.
- *    qtr0      -  Read the last qtr0 value.
- *    qtr1      -  Read the last qtr1 value.
- *    period    -  Sets the trigger period.
+ *    ctrl      -  Enables/Disables updating encoder counts and interrupt.
+ *    enc0      -  Reads 16-bit left encoder value
+ *    enc1      -  Reads 16-bit right encoder value
  */
 
 /*
@@ -29,16 +28,14 @@
 
 /*
  * FPGA Register Interface
- * There are four 8-bit registers.
+ * There are three 8-bit registers.
  *
- * reg0 : Control register. Enables qtr sensors and interrupts.
- *   - reg0[0] : Enable qtr 0.
- *   - reg0[1] : Enable qtr 1.
- *   - reg0[2] : Enable interrupt.
- * reg1 : Last QTR 0 value
- * reg2 : Last QTR 1 value
- * reg3 : Trigger period.  Granularity 50ms. Default/Min 50ms.
- *   period = (reg3*50ms)+50ms.
+ * reg0 : Control register. Enables quad enc updates and interrupts.
+ *  - reg0[0] : Enable left encoder register updates
+ *  - reg0[1] : Enable right encoder register updates
+ *  - reg0[2] : Enable interrupt.
+ * reg1 : Left encoder count, least significant byte
+ * reg2 : Left encoder count, most significant byte
  *
  */
 
@@ -64,10 +61,9 @@
 #define HBA_MXPKT               (16)
 #define HBA_ACK                 (0xAC)
 
-#define HBA_QTR_REG_CTRL    (0)
-#define HBA_QTR_REG_QTR0    (1)
-#define HBA_QTR_REG_QTR1    (2)
-#define HBA_QTR_REG_PERIOD  (3)
+#define HBA_QUAD_REG_CTRL       (0)
+#define HBA_QUAD_REG_ENC0_LSB   (1)
+#define HBA_QUAD_REG_ENC0_MSB   (2)
 
 
 /**************************************************************
@@ -75,17 +71,15 @@
  **************************************************************/
         // resource names and numbers
 #define FN_CTRL         "ctrl"
-#define FN_QTR0         "qtr0"
-#define FN_QTR1         "qtr1"
-#define FN_PERIOD       "period"
+#define FN_ENC0         "enc0"
+// XXX #define FN_ENC1         "enc1"
 
 #define RSC_CTRL        0
-#define RSC_QTR0        1
-#define RSC_QTR1        2
-#define RSC_PERIOD      3
+#define RSC_ENC0        1
+// XXX #define RSC_ENC1        2
 
         // What we are is a ...
-#define PLUGIN_NAME        "hba_qtr"
+#define PLUGIN_NAME        "hba_quad"
         // Default value is zero, for all resources
 #define HBA_DEFVAL        0
         // Maximum size of input/output string
@@ -95,17 +89,16 @@
 /**************************************************************
  *  - Data structures
  **************************************************************/
-    // All state info for an instance of a QTR port
+    // All state info for an instance of a QUAD port
 typedef struct
 {
     void    *pslot;     // handle to plug-in's's slot info
     int      ctrl;      // most recent value to display on ctrl
-    int      qtr0;      // most recent qtr0 value
-    int      qtr1;      // most recent qtr1 value
-    int      period;    // the trigger period, resolution 50ms.
-    int      coreid;    // FPGA core ID with this QTR
+    int      enc0;      // most recent enc0 value
+    // XXX int      enc1;      // most recent enc1 value
+    int      coreid;    // FPGA core ID with this QUAD
     int      (*sendrecv_pkt)();  // routine to send data to the FPGA
-} HBA_QTR;
+} HBA_QUAD;
 
 
 /**************************************************************
@@ -122,22 +115,21 @@ extern SLOT Slots[];
 int Initialize(
     SLOT *pslot)       // points to the SLOT for this plug-in
 {
-    HBA_QTR *pctx;  // our local context
+    HBA_QUAD *pctx;  // our local context
     const char *errmsg; // error message from dlsym
 
     // Allocate memory for this plug-in
-    pctx = (HBA_QTR *) malloc(sizeof(HBA_QTR));
-    if (pctx == (HBA_QTR *) 0) {
+    pctx = (HBA_QUAD *) malloc(sizeof(HBA_QUAD));
+    if (pctx == (HBA_QUAD *) 0) {
         // Malloc failure this early?
-        edlog("memory allocation failure in hba_qtr initialization");
+        edlog("memory allocation failure in hba_quad initialization");
         return (-1);
     }
 
-    // Init our HBA_QTR structure
+    // Init our HBA_QUAD structure
     pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
-    pctx->qtr0 = HBA_DEFVAL;    // default qtr0 value.
-    pctx->qtr1 = HBA_DEFVAL;    // default qtr1 value.
-    pctx->period = HBA_DEFVAL;  // default period value.
+    pctx->enc0 = HBA_DEFVAL;    // default enc0 value.
+    // XXX pctx->enc1 = HBA_DEFVAL;    // default enc1 value.
     // The following assumes that plug-ins are loaded in the
     // order they appear in the FPGA.  This is the first thing
     // to check when things go wrong.
@@ -146,7 +138,7 @@ int Initialize(
     // Register name and private data
     pslot->name = PLUGIN_NAME;
     pslot->priv = pctx;
-    pslot->desc = "HomeBrew Automation QTR 2x port";
+    pslot->desc = "HomeBrew Automation QUAD 2x port";
     pslot->help = README;
 
     // Add handlers for the user visible resources
@@ -156,24 +148,21 @@ int Initialize(
     pslot->rsc[RSC_CTRL].bkey = 0;
     pslot->rsc[RSC_CTRL].pgscb = usercmd;
     pslot->rsc[RSC_CTRL].uilock = -1;
-    pslot->rsc[RSC_QTR0].name = FN_QTR0;
-    pslot->rsc[RSC_QTR0].flags = IS_READABLE | CAN_BROADCAST;
-    pslot->rsc[RSC_QTR0].bkey = 0;
-    pslot->rsc[RSC_QTR0].pgscb = usercmd;
-    pslot->rsc[RSC_QTR0].uilock = -1;
-    pslot->rsc[RSC_QTR0].slot = pslot;
-    pslot->rsc[RSC_QTR1].name = FN_QTR1;
-    pslot->rsc[RSC_QTR1].flags = IS_READABLE | CAN_BROADCAST;
-    pslot->rsc[RSC_QTR1].bkey = 0;
-    pslot->rsc[RSC_QTR1].pgscb = usercmd;
-    pslot->rsc[RSC_QTR1].uilock = -1;
-    pslot->rsc[RSC_QTR1].slot = pslot;
-    pslot->rsc[RSC_PERIOD].slot = pslot;
-    pslot->rsc[RSC_PERIOD].name = FN_PERIOD;
-    pslot->rsc[RSC_PERIOD].flags = IS_READABLE | IS_WRITABLE;
-    pslot->rsc[RSC_PERIOD].bkey = 0;
-    pslot->rsc[RSC_PERIOD].pgscb = usercmd;
-    pslot->rsc[RSC_PERIOD].uilock = -1;
+    pslot->rsc[RSC_ENC0].name = FN_ENC0;
+    pslot->rsc[RSC_ENC0].flags = IS_READABLE | CAN_BROADCAST;
+    pslot->rsc[RSC_ENC0].bkey = 0;
+    pslot->rsc[RSC_ENC0].pgscb = usercmd;
+    pslot->rsc[RSC_ENC0].uilock = -1;
+    pslot->rsc[RSC_ENC0].slot = pslot;
+
+    /*
+    pslot->rsc[RSC_ENC1].name = FN_ENC1;
+    pslot->rsc[RSC_ENC1].flags = IS_READABLE | CAN_BROADCAST;
+    pslot->rsc[RSC_ENC1].bkey = 0;
+    pslot->rsc[RSC_ENC1].pgscb = usercmd;
+    pslot->rsc[RSC_ENC1].uilock = -1;
+    pslot->rsc[RSC_ENC1].slot = pslot;
+    */
 
     // The serial_fpga plug-in has a routine to send packets to the FPGA
     // and to return with packet data from the FPGA.  We need to look up
@@ -204,14 +193,14 @@ void usercmd(
     int      *plen,     // size of buf on input, #char in buf on output
     char     *buf)
 {
-    HBA_QTR *pctx;      // hba_qtr private info
+    HBA_QUAD *pctx;      // hba_quad private info
     int       nval=0;   // new value for a register
     int       nsd;      // number of bytes sent to FPGA
     int       ret;      // generic call return value
     uint8_t   pkt[HBA_MXPKT];
 
     // Get this instance of the plug-in
-    pctx = (HBA_QTR *) pslot->priv;
+    pctx = (HBA_QUAD *) pslot->priv;
 
     if ((cmd == EDSET) && (rscid == RSC_CTRL)) {
         ret = sscanf(val, "%x", &nval);
@@ -226,92 +215,71 @@ void usercmd(
         // record the new data value 
         pctx->ctrl = nval;
 
-        // Send new value to FPGA QTR ctrl register
+        // Send new value to FPGA QUAD ctrl register
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QTR_REG_CTRL;
+        pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;                     // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from QTR port
-            edlog("Error writing QTR ctrl to FPGA");
+            // error writing value from QUAD port
+            edlog("Error writing QUAD ctrl to FPGA");
         }
     } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
         *plen = ret;  // (errors are handled in calling routine)
-    } else if ((cmd == EDGET) && (rscid == RSC_QTR0)) {
-        // Read value in FPGA QTR0 value register
-        pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QTR_REG_QTR0;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(5, pkt);
-        // We sent header + one byte so the sendrecv return value should be 3
-        if (nsd != 3) {
-            // error reading qtr0 from QTR port
-            edlog("Error reading QTR qtr0 from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            *plen = ret;
-        }
-        else {
-            // Got value.  Print and send to user
-            pctx->qtr0 = pkt[2];   // first two bytes are echo of header
-            // XXX ret = snprintf(buf, *plen, "%f\n", ((float)pctx->qtr0)*0.55);
-            ret = snprintf(buf, *plen, "%02x\n", pctx->qtr0);
-            *plen = ret;  // (errors are handled in calling routine)
-        }
-    } else if ((cmd == EDGET) && (rscid == RSC_QTR1)) {
-        // Read value in FPGA QTR1 value register
-        pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QTR_REG_QTR1;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(5, pkt);
-        // We sent header + one byte so the sendrecv return value should be 3
-        if (nsd != 3) {
-            // error reading qtr1 from QTR port
-            edlog("Error reading QTR qtr1 from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            *plen = ret;
-        }
-        else {
-            // Got value.  Print and send to user
-            pctx->qtr1 = pkt[2];   // first two bytes are echo of header
-            ret = snprintf(buf, *plen, "%02x\n", pctx->qtr1);
-            *plen = ret;  // (errors are handled in calling routine)
-        }
-    } else if ((cmd == EDSET) && (rscid == RSC_PERIOD)) {
-        ret = sscanf(val, "%x", &nval);
-        if (ret != 1) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        if ((nval < 0) || (nval > 0xff)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        // record the new data value 
-        pctx->period = nval;
-
-        // Send new value to FPGA QTR period register
+    } else if ((cmd == EDGET) && (rscid == RSC_ENC0)) {
+        // Disable left encoder updates
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QTR_REG_PERIOD;
-        pkt[2] = pctx->period;                     // new value
-        pkt[3] = 0;                             // dummy for the ack
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl & 0xfe;     // bit0 (en left enc) set to 0.
+        pkt[3] = 0;                     // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from QTR port
-            edlog("Error writing QTR period to FPGA");
+            // error writing value from QUAD port
+            edlog("Error writing QUAD ctrl to FPGA");
         }
-    } else if ((cmd == EDGET) && (rscid == RSC_PERIOD)) {
-        ret = snprintf(buf, *plen, "%x\n", pctx->period);
-        *plen = ret;  // (errors are handled in calling routine)
+
+        // Read value in FPGA ENC0 value register
+        pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_ENC0_LSB;
+        pkt[2] = 0;                     // dummy byte
+        pkt[3] = 0;                     // dummy byte
+        pkt[4] = 0;                     // dummy byte
+        pkt[5] = 0;                     // dummy byte
+        nsd = pctx->sendrecv_pkt(6, pkt);
+        // We sent header + two bytes so the sendrecv return value should be 4
+        if (nsd != 4) {
+            // error reading enc0 from QUAD port
+            edlog("Error reading QUAD enc0 from FPGA");
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+        else {
+            // Got the values.  Print and send to user
+            // First two bytes are echoed header.
+            pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            ret = snprintf(buf, *plen, "%02x\n", pctx->enc0);
+            *plen = ret;  // (errors are handled in calling routine)
+        }
+
+        // Put the control back the way it was.
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl;
+        pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            edlog("Error writing QUAD ctrl to FPGA");
+        }
+
     }
 
     // Nothing to do here if edcat.  That is handled in the UI code
@@ -320,4 +288,4 @@ void usercmd(
 }
 
 
-// end of hba_qtr.c
+// end of hba_enc.c

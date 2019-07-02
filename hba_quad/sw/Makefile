@@ -1,7 +1,7 @@
 #
 #  Name: Makefile
 #
-#  Description: This is the Makefile for the hba_qtr plugin
+#  Description: This is the Makefile for the hba_quad plugin
 #
 #  Copyright:   Copyright (C) 2019 by Demand Peripherals, Inc.
 #               All rights reserved.
@@ -17,7 +17,7 @@
 #
 #
 
-plugin_name = hba_qtr
+plugin_name = hba_quad
 
 INC = $(EE_DIR)/plug-ins/include
 LIB = $(EE_DIR)/build/lib
