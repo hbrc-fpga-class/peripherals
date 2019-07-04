@@ -101,7 +101,9 @@ module hba_system #
 
     // SLOT(5) : hba_quad pins
     input wire [1:0] quad_enc_a,
-    input wire [1:0] quad_enc_b
+    input wire [1:0] quad_enc_b,
+    // debug
+    output wire quad_left_dir
 );
 
 
@@ -346,7 +348,10 @@ hba_quad #
 
     // hba_quad pins
     .quad_enc_a(quad_enc_a[1:0]),
-    .quad_enc_b(quad_enc_b[1:0])
+    .quad_enc_b(quad_enc_b[1:0]),
+    // debug
+    .quad_left_dir(quad_left_dir)
+    
 );
 
 hba_or_slaves #

@@ -75,7 +75,9 @@ module hba_quad #
 
     // hba_quad pins
     input wire [1:0] quad_enc_a,
-    input wire [1:0] quad_enc_b
+    input wire [1:0] quad_enc_b,
+    // debug
+    output wire quad_left_dir
 );
 
 /*
@@ -117,6 +119,9 @@ wire left_dir;
 
 // Right Encoder
 assign quad_valid[RIGHT] = 0;
+
+// debug
+assign quad_left_dir = left_dir;
 
 
 /*
@@ -184,7 +189,7 @@ pulse_counter left_counter_inst
     .pulse_in(left_pulse),
     .dir_in(left_dir),
 
-    .count({reg_quad0_hi_in, reg_quad0_low_in}),   // [15:0]
+    .count({reg_quad0_hi_in[7:0], reg_quad0_low_in[7:0]}),   // [15:0]
     .valid(quad_valid[LEFT])
 );
 
