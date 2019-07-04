@@ -366,7 +366,7 @@ hba_or_slaves #
     .hba_dbus_slave2(hba_dbus_slave2),
     .hba_dbus_slave3(hba_dbus_slave3),
     .hba_dbus_slave4(hba_dbus_slave4),
-    .hba_dbus_slave5(0),
+    .hba_dbus_slave5(hba_dbus_slave5),
     .hba_dbus_slave6(0),
     .hba_dbus_slave7(0),
 

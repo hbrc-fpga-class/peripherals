@@ -180,11 +180,14 @@ quadrature left_quad_inst
     .enc_dir(left_dir)
 );
 
-pulse_counter left_counter_inst
+pulse_counter #
+(
+    .FWD(1)
+) left_counter_inst
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(),
+    .en(reg_ctrl[LEFT]),
 
     .pulse_in(left_pulse),
     .dir_in(left_dir),

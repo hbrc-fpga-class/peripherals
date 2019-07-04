@@ -38,7 +38,10 @@
 // Force error when implicit net has no type.
 `default_nettype none
 
-module pulse_counter
+module pulse_counter #
+(
+    parameter integer FWD = 1
+)
 (
     input wire clk,
     input wire reset,
@@ -69,8 +72,6 @@ assign posedge_pulse_in = (pulse_in==1) && (pulse_in_reg==0);
 * Signals
 ********************************************
 */
-
-localparam FWD      = 0;
 
 always @ (posedge clk)
 begin

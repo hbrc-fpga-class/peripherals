@@ -232,7 +232,6 @@ void usercmd(
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDGET) && (rscid == RSC_ENC0)) {
 
-        /*
         // Disable left encoder updates
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_CTRL;
@@ -245,21 +244,17 @@ void usercmd(
             // error writing value from QUAD port
             edlog("Error writing QUAD ctrl to FPGA");
         }
-        */
 
         // Read value in FPGA ENC0 value register
-        // XXX pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
-        pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_ENC0_LSB;
         pkt[2] = 0;                     // dummy byte
         pkt[3] = 0;                     // dummy byte
         pkt[4] = 0;                     // dummy byte
-        // XXX pkt[5] = 0;                     // dummy byte
-        // XXX nsd = pctx->sendrecv_pkt(6, pkt);
-        nsd = pctx->sendrecv_pkt(5, pkt);
+        pkt[5] = 0;                     // dummy byte
+        nsd = pctx->sendrecv_pkt(6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
-        // XXX if (nsd != 4) {
-        if (nsd != 3) {
+        if (nsd != 4) {
             // error reading enc0 from QUAD port
             edlog("Error reading QUAD enc0 from FPGA");
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
@@ -268,8 +263,7 @@ void usercmd(
         else {
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
-            // XXX pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
-            pctx->enc0 = pkt[2];   // Reconstruct 16-bit value.
+            pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
             ret = snprintf(buf, *plen, "%04x\n", pctx->enc0);
             *plen = ret;  // (errors are handled in calling routine)
         }

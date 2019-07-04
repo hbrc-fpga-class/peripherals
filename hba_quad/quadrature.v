@@ -122,16 +122,16 @@ begin
         if (sample != sample_reg) begin
             case (sample)
                 0 : begin
-                    enc_dir <= sample[EA];
+                    enc_dir <= sample_reg[EA];
                 end
                 1 : begin
-                    enc_dir <= sample[EA];
+                    enc_dir <= sample_reg[EA];
                 end
                 2 : begin
-                    enc_dir <= ~sample[EA];
+                    enc_dir <= ~sample_reg[EA];
                 end
                 3 : begin
-                    enc_dir <= ~sample[EA];
+                    enc_dir <= ~sample_reg[EA];
                 end
             endcase
         end
