@@ -58,7 +58,7 @@ Password is "ubuntu"
 
 [Raspberry Pi 3 B+ pinout reference](https://pi4j.com/1.2/pins/model-3b-plus-rev1.html)
 
-[TinyFPGA-BS pinout](https://www.crowdsupply.com/img/a1f0/card-front_png_project-body.jpg)
+[TinyFPGA-BX pinout](https://www.crowdsupply.com/img/a1f0/card-front_png_project-body.jpg)
 
 **NOTE** These connections are for the current version of main_project/romi-board
 that is checked in to the master branch of peripherals.  This will change
