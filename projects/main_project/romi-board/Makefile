@@ -11,7 +11,7 @@ all: $(PROJ).rpt $(PROJ).bin
 	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
 %.asc: $(PIN_DEF) %.blif
-	arachne-pnr -s 7 -d 8k -P cm81 -o $@ -p $^
+	arachne-pnr -s 8 -d 8k -P cm81 -o $@ -p $^
 
 %.bin: %.asc
 	icepack $< $@
