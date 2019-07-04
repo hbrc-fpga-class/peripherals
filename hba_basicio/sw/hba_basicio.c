@@ -101,6 +101,7 @@ typedef struct
  **************************************************************/
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 extern SLOT Slots[];
+static void core_interrupt();
 
 
 /**************************************************************
@@ -108,10 +109,11 @@ extern SLOT Slots[];
  * the read/write callbacks.
  **************************************************************/
 int Initialize(
-    SLOT *pslot)       // points to the SLOT for this plug-in
+    SLOT *pslot)         // points to the SLOT for this plug-in
 {
-    HBA_BASICIO *pctx;  // our local context
-    const char *errmsg; // error message from dlsym
+    HBA_BASICIO *pctx;   // our local context
+    const char  *errmsg; // error message from dlsym
+    void        *reg_intr;  // use this to register and interrupt handler
 
     // Allocate memory for this plug-in
     pctx = (HBA_BASICIO *) malloc(sizeof(HBA_BASICIO));
@@ -122,6 +124,7 @@ int Initialize(
     }
 
     // Init our HBA_BASICIO structure
+    pctx->pslot = pslot;       // this instance of the hello demo
     pctx->leds = HBA_DEFLEDS;   // most recent from to/from port
     pctx->buttons = 0xff;    // default no buttons pussed
     pctx->intr = HBA_DEFINTR;  // default interrupt enable
@@ -168,6 +171,23 @@ int Initialize(
     if (errmsg != NULL) {
         return(-1);
     }
+
+    // The serial_fpga plug-in has a routine that responds to interrupts.
+    // The routine polls the FPGA for its two interrupt pending registers.
+    // If an interrupt bit is set the serial_fpga looks up the address of
+    // core's interrupt handler and invokes it.
+    // The code below registers this core's interrupt handler with
+    // serial_fpga.
+    dlerror();                  /* Clear any existing error */
+    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    if (errmsg != NULL) {
+        return(-1);
+    }
+    // pass in the slot ID (core ID) of this plug-in
+    if (reg_intr != (void *) 0) {
+        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+    }
+
 
     return (0);
 }
@@ -254,32 +274,6 @@ void usercmd(
             edlog("Error writing BASICIO leds to FPGA");
         }
     }
-    // Does not make sense to set the button value
-    /*
-    else if ((cmd == EDSET) && (rscid == RSC_BUTTONS)) {
-        ret = sscanf(val, "%x", &nbuttons);
-        if ((ret != 1) || (nbuttons < 0) || (nbuttons > 0x0f)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            *plen = ret;
-            return;
-        }
-        // record the new data direction 
-        pctx->buttons = nbuttons;
-
-        // Send new direction to FPGA BASICIO direction register
-        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_BASICIO_REG_BUTTONS;
-        pkt[2] = pctx->buttons;                     // new direction
-        pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
-        // We did a write so the sendrecv return value should be 1
-        // and the returned byte should be an ACK
-        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from BASICIO port
-            edlog("Error writing BASICIO direction to FPGA");
-        }
-    }
-    */
     else if ((cmd == EDSET) && (rscid == RSC_INTR)) {
         ret = sscanf(val, "%x", &nintr);
         if ((ret != 1) || (nintr < 0) || (nintr > 0x0f)) {
@@ -306,6 +300,50 @@ void usercmd(
     // Nothing to do here if edcat.  That is handled in the UI code
 
     return;
+}
+
+
+/**************************************************************
+ * core_interrupt():  - interrupt handler for this peripheral
+ **************************************************************/
+void core_interrupt(void *trans)
+{
+    HBA_BASICIO *pctx;       // this hba_gpio private info
+    SLOT        *pslot;      // This instance of the serial plug-in
+    RSC         *prsc;       // pointer to this slot's counts resource
+    int          nsd;        // number of bytes sent to FPGA
+    uint8_t      pkt[HBA_MXPKT];  
+    char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
+    int          slen;       // length of text to output
+
+    // get pointers to this instance of the plug-in and its slot
+    pctx = (HBA_BASICIO *) trans; // transparent data is our context
+
+    // Read value in basicio button register
+    // Read one byte offset by -1 (1 -1)
+    pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
+    pkt[1] = HBA_BASICIO_REG_BUTTONS;
+    pkt[2] = 0;                     // dummy byte
+    pkt[3] = 0;                     // dummy byte
+    pkt[4] = 0;                     // dummy byte
+
+    nsd = pctx->sendrecv_pkt(5, pkt);
+    // We sent header + one byte so the sendrecv return value should be 3
+    if (nsd != 3) {
+        // error reading value from GPIO port
+        edlog("Error reading button value from basicio");
+        return;
+    }
+    pctx->buttons = pkt[2];   // first two bytes are echo of header
+
+    // Broadcast button value is any UI is monitoring it
+    pslot = pctx->pslot;
+    prsc = &(pslot->rsc[RSC_BUTTONS]);
+    if (prsc->bkey != 0) {
+        slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->buttons);
+        bcst_ui(msg, slen, &(prsc->bkey));
+        prompt(prsc->uilock);
+    }
 }
 
 
