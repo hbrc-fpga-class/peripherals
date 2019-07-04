@@ -87,7 +87,7 @@ module top
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 60_000_000;
+parameter integer CLK_FREQUENCY = 50_000_000;
 parameter integer BAUD = 32'd115_200;
 
 parameter integer DBUS_WIDTH = 8;
@@ -166,7 +166,7 @@ assign quad_enc_b[1] = PIN_12;
 */
 
 // Use PLL to get 50mhz clock
-pll_60mhz pll_60mhz_inst (
+pll_50mhz pll_50mhz_inst (
     .clock_in(CLK_16MHZ),
     .clock_out(clk),
     .locked(locked)

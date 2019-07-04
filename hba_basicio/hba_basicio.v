@@ -151,6 +151,8 @@ hba_reg_bank #
 
 // Register the button inputs
 reg [DBUS_WIDTH-1:0] reg_button_in2;
+reg [DBUS_WIDTH-1:0] reg_old_led0;
+reg [DBUS_WIDTH-1:0] reg_old_led1;
 always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
@@ -174,6 +176,15 @@ begin
                 slave_interrupt <= 1;
             end
         end
+
+        // Check for an led change
+        if (reg_old_led0 != reg_old_led1) begin
+            if (reg_intr_en) begin
+                slave_interrupt <= 1;
+            end
+        end
+        reg_old_led1 <= reg_old_led0;
+        reg_old_led0 <= reg_led;
     end
 end
 
