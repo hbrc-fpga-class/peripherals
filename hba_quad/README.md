@@ -38,7 +38,6 @@ There are three 8-bit registers.
 
 ## TODO
 
-* Add the right encoder. Only the left is support as of now.
 * Add ability to toggle the forward direction via ctrl register.
 * Add ability to reset encoder counts via ctrl register.
 
