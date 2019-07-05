@@ -40,7 +40,7 @@ module hba_reg_bank #
     parameter integer REG0 = REG_OFFSET,
     parameter integer REG1 = REG_OFFSET+1,
     parameter integer REG2 = REG_OFFSET+2,
-    parameter integer REG3 = REG_OFFSET+3,
+    parameter integer REG3 = REG_OFFSET+3
 
 )
 (

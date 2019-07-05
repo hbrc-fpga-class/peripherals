@@ -75,9 +75,7 @@ module hba_quad #
 
     // hba_quad pins
     input wire [1:0] quad_enc_a,
-    input wire [1:0] quad_enc_b,
-    // debug
-    output wire quad_left_dir
+    input wire [1:0] quad_enc_b
 );
 
 /*
@@ -131,10 +129,6 @@ wire hba_xferack_slave1;
 // Combine the two address banks.
 assign hba_dbus_slave = hba_dbus_slave0 | hba_dbus_slave1;
 assign hba_xferack_slave = hba_xferack_slave0 | hba_xferack_slave1;
-
-// debug
-assign quad_left_dir = right_dir;
-
 
 /*
 *****************************
