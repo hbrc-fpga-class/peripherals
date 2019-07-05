@@ -121,8 +121,7 @@ assign basicio_button[1] = PIN_2;
 assign basicio_button[7:2] = 0;
 assign LED = basicio_led;
 
-// XXX assign BLED = basicio_led[0]; // copy of lsb led
-assign BLED = quad_left_dir; // for debug of quad
+assign BLED = basicio_led[0]; // copy of lsb led
 
 
 // hba_sonar pins
@@ -156,7 +155,6 @@ assign PIN_8 = motor_float_n[1];
 // hba_quad pins
 wire [1:0] quad_enc_a;
 wire [1:0] quad_enc_b;
-wire quad_left_dir;
 assign quad_enc_a[0] = PIN_3;
 assign quad_enc_b[0] = PIN_4;
 assign quad_enc_a[1] = PIN_11;
@@ -214,9 +212,7 @@ hba_system #
 
     // SLOT(5) : hba_quad pins
     .quad_enc_a(quad_enc_a),
-    .quad_enc_b(quad_enc_b),
-    // debug
-    .quad_left_dir(quad_left_dir)
+    .quad_enc_b(quad_enc_b)
 );
 
 // SLOT2: QTRL_CTRL

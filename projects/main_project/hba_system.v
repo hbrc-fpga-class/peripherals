@@ -6,18 +6,6 @@
 * for the HBRC FPGA class.  The following
 * peripherals are instantiated:
 *
-* Eventually:
-* Slot |    Peripheral
-* ------------------------
-*   0  |    serial_fpga
-*   1  |    hba_basicio
-*   2  |    hba_gpio
-*   3  |    hba_quad
-*   4  |    hba_motor
-*   5  |    hba_sonar
-*
-*
-* But for now:
 * Slot |    Peripheral
 * ------------------------
 *   0  |    serial_fpga
@@ -25,6 +13,7 @@
 *   2  |    hba_qtr
 *   3  |    hba_motor
 *   4  |    hba_sonar
+*   5  |    hba_quad
 *
 *
 * Author: Brandon Blodget
@@ -101,9 +90,7 @@ module hba_system #
 
     // SLOT(5) : hba_quad pins
     input wire [1:0] quad_enc_a,
-    input wire [1:0] quad_enc_b,
-    // debug
-    output wire quad_left_dir
+    input wire [1:0] quad_enc_b
 );
 
 
@@ -348,10 +335,7 @@ hba_quad #
 
     // hba_quad pins
     .quad_enc_a(quad_enc_a[1:0]),
-    .quad_enc_b(quad_enc_b[1:0]),
-    // debug
-    .quad_left_dir(quad_left_dir)
-    
+    .quad_enc_b(quad_enc_b[1:0])
 );
 
 hba_or_slaves #
