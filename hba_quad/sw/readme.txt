@@ -35,6 +35,8 @@ updates, reading LSB and MSB, and assembling the value.
 Then restores the ctrl value back to saved value.
 This resource works with hbaget and hbacat.
 
+enc : Reads both encoder values. Formats as 'enc0 enc1'.
+
 EXAMPLES
 Enable updates and interrupts
 Read the the 16-bit left encoder value

@@ -7,6 +7,7 @@
  *    ctrl      -  Enables/Disables updating encoder counts and interrupt.
  *    enc0      -  Reads 16-bit left encoder value
  *    enc1      -  Reads 16-bit right encoder value
+ *    enc       -  Reads left and right encoder values
  */
 
 /*
@@ -75,10 +76,12 @@
 #define FN_CTRL         "ctrl"
 #define FN_ENC0         "enc0"
 #define FN_ENC1         "enc1"
+#define FN_ENC          "enc"
 
 #define RSC_CTRL        0
 #define RSC_ENC0        1
 #define RSC_ENC1        2
+#define RSC_ENC         3
 
         // What we are is a ...
 #define PLUGIN_NAME        "hba_quad"
@@ -162,6 +165,12 @@ int Initialize(
     pslot->rsc[RSC_ENC1].pgscb = usercmd;
     pslot->rsc[RSC_ENC1].uilock = -1;
     pslot->rsc[RSC_ENC1].slot = pslot;
+    pslot->rsc[RSC_ENC].name = FN_ENC;
+    pslot->rsc[RSC_ENC].flags = IS_READABLE | CAN_BROADCAST;
+    pslot->rsc[RSC_ENC].bkey = 0;
+    pslot->rsc[RSC_ENC].pgscb = usercmd;
+    pslot->rsc[RSC_ENC].uilock = -1;
+    pslot->rsc[RSC_ENC].slot = pslot;
 
     // The serial_fpga plug-in has a routine to send packets to the FPGA
     // and to return with packet data from the FPGA.  We need to look up
@@ -314,6 +323,59 @@ void usercmd(
             // First two bytes are echoed header.
             pctx->enc1 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
             ret = snprintf(buf, *plen, "%04x\n", pctx->enc1);
+            *plen = ret;  // (errors are handled in calling routine)
+        }
+
+        // Put the control back the way it was.
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl;
+        pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            edlog("Error writing QUAD ctrl to FPGA");
+        }
+    } else if ((cmd == EDGET) && (rscid == RSC_ENC)) {
+
+        // Disable both encoder updates
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl & 0xfc;     // Both encoders updates disabled
+        pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            edlog("Error writing QUAD ctrl to FPGA");
+        }
+
+        // Read both enc0 and enc1 values.  4 registers in all
+        pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_ENC0_LSB;
+        pkt[2] = 0;                     // dummy byte
+        pkt[3] = 0;                     // dummy byte
+        pkt[4] = 0;                     // dummy byte
+        pkt[5] = 0;                     // dummy byte
+        pkt[6] = 0;                     // dummy byte
+        pkt[7] = 0;                     // dummy byte
+        nsd = pctx->sendrecv_pkt(8, pkt);
+        // We sent 2 byte header + four bytes so the sendrecv return value should be 6
+        if (nsd != 6) {
+            // error reading enc1 from QUAD port
+            edlog("Error reading QUAD enc1 from FPGA");
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+        else {
+            // Got the values.  Print and send to user
+            // First two bytes are echoed header.
+            pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct enc0 16-bit value.
+            pctx->enc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct enc1 16-bit value.
+            ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
             *plen = ret;  // (errors are handled in calling routine)
         }
 
