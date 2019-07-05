@@ -6,7 +6,7 @@
 * It contains the board specific interfaces and
 * instantiates the hba_system.
 *
-* Target Board: romi-board
+* Target Board: romi-proto
 *
 * Author: Brandon Blodget
 * Create Date: 06/20/2019
@@ -40,49 +40,42 @@
 // Force error when implicit net has no type.
 `default_nettype none
 
+// NOTE : The convention is for index 0 to be on the left side,
+// and index 1 to be on the right side.  So for example
+// motor_pwm[0] is for the left motor and
+// motor_pwm[1] is for the right side.
+
 module top
 (
-    input wire  CLK_16MHZ,
+    input wire  clk_16mhz,
 
-    output wire BLED,       // Tiny-BX board led
+    output wire user_led,       // Tiny-BX board led
 
     // serial_fpga pins (SLOT 0)
-    input wire  PIN_23,  // rxd
-    output wire PIN_22,  // txd
-    output wire PIN_24,  // intr
+    input wire  fpga_rxd,
+    output wire fpga_txd,
+    output wire hba_intr,
 
     // hba_basicio pins (SLOT 1)
-    input wire PIN_1,       // basicio_button[0]
-    input wire PIN_2,       // basicio_button[1]
-    output wire [7:0] LED,  // basicio_led
+    input wire [1:0] basicio_button,
+    output wire [7:0] basicio_led,
 
     // hba_qtr pins (SLOT 2)
-    inout wire PIN_14,   // QTRR_CTRL
-    inout wire PIN_15,   // QTRL_CTRL
-    inout wire PIN_16,   // QTRR_OUT
-    inout wire PIN_17,   // QTRL_OUT
+    output wire [1:0] qtr_ctrl,
+    inout wire [1:0] qtr_out,
 
     // hba_motor pins (SLOT 3)
-    // Left motor pins
-    output wire PIN_7,  // motor_pwm[0]
-    output wire PIN_6,  // motor_dir[0]
-    output wire PIN_5,  // motor_float_n[0]
-    // Right motor pins
-    output wire PIN_10,  // motor_pwm[1]
-    output wire PIN_9,   // motor_dir[1]
-    output wire PIN_8,   // motor_float_n[1]
+    output wire [1:0] motor_pwm,
+    output wire [1:0] motor_dir,
+    output wire [1:0] motor_float_n,
 
     // hba_sonar pins (SLOT 4)
-    output wire PIN_21,   // sonar_trig[0], L_TRIG
-    input  wire PIN_20,  // sonar_echo[0], L_ECHO
-    output wire PIN_19,  // sonar_trig[1], R_TRIG
-    input  wire PIN_18,   // sonar_echo[1], R_ECHO
+    output wire [1:0] sonar_trig,
+    input wire [1:0] sonar_echo,
 
     // hba_quad pins (SLOT 5)
-    input  wire PIN_3,  // quad_enc_a[0], Left
-    input  wire PIN_4,  // quad_enc_b[0], Left
-    input  wire PIN_11, // quad_enc_a[1], Right
-    input  wire PIN_12  // quad_enc_b[1], Right
+    input wire [1:0] quad_enc_a,
+    input wire [1:0] quad_enc_b
 
 );
 
@@ -100,65 +93,19 @@ parameter integer REG_ADDR_WIDTH = 8;
 ********************************************
 */
 
-wire clk;
+wire sys_clk;
 wire locked;
-wire rxd;
-wire txd;
-wire intr;
-
-// hba_basicio pins
-wire [7:0] basicio_led;
-wire [7:0] basicio_button;
 
 reg reset = 0;
 reg [7:0] count = 0;
 
-assign rxd = PIN_23;
-assign PIN_22 = txd;
-assign PIN_24 = intr;
-assign basicio_button[0] = PIN_1;
-assign basicio_button[1] = PIN_2;
-assign basicio_button[7:2] = 0;
-assign LED = basicio_led;
+assign user_led = basicio_led[0]; // copy of lsb led
 
-assign BLED = basicio_led[0]; // copy of lsb led
-
-
-// hba_sonar pins
-wire [1:0] sonar_trig;
-wire [1:0] sonar_echo;
-
-assign PIN_21 = sonar_trig[0];
-assign sonar_echo[0] = PIN_20;
-assign PIN_19 = sonar_trig[1];
-assign sonar_echo[1] = PIN_18;
 
 // hba_qtr wires
-wire [1:0] slot2_qtr_out_en;
-wire [1:0] slot2_qtr_out_sig;
-wire [1:0] slot2_qtr_in_sig;
-wire [1:0] slot2_qtr_ctrl;
-assign PIN_15 = slot2_qtr_ctrl[0];  // qtr_left
-assign PIN_14 = slot2_qtr_ctrl[1];  // qtr_right
-
-// hba_motor pins
-wire [1:0] motor_pwm;
-wire [1:0] motor_dir;
-wire [1:0] motor_float_n;
-assign PIN_7 = motor_pwm[0];
-assign PIN_6 = motor_dir[0];
-assign PIN_5 = motor_float_n[0];
-assign PIN_10 = motor_pwm[1];
-assign PIN_9 = motor_dir[1];
-assign PIN_8 = motor_float_n[1];
-
-// hba_quad pins
-wire [1:0] quad_enc_a;
-wire [1:0] quad_enc_b;
-assign quad_enc_a[0] = PIN_3;
-assign quad_enc_b[0] = PIN_4;
-assign quad_enc_a[1] = PIN_11;
-assign quad_enc_b[1] = PIN_12;
+wire [1:0] qtr_out_en;
+wire [1:0] qtr_out_sig;
+wire [1:0] qtr_in_sig;
 
 /*
 ****************************
@@ -168,8 +115,8 @@ assign quad_enc_b[1] = PIN_12;
 
 // Use PLL to get 50mhz clock
 pll_50mhz pll_50mhz_inst (
-    .clock_in(CLK_16MHZ),
-    .clock_out(clk),
+    .clock_in(clk_16mhz),
+    .clock_out(sys_clk),
     .locked(locked)
 );
 
@@ -183,23 +130,23 @@ hba_system #
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH)
 ) hba_system_inst
 (
-    .clk(clk),
+    .clk(sys_clk),
     .reset(reset),
 
     // SLOT(0) : serial_fpga pins
-    .rxd(rxd),
-    .txd(txd),
-    .intr(intr),
+    .rxd(fpga_rxd),
+    .txd(fpga_txd),
+    .intr(hba_intr),
 
     // SLOT(1) : hba_basicio pins
     .basicio_led(basicio_led),
     .basicio_button(basicio_button),
 
     // SLOT(2) : hba_qtr pins
-    .qtr_out_en(slot2_qtr_out_en),
-    .qtr_out_sig(slot2_qtr_out_sig),
-    .qtr_in_sig(slot2_qtr_in_sig),
-    .qtr_ctrl(slot2_qtr_ctrl),
+    .qtr_out_en(qtr_out_en),
+    .qtr_out_sig(qtr_out_sig),
+    .qtr_in_sig(qtr_in_sig),
+    .qtr_ctrl(qtr_ctrl),
 
     // SLOT(3) : hba_motor pins
     .motor_pwm(motor_pwm[1:0]),
@@ -215,26 +162,26 @@ hba_system #
     .quad_enc_b(quad_enc_b)
 );
 
-// SLOT2: QTRL_CTRL
+// SLOT2: QTRL_OUT
 SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
-) slot2_qtr_port0_inst  (
-    .PACKAGE_PIN(PIN_17),
-    .OUTPUT_ENABLE(slot2_qtr_out_en[0]),
-    .D_OUT_0(slot2_qtr_out_sig[0]),
-    .D_IN_0(slot2_qtr_in_sig[0])
+) qtr_port0_inst  (
+    .PACKAGE_PIN(qtr_out[0]),
+    .OUTPUT_ENABLE(qtr_out_en[0]),
+    .D_OUT_0(qtr_out_sig[0]),
+    .D_IN_0(qtr_in_sig[0])
 );
 
-// SLOT2: QTRR_CTRL
+// SLOT2: QTRR_OUT
 SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
-) slot2_qtr_port1_inst  (
-    .PACKAGE_PIN(PIN_16),
-    .OUTPUT_ENABLE(slot2_qtr_out_en[1]),
-    .D_OUT_0(slot2_qtr_out_sig[1]),
-    .D_IN_0(slot2_qtr_in_sig[1])
+) qtr_port1_inst  (
+    .PACKAGE_PIN(qtr_out[1]),
+    .OUTPUT_ENABLE(qtr_out_en[1]),
+    .D_OUT_0(qtr_out_sig[1]),
+    .D_IN_0(qtr_in_sig[1])
 );
 
 /*
@@ -246,7 +193,7 @@ SB_IO #(
 // Hold reset on power up then release.
 // ice40 sets all registers to zero on power up.
 // Holding reset will set to default values.
-always @ (posedge clk)
+always @ (posedge sys_clk)
 begin
     if (count < 10) begin
         reset <= 1;

@@ -1,0 +1,88 @@
+###############################################################################
+#
+# TinyFPGA BX constraint file (.pcf)
+#
+###############################################################################
+#
+# Copyright (c) 2018, Luke Valenty
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation are those
+# of the authors and should not be interpreted as representing official policies,
+# either expressed or implied, of the <project name> project. 
+#
+###############################################################################
+
+####
+# TinyFPGA BX information: https://github.com/tinyfpga/TinyFPGA-BX/
+####
+
+# 16MHz clock
+set_io clk_16mhz            B2
+
+# TinyFPGA User led
+set_io user_led             B3
+
+# serial_fpga pins (SLOT 0)
+set_io fpga_rxd             B6  # PIN_23
+set_io fpga_txd             A7  # PIN_22
+set_io hba_intr             A6  # PIN_24
+
+# hba_basicio pins (SLOT 1)
+set_io basicio_button[0]    A2  -pullup yes # PIN_1
+set_io basicio_button[1]    A1  -pullup yes # PIN_2
+set_io basicio_led[0]       H2  # PIN_13
+set_io basicio_led[1]       G1  # PIN_25
+set_io basicio_led[2]       J3  # PIN_26
+set_io basicio_led[3]       J4  # PIN_27
+set_io basicio_led[4]       E8  # PIN_30
+set_io basicio_led[5]       J9  # PIN_29
+set_io basicio_led[6]       G9  # PIN_28
+set_io basicio_led[7]       J2  # PIN_31
+
+# hba_qtr pins (SLOT 2)
+set_io qtr_ctrl[0]          D9  # PIN_15
+set_io qtr_ctrl[1]          H9  # PIN_14
+set_io qtr_out[0]           C9  # PIN_17
+set_io qtr_out[1]           D8  # PIN_16
+
+# hba_motor pins (SLOT 3)
+set_io motor_pwm[0]         D1  # PIN_7
+set_io motor_pwm[1]         G2  # PIN_10
+set_io motor_dir[0]         D2  # PIN_6
+set_io motor_dir[1]         E1  # PIN_9
+set_io motor_float_n[0]     C1  # PIN_5
+set_io motor_float_n[1]     E2  # PIN_8
+
+# hba_sonar pins (SLOT 4)
+set_io sonar_trig[0]        B7  # PIN_21
+set_io sonar_trig[1]        B8  # PIN_19
+set_io sonar_echo[0]        A8  # PIN_20
+set_io sonar_echo[1]        A9  # PIN_18
+
+# hba_quad pins (SLOT 5)
+set_io quad_enc_a[0]        B1  # PIN_3
+set_io quad_enc_a[1]        H1  # PIN_11
+set_io quad_enc_b[0]        C2  # PIN_4
+set_io quad_enc_b[1]        J1  # PIN_12
+
