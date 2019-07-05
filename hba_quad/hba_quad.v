@@ -92,8 +92,11 @@ localparam RIGHT    = 1;
 // Define the bank of registers
 wire [DBUS_WIDTH-1:0] reg_ctrl;  // reg0: Control register
 
-wire [DBUS_WIDTH-1:0] reg_quad0_low_in;  // reg1: Lower 8-bits of quad0
+wire [DBUS_WIDTH-1:0] reg_quad0_low_in; // reg1: Lower 8-bits of quad0
 wire [DBUS_WIDTH-1:0] reg_quad0_hi_in;  // reg2: Upper 8-bit of quad0
+
+wire [DBUS_WIDTH-1:0] reg_quad1_low_in; // reg3: Lower 8-bits of quad1
+wire [DBUS_WIDTH-1:0] reg_quad1_hi_in;  // reg4: Upper 8-bit of quad1
 
 // Enables writing to slave registers.
 wire slv_wr_en;
@@ -116,12 +119,21 @@ assign quad1_en = reg_ctrl[1];
 // Left Encoder
 wire left_pulse;
 wire left_dir;
+wire [DBUS_WIDTH-1:0] hba_dbus_slave0;
+wire hba_xferack_slave0;
 
 // Right Encoder
-assign quad_valid[RIGHT] = 0;
+wire right_pulse;
+wire right_dir;
+wire [DBUS_WIDTH-1:0] hba_dbus_slave1;
+wire hba_xferack_slave1;
+
+// Combine the two address banks.
+assign hba_dbus_slave = hba_dbus_slave0 | hba_dbus_slave1;
+assign hba_xferack_slave = hba_xferack_slave0 | hba_xferack_slave1;
 
 // debug
-assign quad_left_dir = left_dir;
+assign quad_left_dir = right_dir;
 
 
 /*
@@ -136,7 +148,7 @@ hba_reg_bank #
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
     .PERIPH_ADDR(PERIPH_ADDR)
-) hba_reg_bank_inst
+) hba_reg_bank_inst0
 (
     // HBA Bus Slave Interface
     .hba_clk(hba_clk),
@@ -146,8 +158,8 @@ hba_reg_bank #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
-    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
+    .hba_dbus_slave(hba_dbus_slave0),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave0),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
 
@@ -160,9 +172,48 @@ hba_reg_bank #
     // writeable registers
     .slv_reg1_in(reg_quad0_low_in),
     .slv_reg2_in(reg_quad0_hi_in),
+    .slv_reg3_in(reg_quad1_low_in),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b0110),    // 0010, means reg1,reg2 is writeable.
+    .slv_wr_mask(4'b1110),    // reg 1,2,3 writable
+    .slv_autoclr_mask(4'b0000)    // No autoclear
+);
+
+hba_reg_bank #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(PERIPH_ADDR),
+    .REG_OFFSET(4)
+) hba_reg_bank_inst1
+(
+    // HBA Bus Slave Interface
+    .hba_clk(hba_clk),
+    .hba_reset(hba_reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave1),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave1),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+
+    // Access to registgers
+    //.slv_reg0(),
+    //.slv_reg1(),
+    //.slv_reg2(),
+    //.slv_reg3(),
+
+    // writeable registers
+    .slv_reg0_in(reg_quad1_hi_in),
+    //.slv_reg1_in(),
+    //.slv_reg2_in(),
+
+    .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
+    .slv_wr_mask(4'b0001),    // reg0+4 writable
     .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
@@ -187,13 +238,43 @@ pulse_counter #
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(reg_ctrl[LEFT]),
+    .en(quad0_en),
 
     .pulse_in(left_pulse),
     .dir_in(left_dir),
 
     .count({reg_quad0_hi_in[7:0], reg_quad0_low_in[7:0]}),   // [15:0]
     .valid(quad_valid[LEFT])
+);
+
+quadrature right_quad_inst
+(
+    .clk(hba_clk),
+    .reset(hba_reset),
+
+    // hba_quad input pins
+    .quad_enc_a(quad_enc_a[RIGHT]),
+    .quad_enc_b(quad_enc_b[RIGHT]),
+
+    // outputs
+    .enc_out(right_pulse),
+    .enc_dir(right_dir)
+);
+
+pulse_counter #
+(
+    .FWD(1)
+) right_counter_inst
+(
+    .clk(hba_clk),
+    .reset(hba_reset),
+    .en(quad1_en),
+
+    .pulse_in(right_pulse),
+    .dir_in(right_dir),
+
+    .count({reg_quad1_hi_in[7:0], reg_quad1_low_in[7:0]}),   // [15:0]
+    .valid(quad_valid[RIGHT])
 );
 
 endmodule

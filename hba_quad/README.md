@@ -33,6 +33,8 @@ There are three 8-bit registers.
     * reg0[2] : Enable interrupt.
 * __reg1__ : Left encoder count, least significant byte
 * __reg2__ : Left encoder count, most significant byte
+* __reg3__ : Right encoder count, least significant byte
+* __reg4__ : Right encoder count, most significant byte
 
 ## TODO
 
