@@ -37,6 +37,8 @@
  *  - reg0[2] : Enable interrupt.
  * reg1 : Left encoder count, least significant byte
  * reg2 : Left encoder count, most significant byte
+ * reg3 : Right encoder count, least significant byte
+ * reg4 : Right encoder count, most significant byte
  *
  */
 

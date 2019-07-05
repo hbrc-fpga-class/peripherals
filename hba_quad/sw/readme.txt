@@ -42,7 +42,7 @@ Enable updates and interrupts
 Read the the 16-bit left encoder value
 Read the the 16-bit right encoder value
 
- hbaset hba_qtr ctrl 3
- hbaset hba_qtr enc0
- hbaset hba_qtr enc1
+ hbaset hba_quad ctrl 3
+ hbaset hba_quad enc0
+ hbaset hba_quad enc1
 
