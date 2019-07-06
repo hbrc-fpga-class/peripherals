@@ -6,6 +6,12 @@ import time
 # This program has a menu interface for testing all
 # of the romi peripherals.
 
+def s16(value):
+    """
+    Helper function to convert 16-bit to signed
+    """
+    return -(value & 0x8000) | (value & 0x7fff)
+
 class Romi_Test:
     """
     Peripherals tests for the Romi Platform
@@ -44,6 +50,22 @@ class Romi_Test:
     def motor_stop(self):
         self.set_cmd('hbaset hba_motor mode bb\n')
 
+    def sonar_test(self, seconds):
+        # Init hba_sonar
+        # Enable both sonar0 and sonar1, no interrupt
+        self.set_cmd('hbaset hba_sonar ctrl 3\n')
+
+        start = time.time()
+        end = time.time()
+        run_time = end - start
+        while run_time < seconds:
+            s0 = self.get_cmd('hbaget hba_sonar sonar0\n')
+            s1 = self.get_cmd('hbaget hba_sonar sonar1\n')
+            print "sonar val: %d %d" % (int(s0,16), int(s1,16))
+            time.sleep(0.2)
+            end = time.time()
+            run_time = end - start
+
     def qtr_test(self, seconds):
         # Init hba_qtr
         # Set the trigger period to 100ms.
@@ -68,8 +90,8 @@ class Romi_Test:
         end = time.time()
         run_time = end - start
         while run_time < seconds:
-            enc = self.get_cmd('hbaget hba_quad enc\n')
-            print "enc val: ",enc
+            (enc0,enc1) = self.get_cmd('hbaget hba_quad enc\n').split()
+            print "enc val: %d %d" % (s16(int(enc0,16)), s16(int(enc1,16)))
             time.sleep(0.2)
             end = time.time()
             run_time = end - start
@@ -116,17 +138,24 @@ class Romi_Test:
         print "5 : Encoders test"
         print "6 : Quit"
 
-        choice = input("Enter choice [0-6], ctrl-c to stop test: ")
+        choice = raw_input("Enter choice [0-6], ctrl-c to stop test: ")
         print
+
+        try:
+            choice = int(choice)
+        except ValueError:
+            return done
 
         if choice==0:
             self.serial_info()
         elif choice==2:
-            self.qtr_test(10)
+            self.qtr_test(30)
         elif choice==3:
             self.motor_test()
+        elif choice==4:
+            self.sonar_test(30)
         elif choice==5:
-            self.quad_test(10)
+            self.quad_test(30)
         elif choice==6:
             done = True
 
