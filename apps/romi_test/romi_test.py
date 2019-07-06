@@ -40,6 +40,7 @@ class Romi_Test:
                 data = data + retval
         return data
 
+
     def serial_info(self):
         port = self.get_cmd('hbaget serial_fpga port\n')
         config = self.get_cmd('hbaget serial_fpga config\n')
@@ -47,8 +48,24 @@ class Romi_Test:
         print "   port:   ", port
         print "   config: ",config
 
+
+
     def motor_stop(self):
         self.set_cmd('hbaset hba_motor mode bb\n')
+
+    def basicio_test(self, seconds):
+        count = 0
+        start = time.time()
+        end = time.time()
+        run_time = end - start
+        while run_time < seconds:
+            self.set_cmd("hbaset hba_basicio leds %x\n" % count)
+            buttons = self.get_cmd('hbaget hba_basicio buttons\n')
+            print "led_val: %d, button_val: %d" % (count, int(buttons,16))
+            time.sleep(0.2)
+            count = (count + 1) % 256
+            end = time.time()
+            run_time = end - start
 
     def sonar_test(self, seconds):
         # Init hba_sonar
@@ -148,6 +165,8 @@ class Romi_Test:
 
         if choice==0:
             self.serial_info()
+        elif choice==1:
+            self.basicio_test(30)
         elif choice==2:
             self.qtr_test(30)
         elif choice==3:
