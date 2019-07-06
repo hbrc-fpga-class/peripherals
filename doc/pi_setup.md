@@ -60,9 +60,10 @@ Password is "ubuntu"
 
 [TinyFPGA-BX pinout](https://www.crowdsupply.com/img/a1f0/card-front_png_project-body.jpg)
 
-**NOTE** These connections are for the current version of main_project/romi-board
+**NOTE** These connections are for the current version of main_project/romi-proto
 that is checked in to the master branch of peripherals.  This will change
-in the future when the project is updated for the custom PCB board.
+in the future when the custom PCB boards are ready, then we will switch to
+the main_project/romi-pcb project.
 
 | Rasp Pi          | TinyFPGA           |
 | ---------------- | ------------------:|
@@ -89,7 +90,7 @@ sudo make install
 ## To program the TinyFPGA
 
 ```
-cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-board/
+cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-proto/
 make
 make prog
 ```
@@ -112,6 +113,46 @@ hbaset 1 leds 0
 
 You should see the user led on the TinyFPGA-BX board turn on
 then off.
+
+## Test of all the Peripherals
+
+There is a python program in apps/romi_test/romi_test.py that provides
+a menu to test all the different peripherals. This should work with the
+main_project bitstreams.
+
+The menu looks like this
+
+```
+Menu
+---------
+0 : Serial Port Info
+1 : Basicio leds, button test
+2 : QTR, reflective/edge sensor test
+3 : Motors/Encoders test
+4 : Sonars test
+5 : Encoders test
+6 : Quit
+Enter choice [0-6], ctrl-c to stop test:
+```
+
+Running test 3 : Motors/Encoders test gives output like this..
+
+```
+Enter choice [0-6], ctrl-c to stop test: 3
+
+setting motor speed to 10
+Forward
+enc val: 0 0
+enc val: 111 116
+enc val: 223 232
+enc val: 335 349
+enc val: 448 466
+enc val: 562 584
+enc val: 676 702
+enc val: 791 821
+enc val: 906 939
+enc val: 1020 1057
+```
 
 
 
