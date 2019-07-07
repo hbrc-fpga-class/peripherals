@@ -50,7 +50,7 @@ set_io --warn-no-port PIN_9 E1
 set_io --warn-no-port PIN_10 G2
 set_io --warn-no-port PIN_11 H1
 set_io --warn-no-port PIN_12 J1
-# set_io --warn-no-port PIN_13 H2
+set_io --warn-no-port PIN_13 H2
 
 # Right side of board
 set_io --warn-no-port PIN_14 H9
@@ -74,24 +74,24 @@ set_io --warn-no-port SPI_IO2 H4
 set_io --warn-no-port SPI_IO3 J8
 
 # General purpose pins on bottom of board
-# set_io --warn-no-port PIN_25 G1
-# set_io --warn-no-port PIN_26 J3
-# set_io --warn-no-port PIN_27 J4
-# set_io --warn-no-port PIN_28 G9
-# set_io --warn-no-port PIN_29 J9
-# set_io --warn-no-port PIN_30 E8
-# set_io --warn-no-port PIN_31 J2
+set_io --warn-no-port PIN_25 G1
+set_io --warn-no-port PIN_26 J3
+set_io --warn-no-port PIN_27 J4
+set_io --warn-no-port PIN_28 G9
+set_io --warn-no-port PIN_29 J9
+set_io --warn-no-port PIN_30 E8
+set_io --warn-no-port PIN_31 J2
 
 # LED
 
-set_io --warn-no-port LED[0] H2
-set_io --warn-no-port LED[1] G1
-set_io --warn-no-port LED[2] J3
-set_io --warn-no-port LED[3] J4
-set_io --warn-no-port LED[4] E8
-set_io --warn-no-port LED[5] J9
-set_io --warn-no-port LED[6] G9
-set_io --warn-no-port LED[7] J2
+#set_io --warn-no-port LED[0] H2
+#set_io --warn-no-port LED[1] G1
+#set_io --warn-no-port LED[2] J3
+#set_io --warn-no-port LED[3] J4
+#set_io --warn-no-port LED[4] E8
+#set_io --warn-no-port LED[5] J9
+#set_io --warn-no-port LED[6] G9
+#set_io --warn-no-port LED[7] J2
 
 set_io --warn-no-port BLED B3
 

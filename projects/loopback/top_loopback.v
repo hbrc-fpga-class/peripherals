@@ -21,13 +21,24 @@ module top_loopback
 (
     input wire  CLK_16MHZ,
 
-    input wire  PIN_23,  // rxd
-    output wire PIN_22,  // txd
+    // serial connection
+    input wire  PIN_9,  // rxd
+    output wire PIN_10,  // txd
 
-    // debug outputs
-    output wire PIN_3,  // loop_state
-    output wire PIN_4,  // echo txd
-    output wire PIN_5   // echo rxd
+    // pwm connections (turn off motors)
+    output wire PIN_5,  // pwml
+    output wire PIN_8,  // pwmr
+
+    // debug (leds) outputs
+    output wire PIN_18,  // loop_state (led0)
+    output wire PIN_19,  // echo txd   (led1)
+    output wire PIN_26,   // echo rxd   (led2)
+
+    output wire PIN_20,   // (led3)
+    output wire PIN_29,   // (led4)
+    output wire PIN_21,   // (led5)
+    output wire PIN_30,   // (led6)
+    output wire PIN_22   // (led7)
 
 );
 
@@ -57,14 +68,25 @@ wire tx_busy;
 wire [7:0] rx_data;
 reg [7:0] tx_data;
 
-assign rxd = PIN_23;
-assign PIN_22 = txd;
+assign rxd = PIN_9;
+assign PIN_10 = txd;
 
 // debug
-assign PIN_3 = loop_state;
-assign PIN_4 = txd;
-assign PIN_5 = rxd;
+assign PIN_18 = loop_state;
+assign PIN_19 = ~txd;
+assign PIN_26 = ~rxd;
 
+// turn off motors
+assign PIN_5 = 0;  // pwml
+assign PIN_8 = 0;  // pwmr
+
+
+// Turn off other leds
+assign PIN_20 = 0;   // (led3)
+assign PIN_29 = 0;   // (led4)
+assign PIN_21 = 0;   // (led5)
+assign PIN_30 = 0;   // (led6)
+assign PIN_22 = 0;   // (led7)
 
 /*
 ****************************
