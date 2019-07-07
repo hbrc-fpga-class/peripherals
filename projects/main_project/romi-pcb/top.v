@@ -107,6 +107,12 @@ wire [1:0] qtr_out_en;
 wire [1:0] qtr_out_sig;
 wire [1:0] qtr_in_sig;
 
+// debug
+wire [7:0] shim_basicio_led;
+assign basicio_led[0] = ~fpga_rxd;
+assign basicio_led[1] = ~fpga_txd;
+assign basicio_led[7:2] = shim_basicio_led[7:2];
+
 /*
 ****************************
 * Instantiations
@@ -139,7 +145,7 @@ hba_system #
     .intr(hba_intr),
 
     // SLOT(1) : hba_basicio pins
-    .basicio_led(basicio_led),
+    .basicio_led(shim_basicio_led),
     .basicio_button(basicio_button),
 
     // SLOT(2) : hba_qtr pins
