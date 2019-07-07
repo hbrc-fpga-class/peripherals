@@ -61,7 +61,7 @@
         // What we are is a ...
 #define PLUGIN_NAME        "serial_fpga"
         // Default serial port
-#define DEFDEV             "/dev/ttyS0"
+#define DEFDEV             "/dev/ttyAMA0"
         // Default baudrate
 #define DEFBAUD            115200
         // Number of possible FPGA cores (peripherals)
