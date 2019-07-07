@@ -14,10 +14,10 @@ Instructions are similar to the [Ubiquity instructions](https://downloads.ubiqui
 
 When you power on the Pi it creates it's own wifi AP.  I'm not sure the exact name but
 is is something like "homebrewXXX".  You can connect to that AP via another computer
-and ssh into the Pi via.
+and ssh into the Pi via.  The AP passkey should be *robotseverywhere*
 
 ```
-ssh ubuntu@hombrew.local
+ssh ubuntu@homebrew.local
 ```
 
 The password is "ubuntu"
@@ -29,13 +29,13 @@ Once you get to a terminal you can use the "pifi" program to connect to another 
 network.
 
 ```
-pifi add <ssid> [<password>]
+sudo pifi add <ssid> [<password>]
 ```
 
 You can also use pifi to change the hostname to something unique. For example I did:
 
 ```
-pifi set-hostname hbrc2
+sudo pifi set-hostname hbrc2
 ```
 
 Now reboot.
