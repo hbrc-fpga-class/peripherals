@@ -45,22 +45,17 @@
 #include <termios.h>
 #include <dlfcn.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
-
-#define HBAERROR_NOSEND   (-1)
-#define HBAERROR_NORECV   (-2)
-#define HBA_READ_CMD      (0x80)
-#define HBA_WRITE_CMD     (0x00)
-#define HBA_MXPKT         (16)
-#define HBA_GPIO_REG_DIR  (0)
-#define HBA_GPIO_REG_VAL  (1)
-#define HBA_GPIO_REG_INTR (2)
-#define HBA_ACK           (0xAC)
 
 
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
+        // Hardware register definitions
+#define HBA_GPIO_REG_DIR  (0)
+#define HBA_GPIO_REG_VAL  (1)
+#define HBA_GPIO_REG_INTR (2)
         // resource names and numbers
 #define FN_VAL             "val"
 #define FN_DIR             "dir"
@@ -98,6 +93,7 @@ typedef struct
  **************************************************************/
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 extern SLOT Slots[];
+static void core_interrupt();
 
 
 /**************************************************************
@@ -105,10 +101,11 @@ extern SLOT Slots[];
  * the read/write callbacks.
  **************************************************************/
 int Initialize(
-    SLOT *pslot)       // points to the SLOT for this plug-in
+    SLOT *pslot)            // points to the SLOT for this plug-in
 {
-    HBA_GPIO *pctx;    // our local context
-    const char *errmsg; // error message from dlsym
+    HBA_GPIO *pctx;         // our local context
+    const char *errmsg;     // error message from dlsym
+    void        *reg_intr;  // use this to register and interrupt handler
 
     // Allocate memory for this plug-in
     pctx = (HBA_GPIO *) malloc(sizeof(HBA_GPIO));
@@ -166,6 +163,22 @@ int Initialize(
         return(-1);
     }
 
+    // The serial_fpga plug-in has a routine that responds to interrupts.
+    // The routine polls the FPGA for its two interrupt pending registers.
+    // If an interrupt bit is set the serial_fpga looks up the address of
+    // core's interrupt handler and invokes it.
+    // The code below registers this core's interrupt handler with
+    // serial_fpga.
+    dlerror();                  /* Clear any existing error */
+    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    if (errmsg != NULL) {
+        return(-1);
+    }
+    // pass in the slot ID (core ID) of this plug-in
+    if (reg_intr != (void *) 0) {
+        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+    }
+
     return (0);
 }
 
@@ -205,8 +218,7 @@ void usercmd(
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading value from GPIO port
-            edlog("Error reading GPIO value from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
         else {
@@ -226,12 +238,9 @@ void usercmd(
     }
     else if ((cmd == EDSET) && (rscid == RSC_VAL)) {
         ret = sscanf(val, "%x", &nval);
-        if (ret != 1) {
+        if ((ret != 1) || (nval < 0) || (nval > 0x0f)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        if ((nval < 0) || (nval > 0x0f)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;  // (errors are handled in calling routine)
             return;
         }
         // record the new data value 
@@ -247,7 +256,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from GPIO port
-            edlog("Error writing GPIO value to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     }
     else if ((cmd == EDSET) && (rscid == RSC_DIR)) {
@@ -270,7 +280,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from GPIO port
-            edlog("Error writing GPIO direction to FPGA");
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTR)) {
@@ -293,12 +304,57 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from GPIO port
-            edlog("Error writing GPIO direction to FPGA");
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     }
     // Nothing to do here if edcat.  That is handled in the UI code
 
     return;
+}
+
+
+/**************************************************************
+ * core_interrupt():  - interrupt handler for this peripheral
+ **************************************************************/
+void core_interrupt(void *trans)
+{
+    HBA_GPIO    *pctx;       // this peripheral's private info
+    SLOT        *pslot;      // This instance of the serial plug-in
+    RSC         *prsc;       // pointer to this slot's counts resource
+    int          nsd;        // number of bytes sent to FPGA
+    uint8_t      pkt[HBA_MXPKT];  
+    char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
+    int          slen;       // length of text to output
+
+    // get pointers to this instance of the plug-in and its slot
+    pctx = (HBA_GPIO *) trans; // transparent data is our context
+
+    // Read value in gpio value register
+    // Read one byte offset by -1 (1 -1)
+    pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
+    pkt[1] = HBA_GPIO_REG_VAL;
+    pkt[2] = 0;                     // dummy byte
+    pkt[3] = 0;                     // dummy byte
+    pkt[4] = 0;                     // dummy byte
+
+    nsd = pctx->sendrecv_pkt(5, pkt);
+    // We sent header + one byte so the sendrecv return value should be 3
+    if (nsd != 3) {
+        // error reading value from GPIO port
+        edlog("Error reading button value from gpio");
+        return;
+    }
+    pctx->val = pkt[2];   // first two bytes are echo of header
+
+    // Broadcast value is any UI is monitoring it
+    pslot = pctx->pslot;
+    prsc = &(pslot->rsc[RSC_VAL]);
+    if (prsc->bkey != 0) {
+        slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->val);
+        bcst_ui(msg, slen, &(prsc->bkey));
+        prompt(prsc->uilock);
+    }
 }
 
 

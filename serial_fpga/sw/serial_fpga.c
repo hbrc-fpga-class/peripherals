@@ -4,7 +4,7 @@
  *  Description: Simple interface to a Linux serial port
  *
  *  Resources:
- *    port   -  full path to serial port (/dev/ttyS0)
+ *    port   -  full path to serial port (/dev/ttyAMA0)
  *    config -  baudrate in range of 1200 to 921000
  *    intrr_pin -  which pin to monitor as an interrupt
  *    rawin  -  Received characters displayed in hex
@@ -40,6 +40,7 @@
 #include <sys/ioctl.h> 
 #include <linux/serial.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
 
 
@@ -64,19 +65,9 @@
 #define DEFDEV             "/dev/ttyAMA0"
         // Default baudrate
 #define DEFBAUD            115200
-        // Number of possible FPGA cores (peripherals)
-#define NCORE              16
-        // Maximum size of input/output string
-#define MX_MSGLEN          120
-        // HBA protocol defines
-#define HBAERROR_NOSEND   (-1)
-#define HBAERROR_NORECV   (-2)
-#define HBA_READ_CMD      (0x80)
-#define HBA_WRITE_CMD     (0x00)
-#define HBA_MXPKT         (16)
-#define HBA_ACK           (0xAC)
         // Defines for serial_fpga
 #define HBA_SF_INT0       (0)
+
 
 /**************************************************************
  *  - Data structures
@@ -111,7 +102,7 @@ typedef struct
  **************************************************************/
 static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
-static void portconfig(SERPORT *pctx);
+static int  portconfig(SERPORT *pctx);
 static int  gpioconfig(int pin);
 static void do_interrupt(int fd, void *pctx);
 void        register_interupt_handler(int, void (*)());
@@ -189,7 +180,7 @@ int Initialize(
     pctx->ptimer = (void *) 0;
 
     // try to open and register the serial port
-    portconfig(pctx);
+    (void) portconfig(pctx);  // void since there is no ui
 
     return (0);
 }
@@ -208,7 +199,7 @@ static void usercmd(
     char    *buf)
 {
     SERPORT *pctx;     // serial_fpga private info
-    int      ret;      // generic system call return value
+    int      ret;      // generic call return value.  Reused.
     int      nbaud;    // new value to assign the baud
     char    *pbyte;    // used in parsing raw input
     int      tmp;      // used in parsing raw input
@@ -242,7 +233,12 @@ static void usercmd(
             pctx->spfd = -1;
         }
         // now open and register the new port
-        portconfig(pctx);
+        ret = portconfig(pctx);
+        if (ret < 0) {
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
     }
     else if ((cmd == EDSET) && (rscid == RSC_CONFIG)) {
         ret = sscanf(val, "%d", &nbaud);
@@ -277,10 +273,13 @@ static void usercmd(
             pctx->irfd = -1;
         }
         pctx->irfd = gpioconfig(intrpin);
-        if (pctx->irfd >= 0) {
-            // Add fd to exception list for select()
-            add_fd(pctx->irfd, ED_EXCEPT, do_interrupt, (void *) pctx);
+        if (pctx->irfd < 0) {       // config failed?
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
         }
+        // Add fd to exception list for select()
+        add_fd(pctx->irfd, ED_EXCEPT, do_interrupt, (void *) pctx);
     }
     else if ((cmd == EDSET) && (rscid == RSC_RAWOUT)) {
         // User has given us a line of space separated 8-bit hex values.
@@ -302,11 +301,13 @@ static void usercmd(
                 // Error writing to serial port.  Ignore partial writes
                 // and close fd on errors.  An overloaded serial link might
                 // fail here first.
-                edlog("Error writing to serial_fpga serial port\n");
                 if (ret < 0) {
                     close(pctx->spfd);
                     pctx->spfd = -1;
                 }
+                ret = snprintf(buf, *plen, E_NORSP, pctx->port);
+                *plen = ret;
+                return;
             }
         }
     }
@@ -367,9 +368,10 @@ static void getevents(
 
 
 /* Open and/or configure the serial port.  Open and config if
- * fd is -1.  Just config if fd is >= 0.
+ * fd is -1.  Just config if fd is >= 0.  Sets pctx->spfd.
+ * Return fd so errors can be handled in calling routine.
  */
-static void portconfig(SERPORT *pctx)
+static int portconfig(SERPORT *pctx)
 {
     struct termios tbuf;        // termios structure for port
     speed_t baudrate;           // baudrate for cfsetospeed
@@ -378,7 +380,7 @@ static void portconfig(SERPORT *pctx)
     if (pctx->spfd < 0) {
         pctx->spfd = open(pctx->port, (O_RDWR | O_NOCTTY | O_NONBLOCK), 0);
         if (pctx->spfd < 0) {
-            return;             // fail quietly
+            return(pctx->spfd);
         }
     }
 
@@ -412,7 +414,7 @@ static void portconfig(SERPORT *pctx)
         edlog(M_BADPORT, pctx->spfd, strerror(errno));
         close(pctx->spfd);
         pctx->spfd = -1;
-        return;
+        return(pctx->spfd);
     }
 
     // Configure port for low latency
@@ -422,6 +424,7 @@ static void portconfig(SERPORT *pctx)
 
     // add callback for received characters
     add_fd(pctx->spfd, ED_READ, getevents, (void *) pctx);
+    return(pctx->spfd);
 }
 
 
@@ -452,8 +455,7 @@ static int gpioconfig(int pin)
     }
     ret = write(sysfd, pinname, pinlen);
     if (ret != pinlen) {
-        edlog("Error writing pin name to /sys/class/gpio/export");
-        return(-1);
+        edlog("Warning: could not write pin name to /sys/class/gpio/export");
     }
     close(sysfd);
     usleep(100000);    // give the kernal a chance to set up gpio
@@ -464,13 +466,16 @@ static int gpioconfig(int pin)
     sysfd = open(pinname, (O_RDWR), 0);
     if (sysfd < 0) {
         edlog("Unable to open %s", pinname);
+        close(sysfd);
         return(-1);
     }
     ret = write(sysfd, "rising", 6);      // 6=strlen("rising")
     if (ret != 6) {
         edlog("Unable to configure %s", pinname);
+        close(sysfd);
         return(-1);
     }
+    close(sysfd);
 
     // Open value for the GPIO pin.  This is what we read in select()
     pinlen = snprintf(pinname, MX_MSGLEN, "/sys/class/gpio/gpio%d/value", pin);

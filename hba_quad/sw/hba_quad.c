@@ -55,25 +55,20 @@
 #include <termios.h>
 #include <dlfcn.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
 
-#define HBAERROR_NOSEND         (-1)
-#define HBAERROR_NORECV         (-2)
-#define HBA_READ_CMD            (0x80)
-#define HBA_WRITE_CMD           (0x00)
-#define HBA_MXPKT               (16)
-#define HBA_ACK                 (0xAC)
-
-#define HBA_QUAD_REG_CTRL       (0)
-#define HBA_QUAD_REG_ENC0_LSB   (1)
-#define HBA_QUAD_REG_ENC0_MSB   (2)
-#define HBA_QUAD_REG_ENC1_LSB   (3)
-#define HBA_QUAD_REG_ENC1_MSB   (4)
 
 
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
+        // hardware register definitions
+#define HBA_QUAD_REG_CTRL       (0)
+#define HBA_QUAD_REG_ENC0_LSB   (1)
+#define HBA_QUAD_REG_ENC0_MSB   (2)
+#define HBA_QUAD_REG_ENC1_LSB   (3)
+#define HBA_QUAD_REG_ENC1_MSB   (4)
         // resource names and numbers
 #define FN_CTRL         "ctrl"
 #define FN_ENC0         "enc0"
@@ -113,6 +108,7 @@ typedef struct
  **************************************************************/
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 extern SLOT Slots[];
+static void core_interrupt();
 
 
 /**************************************************************
@@ -120,10 +116,11 @@ extern SLOT Slots[];
  * the read/write callbacks.
  **************************************************************/
 int Initialize(
-    SLOT *pslot)       // points to the SLOT for this plug-in
+    SLOT *pslot)           // points to the SLOT for this plug-in
 {
-    HBA_QUAD *pctx;  // our local context
-    const char *errmsg; // error message from dlsym
+    HBA_QUAD   *pctx;      // our local context
+    const char *errmsg;    // error message from dlsym
+    void       *reg_intr;  // use this to register and interrupt handler
 
     // Allocate memory for this plug-in
     pctx = (HBA_QUAD *) malloc(sizeof(HBA_QUAD));
@@ -187,6 +184,22 @@ int Initialize(
         return(-1);
     }
 
+    // The serial_fpga plug-in has a routine that responds to interrupts.
+    // The routine polls the FPGA for its two interrupt pending registers.
+    // If an interrupt bit is set the serial_fpga looks up the address of
+    // core's interrupt handler and invokes it.
+    // The code below registers this core's interrupt handler with
+    // serial_fpga.
+    dlerror();                  /* Clear any existing error */
+    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    if (errmsg != NULL) {
+        return(-1);
+    }
+    // pass in the slot ID (core ID) of this plug-in
+    if (reg_intr != (void *) 0) {
+        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+    }
+
     return (0);
 }
 
@@ -216,10 +229,12 @@ void usercmd(
         ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
             return;
         }
         if ((nval < 0) || (nval > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
             return;
         }
         // record the new data value 
@@ -235,7 +250,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
@@ -252,7 +268,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
 
         // Read value in FPGA ENC0 value register
@@ -266,8 +283,7 @@ void usercmd(
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading enc0 from QUAD port
-            edlog("Error reading QUAD enc0 from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
         else {
@@ -288,10 +304,10 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     } else if ((cmd == EDGET) && (rscid == RSC_ENC1)) {
-
         // Disable right encoder updates
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_CTRL;
@@ -302,7 +318,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
 
         // Read value in FPGA ENC1 value register
@@ -316,7 +333,6 @@ void usercmd(
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading enc1 from QUAD port
-            edlog("Error reading QUAD enc1 from FPGA");
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             *plen = ret;
         }
@@ -338,7 +354,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     } else if ((cmd == EDGET) && (rscid == RSC_ENC)) {
 
@@ -352,7 +369,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
 
         // Read both enc0 and enc1 values.  4 registers in all
@@ -368,8 +386,7 @@ void usercmd(
         // We sent 2 byte header + four bytes so the sendrecv return value should be 6
         if (nsd != 6) {
             // error reading enc1 from QUAD port
-            edlog("Error reading QUAD enc1 from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
         else {
@@ -391,7 +408,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from QUAD port
-            edlog("Error writing QUAD ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
         }
     }
 
@@ -399,6 +417,52 @@ void usercmd(
 
     return;
 }
+
+
+/**************************************************************
+ * core_interrupt():  - interrupt handler for this peripheral
+ **************************************************************/
+void core_interrupt(void *trans)
+{
+    HBA_QUAD    *pctx;       // this peripheral's private info
+    SLOT        *pslot;      // This instance of the serial plug-in
+    RSC         *prsc;       // pointer to this slot's counts resource
+    int          nsd;        // number of bytes sent to FPGA
+    uint8_t      pkt[HBA_MXPKT];  
+    char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
+    int          slen;       // length of text to output
+
+    // get pointers to this instance of the plug-in and its slot
+    pctx = (HBA_QUAD *) trans; // transparent data is our context
+
+    // Read value in quadrature registers
+    // Read one byte offset by -1 (1 -1)
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
+    pkt[1] = HBA_QUAD_REG_ENC1_LSB;
+    pkt[2] = 0;                     // dummy byte
+    pkt[3] = 0;                     // dummy byte
+    pkt[4] = 0;                     // dummy byte
+    pkt[5] = 0;                     // dummy byte
+    nsd = pctx->sendrecv_pkt(6, pkt);
+
+    // We sent header + one byte so the sendrecv return value should be 3
+    if (nsd != 3) {
+        // error reading value from QUAD port
+        edlog("Error reading button value from quadrature");
+        return;
+    }
+    pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+ 
+    // Broadcast value is any UI is monitoring it
+    pslot = pctx->pslot;
+    prsc = &(pslot->rsc[RSC_ENC0]);
+    if (prsc->bkey != 0) {
+        slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", pctx->enc0);
+        bcst_ui(msg, slen, &(prsc->bkey));
+        prompt(prsc->uilock);
+    }
+}
+
 
 // end of hba_enc.c
 

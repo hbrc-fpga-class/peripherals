@@ -48,22 +48,17 @@
 #include <termios.h>
 #include <dlfcn.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
-
-#define HBAERROR_NOSEND         (-1)
-#define HBAERROR_NORECV         (-2)
-#define HBA_READ_CMD            (0x80)
-#define HBA_WRITE_CMD           (0x00)
-#define HBA_MXPKT               (16)
-#define HBA_BASICIO_REG_LEDS    (0)
-#define HBA_BASICIO_REG_BUTTONS (1)
-#define HBA_BASICIO_REG_INTR    (2)
-#define HBA_ACK                 (0xAC)
 
 
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
+        // Hardware register definitions
+#define HBA_BASICIO_REG_LEDS    (0)
+#define HBA_BASICIO_REG_BUTTONS (1)
+#define HBA_BASICIO_REG_INTR    (2)
         // resource names and numbers
 #define FN_LEDS            "leds"
 #define FN_BUTTONS         "buttons"
@@ -229,8 +224,7 @@ void usercmd(
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading buttons from BASICIO port
-            edlog("Error reading BASICIO buttons from FPGA");
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
         else {
@@ -250,12 +244,9 @@ void usercmd(
     }
     else if ((cmd == EDSET) && (rscid == RSC_LEDS)) {
         ret = sscanf(val, "%x", &nleds);
-        if (ret != 1) {
+        if ((ret != 1) || (nleds < 0) || (nleds > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        if ((nleds < 0) || (nleds > 0xff)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;  // (errors are handled in calling routine)
             return;
         }
         // record the new data value 
@@ -270,8 +261,10 @@ void usercmd(
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from BASICIO port
-            edlog("Error writing BASICIO leds to FPGA");
+            // error writing value to BASICIO leds
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;  // (errors are handled in calling routine)
+            return;
         }
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTR)) {
@@ -293,8 +286,10 @@ void usercmd(
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
-            // error writing value from BASICIO port
-            edlog("Error writing BASICIO intr to FPGA");
+            // error writing value to BASICIO interrupt enable register
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
         }
     }
     // Nothing to do here if edcat.  That is handled in the UI code

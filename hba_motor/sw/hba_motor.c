@@ -58,31 +58,24 @@
 #include <termios.h>
 #include <dlfcn.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
 
-#define HBAERROR_NOSEND         (-1)
-#define HBAERROR_NORECV         (-2)
-#define HBA_READ_CMD            (0x80)
-#define HBA_WRITE_CMD           (0x00)
-#define HBA_MXPKT               (16)
-#define HBA_ACK                 (0xAC)
 
+/**************************************************************
+ *  - Limits and defines
+ **************************************************************/
+        // hardware register definitions
 #define HBA_MOTOR_REG_MODE    (0)
 #define HBA_MOTOR_REG_MOTOR0  (1)
 #define HBA_MOTOR_REG_MOTOR1  (2)
-
-// Mode bits
+        // Motor control modes
 #define ML_EN                 (1)
 #define MR_EN                 (2)
 #define ML_REV                (4)
 #define MR_REV                (8)
 #define ML_COAST              (16)
 #define MR_COAST              (32)
-
-
-/**************************************************************
- *  - Limits and defines
- **************************************************************/
         // resource names and numbers
 #define FN_MODE           "mode"
 #define FN_MOTOR0         "motor0"
@@ -225,6 +218,7 @@ void usercmd(
         ret = sscanf(val, "%c%c", &lch,&rch);
         if (ret != 2) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
             return;
         }
         nval = 0;       // next mode value, Clear all bits
@@ -250,6 +244,7 @@ void usercmd(
             default :
                 // Invalid character
                 ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+                *plen = ret;     // errors are handled in calling routine
                 return;
         }
 
@@ -274,6 +269,7 @@ void usercmd(
             default :
                 // Invalid character
                 ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+                *plen = ret;     // errors are handled in calling routine
                 return;
         }
 
@@ -292,7 +288,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from MOTOR port
-            edlog("Error writing MOTOR mode to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
         }
     } else if ((cmd == EDGET) && (rscid == RSC_MODE)) {
         ret = snprintf(buf, *plen, "%c%c\n", pctx->l_mode,pctx->r_mode);
@@ -301,10 +298,12 @@ void usercmd(
         ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
             return;
         }
         if ((nval < 0) || (nval > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
             return;
         }
         // record the new data value 
@@ -320,7 +319,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from MOTOR port
-            edlog("Error writing MOTOR motor0 to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
         }
     } else if ((cmd == EDGET) && (rscid == RSC_MOTOR0)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->motor0);
@@ -329,10 +329,12 @@ void usercmd(
         ret = sscanf(val, "%x", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
             return;
         }
         if ((nval < 0) || (nval > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
             return;
         }
         // record the new data value 
@@ -348,7 +350,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from MOTOR port
-            edlog("Error writing MOTOR motor1 to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;     // errors are handled in calling routine
         }
     } else if ((cmd == EDGET) && (rscid == RSC_MOTOR0)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->motor1);
