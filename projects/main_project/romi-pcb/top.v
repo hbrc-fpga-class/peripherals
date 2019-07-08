@@ -109,9 +109,9 @@ wire [1:0] qtr_in_sig;
 
 // debug
 wire [7:0] shim_basicio_led;
-assign basicio_led[0] = ~fpga_rxd;
-assign basicio_led[1] = ~fpga_txd;
-assign basicio_led[7:2] = shim_basicio_led[7:2];
+// XXX assign basicio_led[0] = ~fpga_rxd;
+// XXX assign basicio_led[1] = ~fpga_txd;
+assign basicio_led[7:0] = shim_basicio_led[7:0];
 
 /*
 ****************************
