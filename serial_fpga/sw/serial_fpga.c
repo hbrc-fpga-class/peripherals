@@ -65,8 +65,11 @@
 #define DEFDEV             "/dev/ttyAMA0"
         // Default baudrate
 #define DEFBAUD            115200
-        // Defines for serial_fpga
+        // Interrupt status register
 #define HBA_SF_INT0       (0)
+        // Default interrupt GPIO pin
+#define HBA_DEF_INTR      (25)
+
 
 
 /**************************************************************
@@ -91,7 +94,7 @@ typedef struct
     int      inidx;    // index into rawinc
     uint8_t  rawoutc[MX_MSGLEN];  // data from host to fpga
     int      outidx;   // index into rawoutc
-    char     intrrp[PATH_MAX]; // full path to interrupt input pin
+    int      intrrp;   // interrupt input gpio
     int      irfd;     // interrupt pin file descriptor (-1 if closed)
     COREINFO coreinfo[NCORE];
 } SERPORT;
@@ -136,7 +139,7 @@ int Initialize(
     pctx->spfd = -1;           // port is not yet open
     (void) strncpy(pctx->port, DEFDEV, PATH_MAX);
     // no default for the interrupt pin. 
-    pctx->intrrp[0] = (char) 0;  // full path to interrupt input pin
+    pctx->intrrp = HBA_DEF_INTR;  // interrupt gpio
     pctx->irfd = -1;           // interrupt pin file descriptor (-1 if closed)
 
     // Register name and private data
@@ -182,6 +185,13 @@ int Initialize(
     // try to open and register the serial port
     (void) portconfig(pctx);  // void since there is no ui
 
+    // try to allocate the default interrupt gpio pin
+    pctx->irfd = gpioconfig(pctx->intrrp);
+    if (pctx->irfd >= 0) {       // config succeeded?
+        // Add fd to exception list for select()
+        add_fd(pctx->irfd, ED_EXCEPT, do_interrupt, (void *) pctx);
+    }
+
     return (0);
 }
 
@@ -218,7 +228,7 @@ static void usercmd(
         *plen = ret;  // (errors are handled in calling routine)
     }
     if ((cmd == EDGET) && (rscid == RSC_INTRRP)) {
-        ret = snprintf(buf, *plen, "%s\n", pctx->intrrp);
+        ret = snprintf(buf, *plen, "%d\n", pctx->intrrp);
         *plen = ret;  // (errors are handled in calling routine)
     }
     else if ((cmd == EDSET) && (rscid == RSC_PORT)) {
@@ -264,15 +274,19 @@ static void usercmd(
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTRRP)) {
         ret = sscanf(val, "%d", &intrpin);
-        // strncpy() does not force a null.  We add one now as a precaution
-        pctx->intrrp[PATH_MAX -1] = (char) 0;
+        if ((ret != 1) || (intrpin < 0) || (intrpin > 100)) {
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
+        pctx->intrrp = intrpin;
         // close and unregister the old port
         if (pctx->irfd >= 0) {
             del_fd(pctx->irfd);
             close(pctx->irfd);
             pctx->irfd = -1;
         }
-        pctx->irfd = gpioconfig(intrpin);
+        pctx->irfd = gpioconfig(pctx->intrrp);
         if (pctx->irfd < 0) {       // config failed?
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             *plen = ret;
@@ -479,7 +493,7 @@ static int gpioconfig(int pin)
 
     // Open value for the GPIO pin.  This is what we read in select()
     pinlen = snprintf(pinname, MX_MSGLEN, "/sys/class/gpio/gpio%d/value", pin);
-    gpfd =open(pinname, (O_RDWR), 0);
+    gpfd =open(pinname, (O_RDONLY), 0);
     if (gpfd < 0) {
         edlog("Unable to open %s", pinname);
         return(-1);
@@ -673,7 +687,7 @@ static void do_interrupt(
     // Noise on the interrupt line can trigger a rising edge.
     // Verify that the interrupt pin really is high
     if (pkt[0] != '1') {
-        //return;
+        return;
     }
 
     // Read the two interrupt registers in serial_fpga
