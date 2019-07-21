@@ -131,6 +131,7 @@ int Initialize(
     }
 
     // Init our HBA_QUAD structure
+    pctx->pslot = pslot;        // this instance of a quadrature decoder
     pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
     pctx->enc0 = HBA_DEFVAL;    // default enc0 value.
     pctx->enc1 = HBA_DEFVAL;    // default enc1 value.
@@ -431,36 +432,52 @@ void core_interrupt(void *trans)
     uint8_t      pkt[HBA_MXPKT];  
     char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
     int          slen;       // length of text to output
+    int          newenc0;
+    int          newenc1;
 
     // get pointers to this instance of the plug-in and its slot
     pctx = (HBA_QUAD *) trans; // transparent data is our context
 
     // Read value in quadrature registers
-    // Read one byte offset by -1 (1 -1)
-    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
+    // Read four bytes offset by -1 (4 -1)
+    pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
     pkt[1] = HBA_QUAD_REG_ENC1_LSB;
-    pkt[2] = 0;                     // dummy byte
-    pkt[3] = 0;                     // dummy byte
-    pkt[4] = 0;                     // dummy byte
-    pkt[5] = 0;                     // dummy byte
-    nsd = pctx->sendrecv_pkt(6, pkt);
+    pkt[2] = 0;                     // dummy byte (cmd)
+    pkt[3] = 0;                     // dummy byte (reg)
+    pkt[4] = 0;                     // dummy byte (q0 low)
+    pkt[5] = 0;                     // dummy byte (q0 high)
+    pkt[6] = 0;                     // dummy byte (q1 low)
+    pkt[7] = 0;                     // dummy byte (q1 high)
+    nsd = pctx->sendrecv_pkt(8, pkt);
 
-    // We sent header + one byte so the sendrecv return value should be 3
-    if (nsd != 3) {
+    // We sent header + six bytes so the sendrecv return value should be 8
+    if (nsd != 8) {
         // error reading value from QUAD port
-        edlog("Error reading button value from quadrature");
+        edlog("Error reading value from quadrature");
         return;
     }
-    pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+    newenc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+    newenc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct 16-bit value.
  
-    // Broadcast value is any UI is monitoring it
+    // Broadcast encoder 0 if it's changed and any UI is monitoring it
     pslot = pctx->pslot;
-    prsc = &(pslot->rsc[RSC_ENC0]);
-    if (prsc->bkey != 0) {
-        slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", pctx->enc0);
-        bcst_ui(msg, slen, &(prsc->bkey));
-        prompt(prsc->uilock);
+    if (newenc0 != pctx->enc0) {
+        prsc = &(pslot->rsc[RSC_ENC0]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc0);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
     }
+    // Broadcast encoder 1 if it's changed and any UI is monitoring it
+    if (newenc1 != pctx->enc1) {
+        prsc = &(pslot->rsc[RSC_ENC1]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    pctx->enc0 = newenc0;
+    pctx->enc1 = newenc1;
 }
 
 

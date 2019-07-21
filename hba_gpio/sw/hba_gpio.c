@@ -116,6 +116,7 @@ int Initialize(
     }
 
     // Init our HBA_GPIO structure
+    pctx->pslot = pslot;       // this instance of a gpio
     pctx->val = 0;             // most recent from to/from port
     pctx->dir = HBA_DEFDIR;    // default data direction rate
     pctx->intr = HBA_DEFINTR;  // default interrupt enable
@@ -347,13 +348,12 @@ void core_interrupt(void *trans)
     }
     pctx->val = pkt[2];   // first two bytes are echo of header
 
-    // Broadcast value is any UI is monitoring it
+    // Broadcast value if any UI is monitoring it
     pslot = pctx->pslot;
     prsc = &(pslot->rsc[RSC_VAL]);
     if (prsc->bkey != 0) {
         slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->val);
         bcst_ui(msg, slen, &(prsc->bkey));
-        prompt(prsc->uilock);
     }
 }
 

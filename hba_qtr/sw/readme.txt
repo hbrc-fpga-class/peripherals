@@ -42,6 +42,6 @@ Read back the last value of qtr1.
 
  hbaset hba_qtr period 1
  hbaset hba_qtr ctrl 3
- hbaset hba_qtr qtr0
+ hbaget hba_qtr qtr0
  hbacat hba_qtr qtr1
 

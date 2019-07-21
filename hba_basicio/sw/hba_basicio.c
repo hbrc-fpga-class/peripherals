@@ -119,10 +119,10 @@ int Initialize(
     }
 
     // Init our HBA_BASICIO structure
-    pctx->pslot = pslot;       // this instance of the hello demo
+    pctx->pslot = pslot;        // this instance of a basicio
     pctx->leds = HBA_DEFLEDS;   // most recent from to/from port
-    pctx->buttons = 0xff;    // default no buttons pussed
-    pctx->intr = HBA_DEFINTR;  // default interrupt enable
+    pctx->buttons = 0xff;       // default no buttons pussed
+    pctx->intr = HBA_DEFINTR;   // default interrupt enable
     // The following assumes that plug-ins are loaded in the
     // order they appear in the FPGA.  This is the first thing
     // to check when things go wrong.
@@ -337,7 +337,6 @@ void core_interrupt(void *trans)
     if (prsc->bkey != 0) {
         slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->buttons);
         bcst_ui(msg, slen, &(prsc->bkey));
-        prompt(prsc->uilock);
     }
 }
 

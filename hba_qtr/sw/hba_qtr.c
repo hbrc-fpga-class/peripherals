@@ -131,6 +131,7 @@ int Initialize(
     }
 
     // Init our HBA_QTR structure
+    pctx->pslot = pslot;        // this instance of the qtr sensor
     pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
     pctx->qtr0 = HBA_DEFVAL;    // default qtr0 value.
     pctx->qtr1 = HBA_DEFVAL;    // default qtr1 value.
@@ -349,40 +350,50 @@ void core_interrupt(void *trans)
     uint8_t      pkt[HBA_MXPKT];  
     char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
     int          slen;       // length of text to output
+    int          newqtr0;
+    int          newqtr1;
 
     // get pointers to this instance of the plug-in and its slot
     pctx = (HBA_QTR *) trans; // transparent data is our context
 
-#if BRANDON
- Should we read and stream both values
- on every interrupt or have separate
- interrupts for each sensor.
-#endif
     // Read value register
-    // Read one byte offset by -1 (1 -1)
-    pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
-    pkt[1] = HBA_QTR_REG_QTR1;
-    pkt[2] = 0;                     // dummy byte
-    pkt[3] = 0;                     // dummy byte
-    pkt[4] = 0;                     // dummy byte
+    // Read two bytes offset by -1 (2 -1)
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
+    pkt[1] = HBA_QTR_REG_QTR0;
+    pkt[2] = 0;                     // dummy byte (cmd)
+    pkt[3] = 0;                     // dummy byte (reg)
+    pkt[4] = 0;                     // dummy byte (qtr0)
+    pkt[5] = 0;                     // dummy byte (qtr1)
 
-    nsd = pctx->sendrecv_pkt(5, pkt);
-    // We sent header + one byte so the sendrecv return value should be 3
-    if (nsd != 3) {
+    nsd = pctx->sendrecv_pkt(6, pkt);
+    // We sent header + four bytes so the sendrecv return value should be 4
+    if (nsd != 4) {
         // error reading value from QTR port
-        edlog("Error reading button value from QTR");
+        edlog("Error reading values from QTR");
         return;
     }
-    pctx->qtr0 = pkt[2];   // first two bytes are echo of header
+    newqtr0 = pkt[2];   // first two bytes are echo of header
+    newqtr1 = pkt[3];   // first two bytes are echo of header
 
-    // Broadcast value is any UI is monitoring it
+    // Broadcast qtr0 if it's changed and if any UI is monitoring it
     pslot = pctx->pslot;
-    prsc = &(pslot->rsc[RSC_QTR0]);
-    if (prsc->bkey != 0) {
-        slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->qtr0);
-        bcst_ui(msg, slen, &(prsc->bkey));
-        prompt(prsc->uilock);
+    if (newqtr0 != pctx->qtr0) {
+        prsc = &(pslot->rsc[RSC_QTR0]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", newqtr0);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
     }
+    // Broadcast qtr1 if it's changed and if any UI is monitoring it
+    if (newqtr1 != pctx->qtr1) {
+        prsc = &(pslot->rsc[RSC_QTR1]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", newqtr1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    pctx->qtr0 = newqtr0;
+    pctx->qtr1 = newqtr1;
 }
 
 

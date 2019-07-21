@@ -119,6 +119,7 @@ int Initialize(
     }
 
     // Init our HBA_SONAR structure
+    pctx->pslot = pslot;        // this instance of a dual sonar receiver
     pctx->ctrl = HBA_DEFCTRL;   // most recent from to/from port
     pctx->sonar0 = 0;    // default sonar0 value.
     pctx->sonar1 = 0;    // default sonar1 value.
@@ -238,9 +239,7 @@ void usercmd(
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR0;
         pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(5, pkt);
+        nsd = pctx->sendrecv_pkt(3, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar0 from SONAR port
@@ -250,7 +249,6 @@ void usercmd(
         else {
             // Got value.  Print and send to user
             pctx->sonar0 = pkt[2];   // first two bytes are echo of header
-            // XXX ret = snprintf(buf, *plen, "%f\n", ((float)pctx->sonar0)*0.55);
             ret = snprintf(buf, *plen, "%02x\n", pctx->sonar0);
             *plen = ret;  // (errors are handled in calling routine)
         }
@@ -259,9 +257,7 @@ void usercmd(
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR1;
         pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(5, pkt);
+        nsd = pctx->sendrecv_pkt(3, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar1 from SONAR port
@@ -294,35 +290,51 @@ void core_interrupt(void *trans)
     uint8_t      pkt[HBA_MXPKT];  
     char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
     int          slen;       // length of text to output
+    int          new0;
+    int          new1;
 
     // get pointers to this instance of the plug-in and its slot
     pctx = (HBA_SONAR *) trans; // transparent data is our context
 
     // Read value in gpio value register
-    // Read one byte offset by -1 (1 -1)
-    pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
+    // Read two bytes offset by -1 (2 -1)
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
     pkt[1] = HBA_SONAR_REG_SONAR0;
-    pkt[2] = 0;                     // dummy byte
-    pkt[3] = 0;                     // dummy byte
-    pkt[4] = 0;                     // dummy byte
+    pkt[2] = 0;                     // dummy byte (cmd)
+    pkt[3] = 0;                     // dummy byte (reg)
+    pkt[4] = 0;                     // dummy byte (echo0)
+    pkt[5] = 0;                     // dummy byte (echo1)
 
-    nsd = pctx->sendrecv_pkt(5, pkt);
-    // We sent header + one byte so the sendrecv return value should be 3
-    if (nsd != 3) {
+    nsd = pctx->sendrecv_pkt(6, pkt);
+    // We sent header + four bytes so the sendrecv return value should be 4
+    if (nsd != 4) {
         // error reading value from SONAR port
-        edlog("Error reading button value from gpio");
+        edlog("Error reading value from SONAR");
         return;
     }
-    pctx->sonar0 = pkt[2];   // first two bytes are echo of header
+    new0 = pkt[2];   // first two bytes are echo of header
+    new1 = pkt[3];
 
-    // Broadcast value is any UI is monitoring it
+    // Broadcast sonar0 if it's changed and any UI is monitoring it
     pslot = pctx->pslot;
-    prsc = &(pslot->rsc[RSC_SONAR0]);
-    if (prsc->bkey != 0) {
-        slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", pctx->sonar0);
-        bcst_ui(msg, slen, &(prsc->bkey));
-        prompt(prsc->uilock);
+    if (new0 != pctx->sonar0) {
+        prsc = &(pslot->rsc[RSC_SONAR0]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", new0);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
     }
+    // Broadcast sonar0 if it's changed and any UI is monitoring it
+    pslot = pctx->pslot;
+    if (new1 != pctx->sonar1) {
+        prsc = &(pslot->rsc[RSC_SONAR1]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", new1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    pctx->sonar0 = new0;
+    pctx->sonar1 = new1;
 }
 
 

@@ -41,8 +41,10 @@ EXAMPLES
 Enable updates and interrupts
 Read the the 16-bit left encoder value
 Read the the 16-bit right encoder value
+Start a stream of encoder values from the left sensor
 
- hbaset hba_quad ctrl 3
- hbaset hba_quad enc0
- hbaset hba_quad enc1
+ hbaset hba_quad ctrl 7
+ hbaget hba_quad enc0
+ hbaget hba_quad enc1
+ hbacat hba_quad enc0
 

@@ -138,6 +138,7 @@ int Initialize(
     }
 
     // Init our HBA_MOTOR structure
+    pctx->pslot = pslot;                // this instance of a motor controller
     pctx->mode = HBA_DEFMODE;           // default mode value
     pctx->l_mode =  HBA_DEFMODE_CHAR;   // default mode left char
     pctx->r_mode =  HBA_DEFMODE_CHAR;   // default mode right char
