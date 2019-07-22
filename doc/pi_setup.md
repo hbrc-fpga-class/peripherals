@@ -3,18 +3,15 @@
 ## Raspberry Pi Image
 
 We are using a customized version of the Ubiquity Robotics Pi image.
-It can be downloaded from:
+The latest FPGA HBRC class image can be downloaded from this page.
 
-**TODO July 21, 2019** Need to update the below link to the latest.
-[https://ubiquity-pi-image.sfo2.cdn.digitaloceanspaces.com/2019-06-18-hbrc-fpga-rpi.img.xz](https://ubiquity-pi-image.sfo2.cdn.digitaloceanspaces.com/2019-06-18-hbrc-fpga-rpi.img.xz)
+[https://downloads.ubiquityrobotics.com/hbrc-fpga-class.html](https://downloads.ubiquityrobotics.com/hbrc-fpga-class.html)
 
-You can use GNOME Disk Tool to flash the image onto a 16GB Micro SD card.
-Instructions are similar to the [Ubiquity instructions](https://downloads.ubiquityrobotics.com/pi.html).
 
-## Connect to Wifi 
+## Setup Wifi
 
 When you power on the Pi it creates it's own wifi AP.  The AP name will be
-something like "homebrewXXX", where XXX is the last 4 digits of the MAC address.
+something like "homebrewXXXX", where XXXX is the last 4 digits of the MAC address.
 You can connect to that AP via another computer
 and ssh into the Pi via.  The AP passkey should be *robotseverywhere*
 
