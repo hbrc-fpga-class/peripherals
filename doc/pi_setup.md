@@ -3,17 +3,16 @@
 ## Raspberry Pi Image
 
 We are using a customized version of the Ubiquity Robotics Pi image.
-It can be downloaded from:
+The latest FPGA HBRC class image can be downloaded from this page.
 
-[https://ubiquity-pi-image.sfo2.cdn.digitaloceanspaces.com/2019-06-18-hbrc-fpga-rpi.img.xz](https://ubiquity-pi-image.sfo2.cdn.digitaloceanspaces.com/2019-06-18-hbrc-fpga-rpi.img.xz)
+[https://downloads.ubiquityrobotics.com/hbrc-fpga-class.html](https://downloads.ubiquityrobotics.com/hbrc-fpga-class.html)
 
-You can use GNOME Disk Tool to flash the image onto a 16GB Micro SD card.
-Instructions are similar to the [Ubiquity instructions](https://downloads.ubiquityrobotics.com/pi.html).
 
-## Connect to Wifi and change hostname
+## Setup Wifi
 
-When you power on the Pi it creates it's own wifi AP.  I'm not sure the exact name but
-is is something like "homebrewXXX".  You can connect to that AP via another computer
+When you power on the Pi it creates it's own wifi AP.  The AP name will be
+something like "homebrewXXXX", where XXXX is the last 4 digits of the MAC address.
+You can connect to that AP via another computer
 and ssh into the Pi via.  The AP passkey should be *robotseverywhere*
 
 ```
@@ -32,13 +31,42 @@ network.
 sudo pifi add <ssid> [<password>]
 ```
 
-You can also use pifi to change the hostname to something unique. For example I did:
+For the HBRC class we will have a Wifi network setup. It will have a dual band
+configuration, one for 5Ghz, and one for 2.4Ghz.  Here is the SSID information
+1. 5Ghz (preferred) : SSID: Homebrew5 , password: ilikerobots
+2. 2.4Ghz : SSID : Homebrew2.4 , password: ilikerobots
+
+Add these two SSIDs using pifi:
 
 ```
-sudo pifi set-hostname hbrc2
+sudo pifi add Homebrew5 ilikerobots
+sudo pifi add Homebrew2.4 ilikerobots
+```
+
+You can add additional wifi networks like your home wifi network.
+
+## Change hostname
+
+Each class Raspberry Pi has a label with "HXX" on the back.
+The "XX" is a two digit number.  So far the labels go from "H01" to "H23".
+If you are using your own Pi, and don't have a label contact the
+class leaders to get assigned a number.  The goal is for every Pi
+in the class to have a unique hostname.
+
+We need to update the hostname of the Pi
+to match the label.  We can use pifi to update the hostname.
+
+For example if your label was "H01", type:
+
+```
+sudo pifi set-hostname H01
 ```
 
 Now reboot.
+
+```
+sudo reboot
+```
 
 ## SSH in from remote computer
 
@@ -49,51 +77,97 @@ attached to the Raspberry Pi.
 From remote computer that is connected to the same WiFi network as the Pi:
 
 ```
-ssh ubuntu@hbrc2.local
+ssh ubuntu@H01.local
 ```
 
 Password is "ubuntu"
 
-## Raspberri Pi GPIO connections to TinyFPGA board
+## Change to Command Line Interface (CLI)
 
-[Raspberry Pi 3 B+ pinout reference](https://pi4j.com/1.2/pins/model-3b-plus-rev1.html)
+To save power change from the X Desktop interface to the Command Line Interface.
 
-[TinyFPGA-BX pinout](https://www.crowdsupply.com/img/a1f0/card-front_png_project-body.jpg)
+```
+sudo raspi-config
+```
 
-**NOTE** These connections are for the current version of main_project/romi-proto
-that is checked in to the master branch of peripherals.  This will change
-in the future when the custom PCB boards are ready, then we will switch to
-the main_project/romi-pcb project.
+Select the following:
+* 2 Boot Options
+* B1 Desktop/CLI
+* B1 Console Text console
+* Finish
+* Reboot
 
-| Rasp Pi          | TinyFPGA           |
-| ---------------- | ------------------:|
-| Pi_txd (GPIO15)  | FPGA_rxd (PIN_23)  |
-| Pi_rxd (GPIO16)  | FPGA_txd (PIN_22)  |
-| Pi_intr (GPIO25) | FPGA_intr (PIN_24) |
-| Pi_gnd (pin 39)  | TinyFPGA GND       |
+## Install "expect"
+
+[Expect](https://likegeeks.com/expect-command/) command or expect scripting language is a language 
+that talks with your interactive programs or scripts that require user interaction.
+
+```
+sudo apt-get upgrade
+sudo apt-get install expect
+```
 
 
-## Clone eedd and peripherals repository
+
+## Update eedd and peripherals repository
 
 From the home directory
 
 ```
-mkdir hbrc_fpga_class
-cd hbrc_fpga_class
-git clone --depth=1 https://github.com/hbrc-fpga-class/peripherals.git
-git clone --depth=1 -b hba https://github.com/bob-linuxtoys/eedd.git
-cd eedd
+cd ~/hbrc_fpga_class/peripherals
+git pull origin master
+cd ../eedd
+git pull origin hba
 make
 sudo make install
 ```
 
-## To program the TinyFPGA
+## Create hbadaemon.service
+
+The hbadaemon is what communicates with the FPGA peripherals over a serial connection.
+It is a daemon that can run in the background.  We can start it automatically by creating
+a file **/etc/systemd/system/hbadaemon.service** with the following content:
 
 ```
-cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-proto/
+[Unit]
+Description=HBA control program for FPGA based hardware
+After=NetworkManager.service
+
+[Service]
+Type=forking
+User=ubuntu
+ExecStart=/usr/local/bin/hbadaemon
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then run
+
+```
+sudo systemctl daemon-reload && sudo systemctl enable hbadaemon.service
+```
+
+Then reboot
+
+
+## To program the TinyFPGA
+
+The class TinyFPGA have already been programmed with a default bitstream.
+To load a new bitstream follow the instructions below.
+
+**TODO July 21, 2019** Need to figure out how to program FPGA via SPI.
+And update these instructions
+
+```
+cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-pcb/
 make
 make prog
 ```
+
+## Start hbadaemon on startup
+
+**TODO**
 
 ## Test Communication
 
@@ -153,6 +227,4 @@ enc val: 791 821
 enc val: 906 939
 enc val: 1020 1057
 ```
-
-
 
