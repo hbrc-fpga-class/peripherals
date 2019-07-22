@@ -212,9 +212,9 @@ void usercmd(
         // Read value in FPGA GPIO value register
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_GPIO_REG_VAL;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (gpio)
         nsd = pctx->sendrecv_pkt(5, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {

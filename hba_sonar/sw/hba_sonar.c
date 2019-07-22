@@ -238,8 +238,10 @@ void usercmd(
         // Read value in FPGA SONAR0 value register
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR0;
-        pkt[2] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(3, pkt);
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (sonar0)
+        nsd = pctx->sendrecv_pkt(5, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar0 from SONAR port
@@ -256,8 +258,10 @@ void usercmd(
         // Read value in FPGA SONAR1 value register
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR1;
-        pkt[2] = 0;                     // dummy byte
-        nsd = pctx->sendrecv_pkt(3, pkt);
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (sonar1)
+        nsd = pctx->sendrecv_pkt(5, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar1 from SONAR port

@@ -276,10 +276,10 @@ void usercmd(
         // Read value in FPGA ENC0 value register
         pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_ENC0_LSB;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        pkt[5] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (quadrature low)
+        pkt[5] = 0;                     // (quadrature high)
         nsd = pctx->sendrecv_pkt(6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
@@ -326,10 +326,10 @@ void usercmd(
         // Read value in FPGA ENC1 value register
         pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_ENC1_LSB;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        pkt[5] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (quadrature low)
+        pkt[5] = 0;                     // (quadrature high)
         nsd = pctx->sendrecv_pkt(6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
@@ -377,14 +377,14 @@ void usercmd(
         // Read both enc0 and enc1 values.  4 registers in all
         pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_ENC0_LSB;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
-        pkt[5] = 0;                     // dummy byte
-        pkt[6] = 0;                     // dummy byte
-        pkt[7] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (quadrature low)
+        pkt[5] = 0;                     // (quadrature high)
+        pkt[6] = 0;                     // (quadrature low)
+        pkt[7] = 0;                     // (quadrature high)
         nsd = pctx->sendrecv_pkt(8, pkt);
-        // We sent 2 byte header + four bytes so the sendrecv return value should be 6
+        // We sent 2 byte header + siz bytes so the sendrecv return value should be 6
         if (nsd != 6) {
             // error reading enc1 from QUAD port
             ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
