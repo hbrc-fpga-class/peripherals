@@ -122,6 +122,35 @@ make
 sudo make install
 ```
 
+## Create hbadaemon.service
+
+The hbadaemon is what communicates with the FPGA peripherals over a serial connection.
+It is a daemon that can run in the background.  We can start it automatically by creating
+a file **/etc/systemd/system/hbadaemon.service** with the following content:
+
+```
+[Unit]
+Description=HBA control program for FPGA based hardware
+After=NetworkManager.service
+
+[Service]
+Type=forking
+User=ubuntu
+ExecStart=/usr/local/bin/hbadaemon
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then run
+
+```
+sudo systemctl daemon-reload && sudo systemctl enable hbadaemon.service
+```
+
+Then reboot
+
+
 ## To program the TinyFPGA
 
 The class TinyFPGA have already been programmed with a default bitstream.
