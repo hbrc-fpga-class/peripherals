@@ -77,7 +77,7 @@ attached to the Raspberry Pi.
 From remote computer that is connected to the same WiFi network as the Pi:
 
 ```
-ssh ubuntu@hbrc2.local
+ssh ubuntu@H01.local
 ```
 
 Password is "ubuntu"
