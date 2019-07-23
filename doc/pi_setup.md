@@ -103,8 +103,7 @@ Select the following:
 that talks with your interactive programs or scripts that require user interaction.
 
 ```
-sudo apt-get update
-sudo apt-get install expect
+sudo apt-get update && sudo apt-get install expect
 ```
 
 
