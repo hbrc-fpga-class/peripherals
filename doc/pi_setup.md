@@ -32,15 +32,17 @@ sudo pifi add <ssid> [<password>]
 ```
 
 For the HBRC class we will have a Wifi network setup. It will have a dual band
-configuration, one for 5Ghz, and one for 2.4Ghz.  Here is the SSID information
+configuration, one for 5Ghz (Homebrew5), and one for 2.4Ghz (Homebrew2.4).  
+
+Here is the SSID information
 1. 5Ghz (preferred) : SSID: Homebrew5 , password: ilikerobots
 2. 2.4Ghz : SSID : Homebrew2.4 , password: ilikerobots
 
-Add these two SSIDs using pifi:
+We want the Pi's to connect to Homebrew5 for it should have more bandwidth.
+Add the Homebrew5 wifi network using pifi:
 
 ```
 sudo pifi add Homebrew5 ilikerobots
-sudo pifi add Homebrew2.4 ilikerobots
 ```
 
 You can add additional wifi networks like your home wifi network.
