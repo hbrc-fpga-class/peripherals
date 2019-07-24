@@ -6,6 +6,6 @@ module top
     output wire led0
 );
 
-assign leds = button0;
+assign led0 = button0;
 
 endmodule
