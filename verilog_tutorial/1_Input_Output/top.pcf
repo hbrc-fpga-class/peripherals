@@ -1,0 +1,3 @@
+set_io button0    J4  # PIN_27
+set_io led0       A9  # PIN_18
+
