@@ -33,7 +33,7 @@ all: $(PROJ).rpt $(PROJ).bin
 	vvp -N $< +vcd=$@
 
 prog: $(PROJ).bin
-	tinyprog -p $<
+	prog_fpga.py $<
 
 sudo-prog: $(PROJ).bin
 	@echo 'Executing prog as root!!!'
