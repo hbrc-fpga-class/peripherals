@@ -43,10 +43,6 @@ spi.open(bus, device)
 spi.max_speed_hz = 10000000
 spi.mode = 0
 
-# Test
-msg = [0xfe]
-spi.xfer2(msg)
-
 
 print("...programming")
 
