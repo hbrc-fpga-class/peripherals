@@ -20,7 +20,7 @@ For now this is just a bunch of links to various `README.md` files:
   * [HBA Sonar](hba_sonar/README.md):
     ...
 
-  * [Boards](boards.README.md):
+  * [Boards](boards/README.md):
     ...
 
   * [Quadrature1](hba_quad.md):
