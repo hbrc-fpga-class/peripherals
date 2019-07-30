@@ -7,7 +7,7 @@ For now this is just a bunch of links to various `README.md` files:
 * [Serial Interface](doc/serial_interface.md):
   The serial interface protocol between the Raspberry Pi and the FPGA.
 
-* [Raspberry Pi Setup](doc/pi_setup):
+* [Raspberry Pi Setup](doc/pi_setup.md):
   ...
 
 * [HBA BUS](doc/hba_bus.md):
