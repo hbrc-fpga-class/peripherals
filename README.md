@@ -46,13 +46,13 @@ For now this is just a bunch of links to various `README.md` files:
 
 * Tests:
   * [Basic I/O Test](projects/basicio_test/README.md)
-  * [SerialTest](projects/serial_test/README.md)
-  * [Main Project PCB](projects/romi-pcb/README.md)
-  * [Main Project Prototype](projects/romi-proto/README.md)
-  * [Loopback](projects/loopback/README.md)
   * [GPIO Test](projects/gpio_test/README.md)
+  * [Loopback](projects/loopback/README.md)
+  * [Main Project PCB](projects/main_project/romi-pcb/README.md)
+  * [Main Project Prototype](projects/main_project/romi-proto/README.md)
+  * [SerialTest](projects/serial_test/README.md)
   * [Sonar Test](projects/sonar_test/README.md)
-  * [Table Robot](projects/romi-board/README.md)
+  * [Table Robot](projects/tablebot/romi-board/README.md)
  
 
   
