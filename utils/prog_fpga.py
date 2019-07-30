@@ -38,7 +38,8 @@ spi = spidev.SpiDev()
 spi.open(bus, device)
 
 # Set SPI speed and mode
-spi.max_speed_hz = 500000
+#spi.max_speed_hz = 500000
+spi.max_speed_hz = 10000000
 spi.mode = 0
 
 # Test
@@ -58,19 +59,11 @@ with open(bitfile, mode="rb") as fp:
 		if (not chunk):
 			break
 
-#		print("chunk: ",chunk)
-
 		spi.xfer2(chunk)
 
-#		while len(chunk) > 0:
-#			# pop a byte from chunk
-#			b = chunk[0]
-#			chunk = chunk[1:]
-#
-#			print("%d) %x" % (i, b))
-#			i = i + 1
-
-# Send the 49 extra bytes (clocks)
+# Send the 49 extra bytes 
+# Acutally only need 49 clocks
+# but a little extra does not hurt.
 spi.xfer2(extra_bytes)
 
 
