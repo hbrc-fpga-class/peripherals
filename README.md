@@ -23,13 +23,13 @@ For now this is just a bunch of links to various `README.md` files:
   * [Boards](boards/README.md):
     ...
 
-  * [Quadrature1](hba_quad.md):
+  * [Quadrature1](hba_quad/README.md):
     ...
 
-  * [Quadrature2](hba_qtr.md):
+  * [Quadrature2](hba_qtr/README.md):
     ...
 
-  * [Motor](hba_motor.md):
+  * [Motor](hba_motor/README.md):
     ...
 
   * [Basic I/O](hba_basicio/README.md):
