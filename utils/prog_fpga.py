@@ -16,6 +16,7 @@ if len(sys.argv) != 2:
 bitfile = sys.argv[1]
 print("bitfile: ", bitfile)
 
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 FPGA_SS = 8
 GPIO.setup(FPGA_SS,GPIO.OUT)
