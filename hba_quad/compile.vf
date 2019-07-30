@@ -1,0 +1,6 @@
+# iverilog -c compile.vf
+hba_quad.v
+quadrature.v
+pulse_counter.v
+../hba_reg_bank/hba_reg_bank.v
+

@@ -6,24 +6,14 @@
 * for the HBRC FPGA class.  The following
 * peripherals are instantiated:
 *
-* Eventually:
 * Slot |    Peripheral
 * ------------------------
 *   0  |    serial_fpga
 *   1  |    hba_basicio
-*   2  |    hba_gpio
-*   3  |    hba_quad
-*   4  |    hba_pwm
-*   5  |    hba_sonar
-*
-*
-* But for now:
-* Slot |    Peripheral
-* ------------------------
-*   0  |    serial_fpga
-*   1  |    hba_basicio
-*   2  |    hba_gpio
-*   3  |    hba_sonar
+*   2  |    hba_qtr
+*   3  |    hba_motor
+*   4  |    hba_sonar
+*   5  |    hba_quad
 *
 *
 * Author: Brandon Blodget
@@ -61,7 +51,7 @@
 module hba_system # 
 (
     // Parameters
-    parameter integer CLK_FREQUENCY = 50_000_000,
+    parameter integer CLK_FREQUENCY = 60_000_000,
     parameter integer BAUD = 32'd115_200,
 
     parameter integer DBUS_WIDTH = 8,
@@ -83,14 +73,24 @@ module hba_system #
     output wire [7:0] basicio_led,
     input wire [7:0] basicio_button,
 
-    // SLOT(2) : hba_gpio pins
-    output wire [3:0] gpio_out_en,
-    output wire [3:0] gpio_out_sig,
-    input wire [3:0] gpio_in_sig,
+    // SLOT(2) : hba_qtr pins
+    output wire [1:0]  qtr_out_en,
+    output wire [1:0] qtr_out_sig,
+    input wire [1:0] qtr_in_sig,
+    output wire [1:0] qtr_ctrl,
 
-    // SLOT(3) : hba_sonar pins
+    // SLOT(3) : hba_motor pins
+    output wire [1:0] motor_pwm,
+    output wire [1:0] motor_dir,
+    output wire [1:0] motor_float_n,
+
+    // SLOT(4) : hba_sonar pins
     output wire [1:0] sonar_trig,
-    input wire [1:0] sonar_echo
+    input wire [1:0] sonar_echo,
+
+    // SLOT(5) : hba_quad pins
+    input wire [1:0] quad_enc_a,
+    input wire [1:0] quad_enc_b
 );
 
 
@@ -107,15 +107,15 @@ wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 wire hba_xferack;       // Slave ACK transfer complete.
 
-// Four slave.  Set the others to 0.
+// Six slaves.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
-assign hba_xferack_slave[15:4] = 0;
+assign hba_xferack_slave[15:6] = 0;
 wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
 
-// Slots 1,2,3 generate interrupts, zeros for others.
+// Slots 1,2,3,4,5 generate interrupts, zeros for others.
 wire [15:0] slave_interrupt;
 assign slave_interrupt[0] = 0;
-assign slave_interrupt[15:4] = 0;
+assign slave_interrupt[15:6] = 0;
 
 // Slot 0
 wire [DBUS_WIDTH-1:0] hba_dbus_slave0;   // The output data bus.
@@ -128,6 +128,12 @@ wire [DBUS_WIDTH-1:0] hba_dbus_slave2;   // The output data bus.
 
 // Slot 3
 wire [DBUS_WIDTH-1:0] hba_dbus_slave3;   // The output data bus.
+
+// Slot 4
+wire [DBUS_WIDTH-1:0] hba_dbus_slave4;   // The output data bus.
+
+// Slot 5
+wire [DBUS_WIDTH-1:0] hba_dbus_slave5;   // The output data bus.
 
 // Master 0 (only 1)
 wire [3:0] hba_rnw_master;
@@ -218,8 +224,9 @@ hba_basicio #
     .basicio_button(basicio_button)
 );
 
-hba_gpio #
+hba_qtr #
 (
+    .CLK_FREQUENCY(CLK_FREQUENCY),
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
@@ -240,18 +247,20 @@ hba_gpio #
                                     // Must be zero when inactive.
     .slave_interrupt(slave_interrupt[2]),    // to interrupt controller
 
-    .gpio_out_en(gpio_out_en),
-    .gpio_out_sig(gpio_out_sig),
-    .gpio_in_sig(gpio_in_sig)
+    .qtr_out_en(qtr_out_en),
+    .qtr_out_sig(qtr_out_sig),
+    .qtr_in_sig(qtr_in_sig),
+    .qtr_ctrl(qtr_ctrl)
 );
 
-hba_sonar #
+hba_motor #
 (
     .DBUS_WIDTH(DBUS_WIDTH),
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .CLK_FREQUENCY(CLK_FREQUENCY),
     .PERIPH_ADDR(3)
-) hba_sonar_inst
+) hba_motor_inst
 (
     // HBA Bus Slave Interface
     .hba_clk(clk),
@@ -265,13 +274,68 @@ hba_sonar #
     .hba_xferack_slave(hba_xferack_slave[3]),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
-    .slave_interrupt(slave_interrupt[3]),    // to interrupt controller
+    .slave_interrupt(slave_interrupt[3]),   // Send interrupt back
+
+    // hba_motor pins
+    .motor_pwm(motor_pwm[1:0]),    // [1:0]
+    .motor_dir(motor_dir[1:0]),    // [1:0]
+    .motor_float_n(motor_float_n[1:0]) // [1:0]
+);
+
+hba_sonar #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(4)
+) hba_sonar_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(clk),
+    .hba_reset(reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave4),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[4]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    .slave_interrupt(slave_interrupt[4]),    // to interrupt controller
 
     // hba_sonar pins
     .sonar_trig(sonar_trig[1:0]),
     .sonar_echo(sonar_echo[1:0])
     // XXX .sonar_sync_in(),
     // XXX .sonar_sync_out()
+);
+
+hba_quad #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(5)
+) hba_quad_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(clk),
+    .hba_reset(reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave5),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[5]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    .slave_interrupt(slave_interrupt[5]),   // Send interrupt back
+
+    // hba_quad pins
+    .quad_enc_a(quad_enc_a[1:0]),
+    .quad_enc_b(quad_enc_b[1:0])
 );
 
 hba_or_slaves #
@@ -285,8 +349,8 @@ hba_or_slaves #
     .hba_dbus_slave1(hba_dbus_slave1),
     .hba_dbus_slave2(hba_dbus_slave2),
     .hba_dbus_slave3(hba_dbus_slave3),
-    .hba_dbus_slave4(0),
-    .hba_dbus_slave5(0),
+    .hba_dbus_slave4(hba_dbus_slave4),
+    .hba_dbus_slave5(hba_dbus_slave5),
     .hba_dbus_slave6(0),
     .hba_dbus_slave7(0),
 

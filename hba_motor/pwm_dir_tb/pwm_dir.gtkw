@@ -1,0 +1,30 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Fri Jun 21 21:52:49 2019
+[*]
+[dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/hba_motor/pwm_dir_tb/pwm_dir.vcd"
+[dumpfile_mtime] "Fri Jun 21 21:51:05 2019"
+[dumpfile_size] 128744
+[savefile] "/home/brandonb/Projects/fpga_class/peripherals/hba_motor/pwm_dir_tb/pwm_dir.gtkw"
+[timestart] 4860000
+[size] 1920 995
+[pos] -1 -1
+*-22.086891 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] pwm_dir_tb.
+[sst_width] 233
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 281
+@28
+pwm_dir_tb.pwm_dir_inst.clk
+pwm_dir_tb.pwm_dir_inst.en
+pwm_dir_tb.pwm_dir_inst.pwm
+pwm_dir_tb.pwm_dir_inst.pulse_100k
+@24
+pwm_dir_tb.pwm_dir_inst.pulse_100k_count[9:0]
+@25
+pwm_dir_tb.pwm_dir_inst.pwm_count[7:0]
+@24
+pwm_dir_tb.pwm_dir_inst.duty_amount[7:0]
+[pattern_trace] 1
+[pattern_trace] 0

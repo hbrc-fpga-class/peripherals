@@ -1,0 +1,5 @@
+# iverilog -c compile.vf
+hba_motor.v
+pwm_dir.v
+../hba_reg_bank/hba_reg_bank.v
+

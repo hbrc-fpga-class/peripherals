@@ -1,0 +1,37 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Wed Jun 26 02:53:33 2019
+[*]
+[dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/hba_qtr/qtr_tb/qtr.vcd"
+[dumpfile_mtime] "Wed Jun 26 02:51:59 2019"
+[dumpfile_size] 3542159
+[savefile] "/home/brandonb/Projects/fpga_class/peripherals/hba_qtr/qtr_tb/qtr.gtkw"
+[timestart] 999572000
+[size] 1920 995
+[pos] -1 -1
+*-15.452684 999758270 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] qtr_tb.
+[sst_width] 233
+[signals_width] 216
+[sst_expanded] 1
+[sst_vpaned_height] 281
+@28
+qtr_tb.clk
+qtr_tb.reset
+qtr_tb.en
+qtr_tb.qtr_inst.pulse_10us
+@22
+qtr_tb.qtr_inst.count_10us[9:0]
+@28
+qtr_tb.qtr_out_en
+qtr_tb.qtr_out_sig
+qtr_tb.qtr_in_sig
+qtr_tb.one_ms
+@24
+qtr_tb.qtr_inst.qtr_state[1:0]
+@25
+qtr_tb.value[7:0]
+@28
+qtr_tb.valid
+[pattern_trace] 1
+[pattern_trace] 0

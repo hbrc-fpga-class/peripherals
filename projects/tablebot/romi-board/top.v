@@ -6,10 +6,10 @@
 * It contains the board specific interfaces and
 * instantiates the hba_system.
 *
-* Target Board: hx8k-bb
+* Target Board: romi-board
 *
 * Author: Brandon Blodget
-* Create Date: 06/15/2019
+* Create Date: 06/20/2019
 *
 ********************************************
 */
@@ -42,34 +42,43 @@
 
 module top
 (
-    input wire  CLK_12MHZ,
+    input wire  CLK_16MHZ,
 
-    // serial_fpga pins (SLOT 0)
-    input wire  RXD,  // rxd
-    output wire TXD,  // txd
-    output wire J2_4, // intr
+    output wire BLED,       // Tiny-BX board led
+
+    // (SLOT 0)
 
     // hba_basicio pins (SLOT 1)
-    input wire J2_18,       // basicio_button[0]
-    input wire J2_20,       // basicio_button[1]
+    input wire PIN_1,       // basicio_button[0]
+    input wire PIN_2,       // basicio_button[1]
     output wire [7:0] LED,  // basicio_led
 
-    // hba_gpio pins (SLOT 2)
-    inout wire J2_22,   // gpio_port[0]
-    inout wire J2_26,   // gpio_port[1]
-    inout wire J2_28,   // gpio_port[2]
-    inout wire J2_30,   // gpio_port[3]
+    // hba_qtr pins (SLOT 2)
+    inout wire PIN_14,   // QTRR_CTRL
+    inout wire PIN_15,   // QTRL_CTRL
+    inout wire PIN_16,   // QTRR_OUT
+    inout wire PIN_17,   // QTRL_OUT
 
-    // hba_sonar pins (SLOT 3)
-    output wire J2_6,   // sonar_trig[0]
-    input  wire J2_10,  // sonar_echo[0]
-    output wire J2_12,  // sonar_trig[1]
-    input  wire J2_14   // sonar_echo[1]
+    // hba_motor pins (SLOT 3)
+    // Left motor pins
+    output wire PIN_7,  // motor_pwm[0]
+    output wire PIN_6,  // motor_dir[0]
+    output wire PIN_5,  // motor_float_n[0]
+    // Right motor pins
+    output wire PIN_10,  // motor_pwm[1]
+    output wire PIN_9,   // motor_dir[1]
+    output wire PIN_8,   // motor_float_n[1]
+
+    // hba_sonar pins (SLOT 4)
+    output wire PIN_21,   // sonar_trig[0], L_TRIG
+    input  wire PIN_20,  // sonar_echo[0], L_ECHO
+    output wire PIN_19,  // sonar_trig[1], R_TRIG
+    input  wire PIN_18   // sonar_echo[1], R_ECHO
 
 );
 
 // Parameters
-parameter integer CLK_FREQUENCY = 50_250_000;
+parameter integer CLK_FREQUENCY = 60_000_000;
 parameter integer BAUD = 32'd115_200;
 
 parameter integer DBUS_WIDTH = 8;
@@ -84,9 +93,6 @@ parameter integer REG_ADDR_WIDTH = 8;
 
 wire clk;
 wire locked;
-wire rxd;
-wire txd;
-wire intr;
 
 // hba_basicio pins
 wire [7:0] basicio_led;
@@ -95,28 +101,40 @@ wire [7:0] basicio_button;
 reg reset = 0;
 reg [7:0] count = 0;
 
-assign rxd = RXD;
-assign TXD = txd;
-assign J2_4 = intr;
-assign basicio_button[0] = J2_18;
-assign basicio_button[1] = J2_20;
+assign basicio_button[0] = PIN_1;
+assign basicio_button[1] = PIN_2;
 assign basicio_button[7:2] = 0;
 assign LED = basicio_led;
+assign BLED = basicio_led[0]; // copy of lsb led
 
 
 // hba_sonar pins
 wire [1:0] sonar_trig;
 wire [1:0] sonar_echo;
 
-assign J2_6 = sonar_trig[0];
-assign sonar_echo[0] = J2_10;
-assign J2_12 = sonar_trig[1];
-assign sonar_echo[1] = J2_14;
+assign PIN_21 = sonar_trig[0];
+assign sonar_echo[0] = PIN_20;
+assign PIN_19 = sonar_trig[1];
+assign sonar_echo[1] = PIN_18;
 
-// hba_gpio wires
-wire [3:0] slot2_gpio_out_en;
-wire [3:0] slot2_gpio_out_sig;
-wire [3:0] slot2_gpio_in_sig;
+// hba_qtr wires
+wire [1:0] slot2_qtr_out_en;
+wire [1:0] slot2_qtr_out_sig;
+wire [1:0] slot2_qtr_in_sig;
+wire [1:0] slot2_qtr_ctrl;
+assign PIN_15 = slot2_qtr_ctrl[0];  // qtr_left
+assign PIN_14 = slot2_qtr_ctrl[1];  // qtr_right
+
+// hba_motor pins
+wire [1:0] motor_pwm;
+wire [1:0] motor_dir;
+wire [1:0] motor_float_n;
+assign PIN_7 = motor_pwm[0];
+assign PIN_6 = motor_dir[0];
+assign PIN_5 = motor_float_n[0];
+assign PIN_10 = motor_pwm[1];
+assign PIN_9 = motor_dir[1];
+assign PIN_8 = motor_float_n[1];
 
 /*
 ****************************
@@ -125,8 +143,8 @@ wire [3:0] slot2_gpio_in_sig;
 */
 
 // Use PLL to get 50mhz clock
-pll_50mhz pll_50mhz_inst (
-    .clock_in(CLK_12MHZ),
+pll_60mhz pll_60mhz_inst (
+    .clock_in(CLK_16MHZ),
     .clock_out(clk),
     .locked(locked)
 );
@@ -144,67 +162,48 @@ hba_system #
     .clk(clk),
     .reset(reset),
 
-    // SLOT(0) : serial_fpga pins
-    .rxd(rxd),
-    .txd(txd),
-    .intr(intr),
+    // SLOT(0) : hba_master_tbc
 
     // SLOT(1) : hba_basicio pins
     .basicio_led(basicio_led),
     .basicio_button(basicio_button),
 
-    // SLOT(2) : hba_gpio pins
-    .gpio_out_en(slot2_gpio_out_en),
-    .gpio_out_sig(slot2_gpio_out_sig),
-    .gpio_in_sig(slot2_gpio_in_sig),
+    // SLOT(2) : hba_qtr pins
+    .qtr_out_en(slot2_qtr_out_en),
+    .qtr_out_sig(slot2_qtr_out_sig),
+    .qtr_in_sig(slot2_qtr_in_sig),
+    .qtr_ctrl(slot2_qtr_ctrl),
 
-    // SLOT(3) : hba_sonar pins
+    // SLOT(3) : hba_motor pins
+    .motor_pwm(motor_pwm[1:0]),
+    .motor_dir(motor_dir[1:0]),
+    .motor_float_n(motor_float_n[1:0]),
+
+    // SLOT(4) : hba_sonar pins
     .sonar_trig(sonar_trig),
     .sonar_echo(sonar_echo)
 );
 
-// SLOT2: GPIO_PORT bit 0
+// SLOT2: QTRL_CTRL
 SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
-) slot2_gpio_port0_inst  (
-    .PACKAGE_PIN(J2_22),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[0]),
-    .D_OUT_0(slot2_gpio_out_sig[0]),
-    .D_IN_0(slot2_gpio_in_sig[0])
+) slot2_qtr_port0_inst  (
+    .PACKAGE_PIN(PIN_17),
+    .OUTPUT_ENABLE(slot2_qtr_out_en[0]),
+    .D_OUT_0(slot2_qtr_out_sig[0]),
+    .D_IN_0(slot2_qtr_in_sig[0])
 );
 
-// SLOT2: GPIO_PORT bit 1
+// SLOT2: QTRR_CTRL
 SB_IO #(
     .PIN_TYPE(6'b 1010_01),
     .PULLUP(1'b1)
-) slot2_gpio_port1_inst  (
-    .PACKAGE_PIN(J2_26),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[1]),
-    .D_OUT_0(slot2_gpio_out_sig[1]),
-    .D_IN_0(slot2_gpio_in_sig[1])
-);
-
-// SLOT2: GPIO_PORT bit 2
-SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b1)
-) slot2_gpio_port2_inst  (
-    .PACKAGE_PIN(J2_28),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[2]),
-    .D_OUT_0(slot2_gpio_out_sig[2]),
-    .D_IN_0(slot2_gpio_in_sig[2])
-);
-
-// SLOT2: GPIO_PORT bit 3
-SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b1)
-) slot2_gpio_port3_inst  (
-    .PACKAGE_PIN(J2_30),
-    .OUTPUT_ENABLE(slot2_gpio_out_en[3]),
-    .D_OUT_0(slot2_gpio_out_sig[3]),
-    .D_IN_0(slot2_gpio_in_sig[3])
+) slot2_qtr_port1_inst  (
+    .PACKAGE_PIN(PIN_16),
+    .OUTPUT_ENABLE(slot2_qtr_out_en[1]),
+    .D_OUT_0(slot2_qtr_out_sig[1]),
+    .D_IN_0(slot2_qtr_in_sig[1])
 );
 
 /*

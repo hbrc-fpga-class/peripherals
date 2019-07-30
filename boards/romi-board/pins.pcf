@@ -83,7 +83,17 @@ set_io --warn-no-port PIN_30 E8
 set_io --warn-no-port PIN_31 J2
 
 # LED
-set_io --warn-no-port LED B3
+
+#set_io --warn-no-port LED[0] H2
+#set_io --warn-no-port LED[1] G1
+#set_io --warn-no-port LED[2] J3
+#set_io --warn-no-port LED[3] J4
+#set_io --warn-no-port LED[4] E8
+#set_io --warn-no-port LED[5] J9
+#set_io --warn-no-port LED[6] G9
+#set_io --warn-no-port LED[7] J2
+
+set_io --warn-no-port BLED B3
 
 # USB
 set_io --warn-no-port USBP B4

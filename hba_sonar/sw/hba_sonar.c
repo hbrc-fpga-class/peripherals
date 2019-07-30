@@ -49,23 +49,18 @@
 #include <termios.h>
 #include <dlfcn.h>
 #include "eedd.h"
+#include "hba.h"
 #include "readme.h"
 
-#define HBAERROR_NOSEND         (-1)
-#define HBAERROR_NORECV         (-2)
-#define HBA_READ_CMD            (0x80)
-#define HBA_WRITE_CMD           (0x00)
-#define HBA_MXPKT               (16)
-#define HBA_ACK                 (0xAC)
-
-#define HBA_SONAR_REG_CTRL    (0)
-#define HBA_SONAR_REG_SONAR0  (1)
-#define HBA_SONAR_REG_SONAR1  (2)
 
 
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
+        // hardware register definitions
+#define HBA_SONAR_REG_CTRL    (0)
+#define HBA_SONAR_REG_SONAR0  (1)
+#define HBA_SONAR_REG_SONAR1  (2)
         // resource names and numbers
 #define FN_CTRL           "ctrl"
 #define FN_SONAR0         "sonar0"
@@ -101,6 +96,7 @@ typedef struct
  **************************************************************/
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 extern SLOT Slots[];
+static void core_interrupt();
 
 
 /**************************************************************
@@ -112,6 +108,7 @@ int Initialize(
 {
     HBA_SONAR *pctx;  // our local context
     const char *errmsg; // error message from dlsym
+    void        *reg_intr;  // use this to register and interrupt handler
 
     // Allocate memory for this plug-in
     pctx = (HBA_SONAR *) malloc(sizeof(HBA_SONAR));
@@ -122,6 +119,7 @@ int Initialize(
     }
 
     // Init our HBA_SONAR structure
+    pctx->pslot = pslot;        // this instance of a dual sonar receiver
     pctx->ctrl = HBA_DEFCTRL;   // most recent from to/from port
     pctx->sonar0 = 0;    // default sonar0 value.
     pctx->sonar1 = 0;    // default sonar1 value.
@@ -169,6 +167,22 @@ int Initialize(
         return(-1);
     }
 
+    // The serial_fpga plug-in has a routine that responds to interrupts.
+    // The routine polls the FPGA for its two interrupt pending registers.
+    // If an interrupt bit is set the serial_fpga looks up the address of
+    // core's interrupt handler and invokes it.
+    // The code below registers this core's interrupt handler with
+    // serial_fpga.
+    dlerror();                  /* Clear any existing error */
+    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    if (errmsg != NULL) {
+        return(-1);
+    }
+    // pass in the slot ID (core ID) of this plug-in
+    if (reg_intr != (void *) 0) {
+        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+    }
+
     return (0);
 }
 
@@ -196,12 +210,9 @@ void usercmd(
 
     if ((cmd == EDSET) && (rscid == RSC_CTRL)) {
         ret = sscanf(val, "%x", &nctrl);
-        if (ret != 1) {
+        if ((ret != 1) || (nctrl < 0) || (nctrl > 0xff)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            return;
-        }
-        if ((nctrl < 0) || (nctrl > 0xff)) {
-            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;  // (errors are handled in calling routine)
             return;
         }
         // record the new data value 
@@ -217,7 +228,8 @@ void usercmd(
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
             // error writing value from SONAR port
-            edlog("Error writing SONAR ctrl to FPGA");
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;  // (errors are handled in calling routine)
         }
     } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
         ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
@@ -226,21 +238,19 @@ void usercmd(
         // Read value in FPGA SONAR0 value register
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR0;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (sonar0)
         nsd = pctx->sendrecv_pkt(5, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar0 from SONAR port
-            edlog("Error reading SONAR sonar0 from FPGA");
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            *plen = ret;
+            *plen = ret;  // (errors are handled in calling routine)
         }
         else {
             // Got value.  Print and send to user
             pctx->sonar0 = pkt[2];   // first two bytes are echo of header
-            // XXX ret = snprintf(buf, *plen, "%f\n", ((float)pctx->sonar0)*0.55);
             ret = snprintf(buf, *plen, "%02x\n", pctx->sonar0);
             *plen = ret;  // (errors are handled in calling routine)
         }
@@ -248,16 +258,15 @@ void usercmd(
         // Read value in FPGA SONAR1 value register
         pkt[0] = HBA_READ_CMD | ((1 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_SONAR_REG_SONAR1;
-        pkt[2] = 0;                     // dummy byte
-        pkt[3] = 0;                     // dummy byte
-        pkt[4] = 0;                     // dummy byte
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (sonar1)
         nsd = pctx->sendrecv_pkt(5, pkt);
         // We sent header + one byte so the sendrecv return value should be 3
         if (nsd != 3) {
             // error reading sonar1 from SONAR port
-            edlog("Error reading SONAR sonar1 from FPGA");
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
-            *plen = ret;
+            *plen = ret;  // (errors are handled in calling routine)
         }
         else {
             // Got value.  Print and send to user
@@ -270,6 +279,66 @@ void usercmd(
     // Nothing to do here if edcat.  That is handled in the UI code
 
     return;
+}
+
+
+/**************************************************************
+ * core_interrupt():  - interrupt handler for this peripheral
+ **************************************************************/
+void core_interrupt(void *trans)
+{
+    HBA_SONAR   *pctx;       // this peripheral's private info
+    SLOT        *pslot;      // This instance of the serial plug-in
+    RSC         *prsc;       // pointer to this slot's counts resource
+    int          nsd;        // number of bytes sent to FPGA
+    uint8_t      pkt[HBA_MXPKT];  
+    char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
+    int          slen;       // length of text to output
+    int          new0;
+    int          new1;
+
+    // get pointers to this instance of the plug-in and its slot
+    pctx = (HBA_SONAR *) trans; // transparent data is our context
+
+    // Read value in gpio value register
+    // Read two bytes offset by -1 (2 -1)
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
+    pkt[1] = HBA_SONAR_REG_SONAR0;
+    pkt[2] = 0;                     // dummy byte (cmd)
+    pkt[3] = 0;                     // dummy byte (reg)
+    pkt[4] = 0;                     // dummy byte (echo0)
+    pkt[5] = 0;                     // dummy byte (echo1)
+
+    nsd = pctx->sendrecv_pkt(6, pkt);
+    // We sent header + four bytes so the sendrecv return value should be 4
+    if (nsd != 4) {
+        // error reading value from SONAR port
+        edlog("Error reading value from SONAR");
+        return;
+    }
+    new0 = pkt[2];   // first two bytes are echo of header
+    new1 = pkt[3];
+
+    // Broadcast sonar0 if it's changed and any UI is monitoring it
+    pslot = pctx->pslot;
+    if (new0 != pctx->sonar0) {
+        prsc = &(pslot->rsc[RSC_SONAR0]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", new0);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    // Broadcast sonar0 if it's changed and any UI is monitoring it
+    pslot = pctx->pslot;
+    if (new1 != pctx->sonar1) {
+        prsc = &(pslot->rsc[RSC_SONAR1]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%x\n", new1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    pctx->sonar0 = new0;
+    pctx->sonar1 = new1;
 }
 
 

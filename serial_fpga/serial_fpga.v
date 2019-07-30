@@ -292,6 +292,7 @@ begin
         app_reg_addr <= 0;
         app_data_in <= 0;
         app_rnw <= 0;
+        app_en_strobe <= 0;
 
         serial_tx_data <= 0;
         serial_wr <= 0;

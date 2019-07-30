@@ -45,10 +45,10 @@ Use ttyS2 at 9600 baud.  Use GPIO pin 14 for interrupts
 from the FPGA.  Start monitoring data from the FPGA and
 send the command sequence b0 00 12 34 56.
 
- hbaset serial-fpga config 9600
- hbaset serial-fpga port /dev/ttyS2
- hbaset serial-fpga intrr_pin 14
- hbacat serial-fpga rawout &
- hbaset serial-fpga rawin b0 00 12 34 56
+ hbaset serial_fpga config 9600
+ hbaset serial_fpga port /dev/ttyS2
+ hbaset serial_fpga intrr_pin 14
+ hbacat serial_fpga rawin &
+ hbaset serial_fpga rawout b0 00 12 34 56
 
 

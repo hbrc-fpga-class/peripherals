@@ -34,6 +34,6 @@ Read back the value of Sonar 0.
 Echo back new sonar 0 values.
 
  hbaset hba_sonar ctrl 1
- hbaset hba_sonar sonar0
+ hbaget hba_sonar sonar0
  hbacat hba_sonar sonar0
 

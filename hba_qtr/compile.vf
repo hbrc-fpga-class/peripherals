@@ -1,0 +1,5 @@
+# iverilog -c compile.vf
+hba_qtr.v
+qtr.v
+../hba_reg_bank/hba_reg_bank.v
+

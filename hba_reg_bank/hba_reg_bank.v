@@ -31,7 +31,17 @@ module hba_reg_bank #
     parameter integer PERIPH_ADDR_WIDTH = 4,
     parameter integer REG_ADDR_WIDTH = 8,
     parameter integer ADDR_WIDTH = PERIPH_ADDR_WIDTH + REG_ADDR_WIDTH,
-    parameter integer PERIPH_ADDR = 0
+    parameter integer PERIPH_ADDR = 0,
+    // REG_OFFSET can be used to set the base reg addr.
+    // For example .REG_OFFSET(4) means the address bank
+    // starts at reg4.  This can be used to instantiate
+    // multiple hba_reg_banks in one peripheral.
+    parameter integer REG_OFFSET = 0,
+    parameter integer REG0 = REG_OFFSET,
+    parameter integer REG1 = REG_OFFSET+1,
+    parameter integer REG2 = REG_OFFSET+2,
+    parameter integer REG3 = REG_OFFSET+3
+
 )
 (
     // HBA Bus Slave Interface
@@ -69,11 +79,16 @@ module hba_reg_bank #
 *****************************
 */
 
+wire [REG_ADDR_WIDTH-1:0] reg_addr = hba_abus[REG_ADDR_WIDTH-1:0];
+
 wire [PERIPH_ADDR_WIDTH-1:0] periph_addr = 
     hba_abus[ADDR_WIDTH-1:ADDR_WIDTH-PERIPH_ADDR_WIDTH];
 
 // logic to decode addresses
-wire addr_decode_hit = (periph_addr == PERIPH_ADDR);
+wire addr_decode_hit = (periph_addr == PERIPH_ADDR) &&
+    (reg_addr >= REG_OFFSET) && (reg_addr < REG_OFFSET+4);
+
+
 wire addr_hit_clear = ~hba_select | hba_xferack_slave;
 
 reg addr_hit;
@@ -151,26 +166,26 @@ begin
             READ : begin
                 hba_xferack_slave <= 1;
                 regbank_state <= WAIT;
-                case(hba_abus[REG_ADDR_WIDTH-1:0])
-                    0 : begin
+                case(reg_addr)
+                    REG0 : begin
                         hba_dbus_slave <= slv_reg0;
                         if (slv_autoclr_mask[0]) begin
                             slv_reg0 <= 0;
                         end
                     end
-                    1 : begin
+                    REG1 : begin
                         hba_dbus_slave <= slv_reg1;
                         if (slv_autoclr_mask[1]) begin
                             slv_reg1 <= 0;
                         end
                     end
-                    2 : begin
+                    REG2 : begin
                         hba_dbus_slave <= slv_reg2;
                         if (slv_autoclr_mask[2]) begin
                             slv_reg2 <= 0;
                         end
                     end
-                    3 : begin
+                    REG3 : begin
                         hba_dbus_slave <= slv_reg3;
                         if (slv_autoclr_mask[3]) begin
                             slv_reg3 <= 0;
@@ -184,17 +199,17 @@ begin
             WRITE : begin
                 hba_xferack_slave <= 1;
                 regbank_state <= WAIT;
-                case(hba_abus[REG_ADDR_WIDTH-1:0])
-                    0 : begin
+                case(reg_addr)
+                    REG0 : begin
                         slv_reg0 <= hba_dbus;
                     end
-                    1 : begin
+                    REG1 : begin
                         slv_reg1 <= hba_dbus;
                     end
-                    2 : begin
+                    REG2 : begin
                         slv_reg2 <= hba_dbus;
                     end
-                    3 : begin
+                    REG3 : begin
                         slv_reg3 <= hba_dbus;
                     end
                     default : ; // Do Nothing
