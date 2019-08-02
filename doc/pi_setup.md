@@ -157,31 +157,38 @@ Then reboot
 The class TinyFPGA have already been programmed with a default bitstream.
 To load a new bitstream follow the instructions below.
 
-**TODO July 21, 2019** Need to figure out how to program FPGA via SPI.
-And update these instructions
-
 ```
 cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-pcb/
 make
 make prog
 ```
 
-## Start hbadaemon on startup
+## Update bashrc
 
-**TODO**
+In the peripherals repository there a bash script called **setup.bash**.
+The script adds the peripherals/utils directory to the PATH env var.
+The utils directory contains the python script prog_fpga.py that
+programs the FPGA over the Pi's SPI pins.  Source this setup.bash
+from the .bashrc file in the home directory.  This is done
+by adding the following to the end of the /home/ubuntu/.bashrc
+script.
+
+```
+# HBA setup
+source ${HOME}/hbrc_fpga_class/peripherals/setup.bash
+```
+
+
+Logout then log back in to activate the .bashrc.
+
 
 ## Test Communication
 
-From one terminal logged in to the pi.
+After boot, press the button on the FPGA to load the FPGA bitstream.
+
+From a terminal logged in to the pi.
 
 ```
-hbadaemon -ef
-```
-
-From a second terminal logged in to the pi.
-
-```
-hbaset 0 port /dev/ttyAMA0
 hbaset 1 leds 1
 hbaset 1 leds 0
 ```
