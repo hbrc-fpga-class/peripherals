@@ -32,15 +32,17 @@ sudo pifi add <ssid> [<password>]
 ```
 
 For the HBRC class we will have a Wifi network setup. It will have a dual band
-configuration, one for 5Ghz, and one for 2.4Ghz.  Here is the SSID information
+configuration, one for 5Ghz (Homebrew5), and one for 2.4Ghz (Homebrew2.4).  
+
+Here is the SSID information
 1. 5Ghz (preferred) : SSID: Homebrew5 , password: ilikerobots
 2. 2.4Ghz : SSID : Homebrew2.4 , password: ilikerobots
 
-Add these two SSIDs using pifi:
+We want the Pi's to connect to Homebrew5 for it should have more bandwidth.
+Add the Homebrew5 wifi network using pifi:
 
 ```
 sudo pifi add Homebrew5 ilikerobots
-sudo pifi add Homebrew2.4 ilikerobots
 ```
 
 You can add additional wifi networks like your home wifi network.
@@ -103,8 +105,7 @@ Select the following:
 that talks with your interactive programs or scripts that require user interaction.
 
 ```
-sudo apt-get update
-sudo apt-get install expect
+sudo apt-get update && sudo apt-get install expect
 ```
 
 
@@ -156,31 +157,38 @@ Then reboot
 The class TinyFPGA have already been programmed with a default bitstream.
 To load a new bitstream follow the instructions below.
 
-**TODO July 21, 2019** Need to figure out how to program FPGA via SPI.
-And update these instructions
-
 ```
 cd ~/hbrc_fpga_class/peripherals/projects/main_project/romi-pcb/
 make
 make prog
 ```
 
-## Start hbadaemon on startup
+## Update bashrc
 
-**TODO**
+In the peripherals repository there a bash script called **setup.bash**.
+The script adds the peripherals/utils directory to the PATH env var.
+The utils directory contains the python script prog_fpga.py that
+programs the FPGA over the Pi's SPI pins.  Source this setup.bash
+from the .bashrc file in the home directory.  This is done
+by adding the following to the end of the /home/ubuntu/.bashrc
+script.
+
+```
+# HBA setup
+source ${HOME}/hbrc_fpga_class/peripherals/setup.bash
+```
+
+
+Logout then log back in to activate the .bashrc.
+
 
 ## Test Communication
 
-From one terminal logged in to the pi.
+After boot, press the button on the FPGA to load the FPGA bitstream.
+
+From a terminal logged in to the pi.
 
 ```
-hbadaemon -ef
-```
-
-From a second terminal logged in to the pi.
-
-```
-hbaset 0 port /dev/ttyAMA0
 hbaset 1 leds 1
 hbaset 1 leds 0
 ```
