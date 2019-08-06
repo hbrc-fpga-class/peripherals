@@ -178,6 +178,8 @@ begin
         end
 
         // Check for an led change
+        // TODO : Believe the code below this
+        // line was for testing and can be removed.
         if (reg_old_led0 != reg_old_led1) begin
             if (reg_intr_en) begin
                 slave_interrupt <= 1;
