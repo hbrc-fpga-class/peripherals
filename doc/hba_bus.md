@@ -29,7 +29,7 @@ the perspective of the peripheral.
   completed. Must be zero when inactive.
 * __hba_dbus_slave[7:0] (output)__ : Data from the slave.  Must be zero when inactive.
 * __hba_interrupt_slave (output)__ : Each slave has a dedicated signal back to
-  a interrupt controller. Optional.
+  a interrupt controller. If not used tie to zero.
 
 The outputs of the slaves are OR'd together, except for __SlaveX_Interrupt__.
 
