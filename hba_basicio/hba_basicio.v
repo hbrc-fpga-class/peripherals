@@ -93,7 +93,7 @@ module hba_basicio #
 */
 
 // Define the bank of registers
-wire [DBUS_WIDTH-1:0] reg_led;      // reg0: Led reigser
+wire [DBUS_WIDTH-1:0] reg_led;      // reg0: Led register
 wire [DBUS_WIDTH-1:0] reg_intr_en;  // reg2: Interrupt Enable Register
 reg [DBUS_WIDTH-1:0] reg_button_in;  // reg1: button value
 
