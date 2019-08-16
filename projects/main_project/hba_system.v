@@ -231,7 +231,7 @@ hba_qtr #
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
     .PERIPH_ADDR(2)
-) hba_gpio_inst
+) hba_qtr_inst
 (
     // HBA Bus Slave Interface
     .hba_clk(clk),
