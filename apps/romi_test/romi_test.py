@@ -66,6 +66,8 @@ class Romi_Test:
             count = (count + 1) % 256
             end = time.time()
             run_time = end - start
+        # Put leds back to zero
+        self.set_cmd("hbaset hba_basicio leds 0\n")
 
     def sonar_test(self, seconds):
         # Init hba_sonar
@@ -202,6 +204,7 @@ if __name__ == "__main__":
                 print
                 print("ctrl-c interrupt")
                 test.motor_stop()
+                test.set_cmd("hbaset hba_basicio leds 0\n")
                 continue
 
     except socket.error:
