@@ -1,4 +1,4 @@
-/* Buttons directly connected to led. */
+/* Buttons directly connected to leds. */
 
 module button_led
 (
