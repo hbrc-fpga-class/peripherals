@@ -1,6 +1,5 @@
 /* Buttons directly connected to led. */
 
-
 module button_led
 (
     input wire button0,
