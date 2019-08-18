@@ -1,4 +1,4 @@
-/* Buttons directly connected to leds. */
+/* Buttons connected to leds via registers. */
 
 // Force error when implicit net has no type.
 `default_nettype none
