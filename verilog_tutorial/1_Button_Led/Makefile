@@ -1,7 +1,7 @@
-PROJ = top
+PROJ = button_led
 DEVICE = lp8k
 SOURCES = $(PROJ).v
-PIN_DEF = $(PROJ).pcf
+PIN_DEF = pins.pcf
 
 all: $(PROJ).rpt $(PROJ).bin
 
@@ -40,7 +40,7 @@ sudo-prog: $(PROJ).bin
 	sudo tinyprog -p $<
 
 clean:
-	rm -f $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin
+	rm -f a.out $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin
 
 .SECONDARY:
 .PHONY: all prog clean

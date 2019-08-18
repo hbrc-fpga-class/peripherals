@@ -1,9 +1,7 @@
-/* 0_Input_Output.  Button directly to led. */
+/* Buttons directly connected to led. */
 
-// Force error when implicit net has no type.
-`default_nettype none
 
-module top
+module button_led
 (
     input wire button0,
     input wire button1,
