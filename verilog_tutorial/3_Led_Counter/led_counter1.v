@@ -15,13 +15,6 @@ module led_counter1
 reg inc_led;
 reg [23:0] fast_count;
 
-// initialize registers for the simulator
-initial
-begin
-    inc_led     <= 0;
-    fast_count  <= 0;
-    led         <= 0;
-end
 
 // A constant
 localparam QUARTER_SEC = 4_000_000;
