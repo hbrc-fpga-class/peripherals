@@ -4,6 +4,8 @@ PIN_DEF = pins.pcf
 
 button_led_reg1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 
+button_led_reg2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
+
 %.blif: %.v
 	yosys -p 'synth_ice40 -top $* -blif $@' $^
 
@@ -36,6 +38,7 @@ button_led_reg1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 
 clean:
 	rm -f a.out $(PROJ)1.blif $(PROJ)1.asc $(PROJ)1.rpt $(PROJ)1.bin
+	rm -f a.out $(PROJ)2.blif $(PROJ)2.asc $(PROJ)1.rpt $(PROJ)2.bin
 
 .SECONDARY:
 .PHONY: all prog clean
