@@ -6,6 +6,8 @@ led_counter1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 
 led_counter2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
 
+led_counter3: $(PROJ)3.rpt $(PROJ)3.bin $(PROJ)3.prog
+
 %.blif: %.v
 	yosys -p 'synth_ice40 -top $* -blif $@' $^
 
