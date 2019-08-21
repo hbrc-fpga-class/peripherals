@@ -58,7 +58,7 @@ begin
 end
 
 // Increment the led count.
-always @ (posedge clk_16mhz or posedge reset)
+always @ (posedge clk_16mhz)
 begin
     if (reset) begin
         led <= 0;
