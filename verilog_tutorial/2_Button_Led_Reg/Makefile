@@ -37,8 +37,7 @@ button_led_reg2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
 	prog_fpga.py $<
 
 clean:
-	rm -f a.out $(PROJ)1.blif $(PROJ)1.asc $(PROJ)1.rpt $(PROJ)1.bin
-	rm -f a.out $(PROJ)2.blif $(PROJ)2.asc $(PROJ)1.rpt $(PROJ)2.bin
+	rm -f a.out *.blif *.asc *.rpt *.bin
 
 .SECONDARY:
 .PHONY: all prog clean

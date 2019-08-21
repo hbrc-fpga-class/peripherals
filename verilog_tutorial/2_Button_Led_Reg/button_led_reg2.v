@@ -1,4 +1,4 @@
-/* Buttons connected to leds via combintorial path. */
+/* Buttons connected to leds via combinatorial path. */
 
 // Force error when implicit net has no type.
 `default_nettype none
