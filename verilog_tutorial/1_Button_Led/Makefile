@@ -10,9 +10,10 @@ png: $(PROJ).png
 %.blif: $(SOURCES)
 	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
-%.png: $(SOURCES)
-	yosys -p 'synth; clean; show -format png -prefix $(PROJ)' $^
-	yosys -p 'synth_ice40; clean; show -format png -prefix $(PROJ)_ice40' $^
+%.png: %.v
+	yosys -p 'synth; clean; show -format png -prefix ys_$*' $^
+	yosys -p 'synth_ice40; clean; show -format png -prefix ys_$*_ice40' $^
+	rm -f *.dot
 
 %.asc: $(PIN_DEF) %.blif
 	arachne-pnr -s 7 -d 8k -P cm81 -o $@ -p $^
