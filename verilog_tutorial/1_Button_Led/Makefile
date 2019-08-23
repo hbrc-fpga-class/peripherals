@@ -3,10 +3,16 @@ DEVICE = lp8k
 SOURCES = $(PROJ).v
 PIN_DEF = pins.pcf
 
-all: $(PROJ).rpt $(PROJ).bin
+all: $(PROJ).rpt $(PROJ).bin 
+
+png: $(PROJ).png
 
 %.blif: $(SOURCES)
 	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
+
+%.png: $(SOURCES)
+	yosys -p 'synth; clean; show -format png -prefix $(PROJ)' $^
+	yosys -p 'synth_ice40; clean; show -format png -prefix $(PROJ)_ice40' $^
 
 %.asc: $(PIN_DEF) %.blif
 	arachne-pnr -s 7 -d 8k -P cm81 -o $@ -p $^
@@ -40,7 +46,7 @@ sudo-prog: $(PROJ).bin
 	sudo tinyprog -p $<
 
 clean:
-	rm -f a.out $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin
+	rm -f a.out *.blif *.asc *.rpt *.bin *.png *.dot
 
 .SECONDARY:
 .PHONY: all prog clean

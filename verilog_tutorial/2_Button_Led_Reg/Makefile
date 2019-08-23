@@ -6,6 +6,15 @@ button_led_reg1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 
 button_led_reg2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
 
+png1: $(PROJ)1.png
+
+png2: $(PROJ)2.png
+
+%.png: %.v
+	yosys -p 'synth; clean; show -format png -prefix $*' $^
+	yosys -p 'synth_ice40; clean; show -format png -prefix $*_ice40' $^
+	rm -f *.dot
+
 %.blif: %.v
 	yosys -p 'synth_ice40 -top $* -blif $@' $^
 
@@ -37,7 +46,7 @@ button_led_reg2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
 	prog_fpga.py $<
 
 clean:
-	rm -f a.out *.blif *.asc *.rpt *.bin
+	rm -f a.out *.blif *.asc *.rpt *.bin *.png *.dot
 
 .SECONDARY:
 .PHONY: all prog clean
