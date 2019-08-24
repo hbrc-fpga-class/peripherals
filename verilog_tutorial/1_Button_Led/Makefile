@@ -11,7 +11,7 @@ png: $(PROJ).png
 	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
 %.png: %.v
-	yosys -p 'synth; clean; show -format png -prefix ys_$*' $^
+	#yosys -p 'synth; clean; show -format png -prefix ys_$*' $^
 	yosys -p 'synth_ice40; clean; show -format png -prefix ys_$*_ice40' $^
 	rm -f *.dot
 
