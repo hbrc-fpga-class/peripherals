@@ -30,6 +30,76 @@ def get_cmd(sock, get_str):
             data = data + retval
     return data
 
+class Behav_Forward:
+    """
+    A Behavior for moving forward
+    """
+    def __init__(self, sock_):
+        self.sock = sock_
+        set_cmd(self.sock, b'hbaset hba_motor motor0 10\n')
+        set_cmd(self.sock, b'hbaset hba_motor motor1 10\n')
+        set_cmd(self.sock, b'hbaset hba_motor mode bb\n')
+        self.enable = False
+
+    def run(self):
+        if self.enable:
+            set_cmd(self.sock, b'hbaset hba_motor mode ff\n')
+
+
+class Behav_Stop_At_Edge:
+    """
+    A Behavior for stoping when edge of table is detected
+    """
+    def __init__(self, sock_):
+        self.sock = sock_
+        set_cmd(self.sock, b'hbaset hba_qtr period 1\n')
+        set_cmd(self.sock, b'hbaset hba_qtr ctrl 7\n')
+        self.enable = False
+
+    def run(self):
+        state = "table"
+        while True:
+            qtr_value = yield state
+            if self.enable and qtr_value == b'ff':
+                set_cmd(sock, b'hbaset hba_motor mode bb\n')
+                state = "edge"
+                print("   EDGE!!!")
+            else:
+                state = "table"
+
+class Behav_Rotate_180:
+    """
+    A Behavior to rotate the robot 180 degrees
+    """
+    def __init__(self, sock_):
+        self.sock = sock_
+        self.enable = False
+
+    def run(self):
+        state = "turning"
+        while True:
+            enc_value = yield state
+            if self.enable and enc_value == self.target:
+                state = "done"
+                set_cmd(sock, b'hbaset hba_motor mode bb\n')
+                print("   Done Turning")
+            else:
+                state = "turning"
+
+    
+
+def c_check_edge(sock):
+    state = "table"
+    while True:
+        qtr_value = yield state
+        print("qtr_value: ",qtr_value)
+        if qtr_value == b'ff':
+            set_cmd(sock, b'hbaset hba_motor mode bb\n')
+            state = "edge"
+            print("   EDGE!!!")
+
+def c_
+
 
 # Start running here at main
 if __name__ == "__main__":
@@ -79,8 +149,12 @@ if __name__ == "__main__":
         # Sockets to which we expect to write
         outputs = [ ]
 
-        # Turn on motors
+        # Init coroutines
+        check_edge = c_check_edge(sock_hba)
+        next(check_edge)    # Prime the coroutine
 
+
+        # Turn on motors
         print("Start while loop:")
         set_cmd(sock_hba, b'hbaset hba_motor motor0 10\n')
         set_cmd(sock_hba, b'hbaset hba_motor motor1 10\n')
@@ -105,10 +179,11 @@ if __name__ == "__main__":
                     else:
                         data = data + retval
                 print("   data: %s " % data)
-                if data==b'ff':
-                    set_cmd(sock_hba, b'hbaset hba_motor mode bb\n')
-                    print("   EDGE!!!")
-                    done = True
+                check_edge.send(data)
+                #if data==b'ff':
+                #    set_cmd(sock_hba, b'hbaset hba_motor mode bb\n')
+                #    print("   EDGE!!!")
+                #    done = True
 
 
             #try:
@@ -127,8 +202,9 @@ if __name__ == "__main__":
         sys.exit()
 
     finally:
-        print("Turn off some leds")
+        print("Turn off leds and motors")
         set_cmd(sock_hba, b'hbaset hba_basicio leds 0\n')
+        set_cmd(sock_hba, b'hbaset hba_motor mode bb\n')
         print("Exit normal.")
         sock_hba.close()
         sock_catqtr0.close()
