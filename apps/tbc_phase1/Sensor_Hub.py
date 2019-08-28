@@ -20,6 +20,15 @@ class Sensor_Hub:
         self.quad_listener      = []
         self.gamepad_listener   = []
 
+        # Start basicio_cat
+        self.sock_basicio_cat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock_basicio_cat = connect(('localhost', 8870))
+        self.sock_basicio_cat.send(b'hbacat hba_basicio buttons\n')
+
+        # Setup select loop inputs, and outputs
+        self.inputs = [ self.sock_basicio_cat ]
+        self.outputs = [ ]
+
     def set_cmd(self, set_str):
         self.sock_cmd.send(set_str)
         while True:
@@ -36,6 +45,19 @@ class Sensor_Hub:
                 break
             elif retval == b'\n':
                 pass
+            else:
+                data = data + retval
+        return data
+
+    def get_data(self, sock):
+        """
+        Get data from a socket who's last cmd was a hbacat
+        """
+        data = b''
+        while True:
+            retval = sock.recv(1)
+            if retval == b'\n':
+                break
             else:
                 data = data + retval
         return data
@@ -58,6 +80,21 @@ class Sensor_Hub:
         if not self.basicio_listener:
             # disable interrupts
             self.set_cmd(b'hbaset hba_basicio intr 0')
+
+    def select_loop(self):
+        while True:
+            readable, writable, exceptional = select.select(inputs, outputs, inputs)
+            # loop through all the sockets available for reading
+            for sock in readable:
+                if sock == self.sock_basicio_cat:
+                    # read the data
+                    data = self.get_data(self.sock_basicio_cat)
+
+                    # loop through all basicio listeners and send the data
+                    for listener in self.basicio_listener
+                        listener.send(data)
+
+
 
 
 
