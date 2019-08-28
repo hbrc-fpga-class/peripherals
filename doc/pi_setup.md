@@ -84,6 +84,22 @@ ssh ubuntu@H01.local
 
 Password is "ubuntu"
 
+## Enable SPI module
+
+Enable the SPI module for programming the TinyFPGA.
+
+```
+sudo raspi-config
+```
+
+Select the following:
+* 3 Interfacing Options
+* P3 SPI
+* Yes
+* Finish
+
+No reboot necessary.
+
 ## Change to Command Line Interface (CLI)
 
 To save power change from the X Desktop interface to the Command Line Interface.
@@ -98,6 +114,7 @@ Select the following:
 * B1 Console Text console
 * Finish
 * Reboot
+
 
 ## Install "expect"
 
