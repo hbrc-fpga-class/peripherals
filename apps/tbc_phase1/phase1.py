@@ -98,7 +98,6 @@ def c_check_edge(sock):
             state = "edge"
             print("   EDGE!!!")
 
-def c_
 
 
 # Start running here at main
