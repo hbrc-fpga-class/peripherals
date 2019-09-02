@@ -12,3 +12,8 @@ set_io led[7]       A7  # PIN_22
 
 set_io clk_16mhz    B2  # clk
 
+# Left Motor
+set_io pwm          C1  # PIN_5
+set_io dir          C2  # PIN_4
+set_io float_n      B1  # PIN_3
+
