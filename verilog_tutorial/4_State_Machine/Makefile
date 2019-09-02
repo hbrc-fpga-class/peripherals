@@ -4,6 +4,8 @@ PIN_DEF = pins.pcf
 
 state_machine0: $(PROJ)0.rpt $(PROJ)0.bin $(PROJ)0.prog
 
+state_machine1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
+
 %.blif: %.v
 	yosys -p 'synth_ice40 -top $* -blif $@' $^
 
