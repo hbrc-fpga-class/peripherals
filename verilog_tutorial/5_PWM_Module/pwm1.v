@@ -1,3 +1,5 @@
+// Drive Left Motor with 100khz pwm at 20% duty cycle.
+
 // Force error when implicit net has no type.
 `default_nettype none
 
