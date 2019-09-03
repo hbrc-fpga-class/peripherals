@@ -18,12 +18,11 @@ module pwm1
 
 // Parameters
 localparam CLK_FREQUENCY = 16_000_000;
-localparam PWM_FREQUENCY = 100_000;
+localparam PWM_FREQUENCY = 160_000;
 localparam PERIOD_COUNT = (CLK_FREQUENCY/PWM_FREQUENCY);
 localparam COUNT_BITS = $clog2(PERIOD_COUNT);
-localparam DUTY_1_PERCENT = (PERIOD_COUNT/100);
 localparam DUTY_CYCLE = 20;
-localparam ON_COUNT = (DUTY_CYCLE*DUTY_1_PERCENT);
+
 
 // Assignments
 assign dir = ~button0;      // Button0 controls direction
@@ -34,12 +33,18 @@ assign led = {6'h0,float_n,dir}; // Turn off leds
 reg [COUNT_BITS-1:0] pwm_count;
 
 // Generate PWM
-initial pwm<=0; // added for sim
+initial begin
+    // added for sim
+    pwm<=0; 
+    pwm_count<=0;
+    $display("PERIOD_COUNT: ",PERIOD_COUNT);
+    $display("COUNT_BITS: ",COUNT_BITS);
+end
 always @ (posedge clk_16mhz)
 begin
     pwm_count <= pwm_count + 1;
     pwm <= 1;
-    if (pwm_count >= ON_COUNT) begin
+    if (pwm_count >= DUTY_CYCLE) begin
         pwm <= 0;
     end
     if (pwm_count == PERIOD_COUNT) begin
