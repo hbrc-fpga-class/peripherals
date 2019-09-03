@@ -37,6 +37,7 @@ initial begin
     // added for sim
     pwm<=0; 
     pwm_count<=0;
+    $display("DUTY_CYCLE: ",DUTY_CYCLE);
     $display("PERIOD_COUNT: ",PERIOD_COUNT);
     $display("COUNT_BITS: ",COUNT_BITS);
 end
