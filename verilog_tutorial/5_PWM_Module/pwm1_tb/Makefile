@@ -3,7 +3,7 @@
 # Targets:
 #    "make compile"             compiles only
 #    "make run"                 runs only
-#    "make viewer"              starts waveform viewer
+#    "make view"                starts waveform viewer
 #    "make clean"               deletes temporary files and dirs
 
 
