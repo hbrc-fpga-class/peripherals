@@ -1,0 +1,4 @@
+# iverilog -c compile.vf
+top.v
+pwm.v
+
