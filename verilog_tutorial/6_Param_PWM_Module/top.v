@@ -15,7 +15,6 @@ module top
 localparam LEFT     = 0;
 localparam RIGHT    = 1;
 
-
 assign led = {6'h0,button[1],button[0]}; 
 
 // Instantiate PWM modules
@@ -50,7 +49,4 @@ pwm #
     .float_n(float_n[RIGHT])
 );
 
-
 endmodule
-
-
