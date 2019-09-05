@@ -7,16 +7,14 @@ module latch3
     output reg [7:0] led
 );
 
-wire en = button0;
-reg [1:0] count = 0;
-
-assign led = {6'h0,count[1:0]};
+assign led[7:1] = 7'b0;
 
 always @ (posedge clk_16mhz)
 begin
-    if (en) begin
-        count <= count + 1;
+    if (button0) begin
+        led[0] <= ~led[0];
     end
 end
 
 endmodule
+
