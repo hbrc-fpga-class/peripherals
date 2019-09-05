@@ -1,13 +1,7 @@
-set_io clk_16mhz    B2  # clk
+set_io --warn-no-port clk_16mhz    B2  # clk
 
-set_io button0      J4  # PIN_27
+set_io --warn-no-port button0      J4  # PIN_27
+set_io --warn-no-port button1      D8  # PIN_16
 
-set_io led[0]       A9  # PIN_18
-set_io led[1]       B8  # PIN_19
-set_io led[2]       J3  # PIN_26
-set_io led[3]       A8  # PIN_20
-set_io led[4]       J9  # PIN_29
-set_io led[5]       B7  # PIN_21
-set_io led[6]       E8  # PIN_30
-set_io led[7]       A7  # PIN_22
+set_io --warn-no-port led          A9  # PIN_18
 

@@ -2,17 +2,15 @@
 
 module latch1
 (
-    input wire clk_16mhz,
     input wire button0,
-    output reg [7:0] led
+    input wire button1,
+    output reg led
 );
-
-assign led[7:1] = 7'b0;
 
 always @ (*)
 begin
     if (button0) begin
-        led[0] <= ~led[0];
+        led <= button1;
     end
 end
 

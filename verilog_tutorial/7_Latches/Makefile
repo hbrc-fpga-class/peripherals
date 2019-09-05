@@ -17,13 +17,9 @@ png2: $(PROJ)2.png
 
 png3: $(PROJ)3.png
 
-%.blif: $(SOURCES)
-	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
-%.png: %.v
-	yosys -p 'synth; clean; show -format png -prefix ys_$*' $^
-	#yosys -p 'synth_ice40; clean; show -format png -prefix ys_$*_ice40' $^
-	rm -f *.dot
+%.blif: %.v
+	yosys -p 'synth_ice40 -top $* -blif $@' $^
 
 %.asc: $(PIN_DEF) %.blif
 	arachne-pnr -s 7 -d 8k -P cm81 -o $@ -p $^
@@ -49,15 +45,12 @@ png3: $(PROJ)3.png
 %_syntb.vcd: %_syntb
 	vvp -N $< +vcd=$@
 
-prog: $(PROJ).bin
+%.prog: %.bin
 	prog_fpga.py $<
 
-sudo-prog: $(PROJ).bin
-	@echo 'Executing prog as root!!!'
-	sudo tinyprog -p $<
 
 clean:
 	rm -f a.out *.blif *.asc *.rpt *.bin *.png *.dot
 
 .SECONDARY:
-.PHONY: all prog clean
+.PHONY: latch1 latch2 latch3 png png1 png2 png3 clean
