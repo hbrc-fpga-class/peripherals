@@ -24,4 +24,8 @@ Use a sceen size of at least __100x40__ for best display results!
 * Action Pad (N,S,E,W) controls Headlights and Turn Signals.
 * Center Button stops bot, and exits program.
 
+## Screenshot
+
+![hba_tank](hba_tank.png)
+
 *Enjoy.* - AGM - 8/2019
