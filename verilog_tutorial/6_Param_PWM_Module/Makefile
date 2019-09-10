@@ -1,13 +1,12 @@
-PROJ = state_machine
+PROJ = top
 DEVICE = lp8k
 PIN_DEF = pins.pcf
+SOURCES = $(PROJ).v pwm.v
 
-state_machine0: $(PROJ)0.rpt $(PROJ)0.bin $(PROJ)0.prog
+all: $(PROJ).rpt $(PROJ).bin $(PROJ).prog
 
-state_machine1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
-
-%.blif: %.v
-	yosys -p 'synth_ice40 -top $* -blif $@' $^
+%.blif: $(SOURCES)
+	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
 %.asc: $(PIN_DEF) %.blif
 	arachne-pnr -s 7 -d 8k -P cm81 -o $@ -p $^

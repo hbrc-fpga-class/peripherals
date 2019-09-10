@@ -1,10 +1,22 @@
-PROJ = state_machine
+PROJ = latch
 DEVICE = lp8k
+SOURCES = $(PROJ).v
 PIN_DEF = pins.pcf
 
-state_machine0: $(PROJ)0.rpt $(PROJ)0.bin $(PROJ)0.prog
+latch1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 
-state_machine1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
+latch2: $(PROJ)2.rpt $(PROJ)2.bin $(PROJ)2.prog
+
+latch3: $(PROJ)3.rpt $(PROJ)3.bin $(PROJ)3.prog
+
+png: png1 png2 png3
+
+png1: $(PROJ)1.png
+
+png2: $(PROJ)2.png
+
+png3: $(PROJ)3.png
+
 
 %.blif: %.v
 	yosys -p 'synth_ice40 -top $* -blif $@' $^
@@ -36,8 +48,9 @@ state_machine1: $(PROJ)1.rpt $(PROJ)1.bin $(PROJ)1.prog
 %.prog: %.bin
 	prog_fpga.py $<
 
+
 clean:
-	rm -f a.out *.blif *.asc *.rpt *.bin
+	rm -f a.out *.blif *.asc *.rpt *.bin *.png *.dot
 
 .SECONDARY:
-.PHONY: all prog clean
+.PHONY: latch1 latch2 latch3 png png1 png2 png3 clean

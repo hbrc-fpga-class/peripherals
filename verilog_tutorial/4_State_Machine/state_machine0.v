@@ -15,6 +15,9 @@ module state_machine0
 // reset when button0 is pushed
 wire reset = ~button0;
 
+// button1 is an enable
+wire en = button1;
+
 // internal registers
 reg inc_led;
 reg [23:0] fast_count;
@@ -23,7 +26,7 @@ reg [2:0] shift_count;
 
 
 // Constants
-localparam QUARTER_SEC  = 1_000_000;
+localparam DELAY_COUNT  = 1_000_000;
 localparam COUNT_UP     = 0;
 localparam COUNT_DOWN   = 1;
 
@@ -35,16 +38,18 @@ begin
         inc_led <= 0;
         fast_count <= 0;
     end else begin
-        inc_led <= 0;       // default
-        fast_count <= fast_count + 1;
-        if (fast_count == QUARTER_SEC) begin
-            inc_led <= 1;
-            fast_count <= 0;
+        if (en) begin
+            inc_led <= 0;       // default
+            fast_count <= fast_count + 1;
+            if (fast_count == DELAY_COUNT) begin
+                inc_led <= 1;
+                fast_count <= 0;
+            end
         end
     end
 end
 
-// Rising edge on button1, switches count direction.
+// Change led direction after 5 shifts
 always @ (posedge clk_16mhz)
 begin
     if (reset) begin
