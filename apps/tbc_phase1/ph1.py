@@ -35,7 +35,7 @@ class Tablebot:
         self.sock_quad_cat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock_quad_cat.connect(('localhost', 8870))
         self.set_cmd(b'hbaset hba_quad ctrl 7\n')
-        self.sock_quad_cat.send(b'hbacat hba_quad enc0\n')
+        self.sock_quad_cat.send(b'hbacat hba_quad enc1\n')
 
         # Setup select loop inputs, and outputs
         self.inputs = [ self.sock_qtr_cat,  self.sock_quad_cat]
@@ -76,7 +76,6 @@ class Tablebot:
         return data
 
     def read_qtr(self):
-        print("got here: read_qtr")
         data = b''
         while True:
             retval = self.sock_qtr_cat.recv(1)
@@ -87,7 +86,6 @@ class Tablebot:
         self.last_qtr = int(data,16)
 
     def read_quad(self):
-        print("got here: read_quad")
         data = b''
         while True:
             retval = self.sock_quad_cat.recv(1)
@@ -96,7 +94,7 @@ class Tablebot:
             else:
                 data = data + retval
         self.last_quad = s16(int(data,16))
-        print("last_quad: ", self.last_quad)
+        #print("last_quad: ", self.last_quad)
 
 
 
@@ -126,11 +124,19 @@ class Tablebot:
             if self.last_qtr == 255:
                 self.start_quad = self.last_quad
                 self.end_quad = self.last_quad - 50
+                print("start_quad: ", self.start_quad)
+                print("end_quad: ", self.end_quad)
                 self.state = self.STATE_BACK
         elif self.state == self.STATE_BACK:
             if self.last_quad < self.end_quad:
-                self.state = self.STATE_STOP
+                print("end_back last_quad: ", self.last_quad)
+                self.start_quad = self.last_quad
+                self.end_quad = self.last_quad + 720
+                self.state = self.STATE_TURN
         elif self.state == self.STATE_TURN:
+            if self.last_quad > self.end_quad:
+                print("end_turn last_quad: ", self.last_quad)
+                self.state = self.STATE_MOVE
             pass
         elif self.state == self.STATE_STOP:
             pass
@@ -147,10 +153,8 @@ class Tablebot:
                         self.outputs, self.inputs)
                 for sock in readable:
                     if sock == self.sock_quad_cat:
-                        print("QUAD")
                         self.read_quad()
                     elif sock == self.sock_qtr_cat:
-                        print("QTR")
                         self.read_qtr()
 
                 self.robot_trans()
