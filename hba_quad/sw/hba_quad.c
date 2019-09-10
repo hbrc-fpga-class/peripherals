@@ -441,7 +441,7 @@ void core_interrupt(void *trans)
     // Read value in quadrature registers
     // Read four bytes offset by -1 (4 -1)
     pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
-    pkt[1] = HBA_QUAD_REG_ENC1_LSB;
+    pkt[1] = HBA_QUAD_REG_ENC0_LSB;
     pkt[2] = 0;                     // dummy byte (cmd)
     pkt[3] = 0;                     // dummy byte (reg)
     pkt[4] = 0;                     // dummy byte (q0 low)
@@ -450,8 +450,8 @@ void core_interrupt(void *trans)
     pkt[7] = 0;                     // dummy byte (q1 high)
     nsd = pctx->sendrecv_pkt(8, pkt);
 
-    // We sent header + six bytes so the sendrecv return value should be 8
-    if (nsd != 8) {
+    // We sent header + six bytes so the sendrecv return value should be 6
+    if (nsd != 6) {
         // error reading value from QUAD port
         edlog("Error reading value from quadrature");
         return;
