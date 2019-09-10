@@ -476,6 +476,14 @@ void core_interrupt(void *trans)
             bcst_ui(msg, slen, &(prsc->bkey));
         }
     }
+    // Broadcast ENC (both) if it's changed and any UI is monitoring it
+    if ((newenc0 != pctx->enc0) || (newenc1 != pctx->enc1) ) {
+        prsc = &(pslot->rsc[RSC_ENC]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%04x %04x\n", newenc0, newenc1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
     pctx->enc0 = newenc0;
     pctx->enc1 = newenc1;
 }
