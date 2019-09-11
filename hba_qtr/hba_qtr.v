@@ -72,6 +72,7 @@ module hba_qtr #
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     output wire slave_interrupt,   // Send interrupt back
+    output wire slave_estop,       // Estop to hba_motor.  Pulse stops.
 
     // hba_qtr pins
     output wire [1:0]  qtr_out_en,
@@ -115,6 +116,23 @@ assign qtr0_en = reg_ctrl[0] & qtr_sync;
 wire qtr1_en;
 assign qtr1_en = reg_ctrl[1] & qtr_sync;
 
+// Interrupt type, Period=0, Threshold=1
+localparam INTR_TYPE_PERIOD = 0;
+localparam INTR_TYPE_THRESH = 1;
+wire intr_type = reg_ctrl[3];
+
+// Emergency Stop enable
+wire estop_en = reg_ctrl[4];
+
+// Combine the two address banks.
+wire [DBUS_WIDTH-1:0] hba_dbus_slave0;
+wire [DBUS_WIDTH-1:0] hba_dbus_slave1;
+wire hba_xferack_slave0;
+wire hba_xferack_slave1;
+
+assign hba_dbus_slave = hba_dbus_slave0 | hba_dbus_slave1;
+assign hba_xferack_slave = hba_xferack_slave0 | hba_xferack_slave1;
+
 /*
 *****************************
 * Instantiation
@@ -127,7 +145,7 @@ hba_reg_bank #
     .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
     .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
     .PERIPH_ADDR(PERIPH_ADDR)
-) hba_reg_bank_inst
+) hba_reg_bank_inst0
 (
     // HBA Bus Slave Interface
     .hba_clk(hba_clk),
@@ -137,8 +155,8 @@ hba_reg_bank #
     .hba_abus(hba_abus), // The input address bus.
     .hba_dbus(hba_dbus),  // The input data bus.
 
-    .hba_dbus_slave(hba_dbus_slave),   // The output data bus.
-    .hba_xferack_slave(hba_xferack_slave),     // Acknowledge transfer requested. 
+    .hba_dbus_slave(hba_dbus_slave0),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave0),     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
 
@@ -147,11 +165,43 @@ hba_reg_bank #
     //.slv_reg1(),  
     //.slv_reg2(),
     .slv_reg3(reg_period),
-    
-    // TODO : Add these later
-    // XXX .slv_reg3(reg_delay0),
-    // XXX .slv_reg4(reg_delay1),
-    // XXX .slv_reg5(reg_period),
+
+    // writeable registers
+    .slv_reg1_in(reg_qtr0_in),
+    .slv_reg2_in(reg_qtr1_in),
+
+    .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
+    .slv_wr_mask(4'b0110),    // 0010, means reg1,reg2 is writeable.
+    .slv_autoclr_mask(4'b0000)    // No autoclear
+);
+
+hba_reg_bank #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .PERIPH_ADDR(PERIPH_ADDR),
+    .REG_OFFSET(4)
+) hba_reg_bank_inst1
+(
+    // HBA Bus Slave Interface
+    .hba_clk(hba_clk),
+    .hba_reset(hba_reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave1),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave1),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+
+    // Access to registgers
+    .slv_reg0(reg_ctrl),
+    //.slv_reg1(),
+    //.slv_reg2(),
+    .slv_reg3(reg_period),
 
     // writeable registers
     .slv_reg1_in(reg_qtr0_in),
