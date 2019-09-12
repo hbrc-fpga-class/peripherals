@@ -71,8 +71,8 @@ module hba_qtr #
     output wire hba_xferack_slave,     // Acknowledge transfer requested. 
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
-    output wire slave_interrupt,   // Send interrupt back
-    output wire slave_estop,       // Estop to hba_motor.  Pulse stops.
+    output reg slave_interrupt,   // Send interrupt back
+    output reg slave_estop,       // Estop to hba_motor.  Pulse stops.
 
     // hba_qtr pins
     output wire [1:0]  qtr_out_en,
@@ -95,6 +95,10 @@ wire [DBUS_WIDTH-1:0] reg_qtr1_in;  // reg2: qtr1 value
 
 wire [DBUS_WIDTH-1:0] reg_period;  // reg3: Trigger period
 
+wire [DBUS_WIDTH-1:0] reg_max_thresh;  // reg4: max_threshold
+
+wire [DBUS_WIDTH-1:0] reg_min_thresh;  // reg5: min_threshold
+
 // Enables writing to slave registers.
 wire slv_wr_en;
 
@@ -107,7 +111,6 @@ reg qtr_sync;
 // Enable interrupt bit
 wire intr_en = reg_ctrl[2];
 
-assign slave_interrupt = (|qtr_valid) & intr_en;
 assign slv_wr_en = |qtr_valid;
 
 wire qtr0_en;
@@ -198,17 +201,17 @@ hba_reg_bank #
                                     // Must be zero when inactive.
 
     // Access to registgers
-    .slv_reg0(reg_ctrl),
-    //.slv_reg1(),
+    .slv_reg0(reg_max_thresh),    // reg4: max_threshold (>= interrupt)
+    .slv_reg1(reg_min_thresh),    // reg5: min_theshold (< interrupt)
     //.slv_reg2(),
-    .slv_reg3(reg_period),
+    //.slv_reg3(),
 
     // writeable registers
-    .slv_reg1_in(reg_qtr0_in),
-    .slv_reg2_in(reg_qtr1_in),
+    //.slv_reg1_in(reg_qtr0_in),
+    //.slv_reg2_in(reg_qtr1_in),
 
-    .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b0110),    // 0010, means reg1,reg2 is writeable.
+    .slv_wr_en(1'b0),   // No writable registers
+    .slv_wr_mask(4'b0000),    // 0000, no writable registers
     .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
@@ -285,6 +288,33 @@ begin
     end
 end
 
+// Generate slave interrupt and estop signals
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        slave_interrupt <= 0;
+        slave_estop <= 0;
+    end else begin
+        slave_interrupt <= 0;   // default
+        slave_estop <= 0;       // default
+        if ((slv_wr_en==1) && (intr_en==1)) begin
+            if (intr_type == INTR_TYPE_PERIOD) begin
+                slave_interrupt <= 1;
+            end else begin
+                // Threshold  interrupt type
+                if (reg_qtr0_in >= reg_max_thresh ||
+                        reg_qtr0_in < reg_min_thresh  ||
+                        reg_qtr1_in >= reg_max_thresh ||
+                        reg_qtr1_in < reg_min_thresh ) begin
+                    slave_interrupt <= 1;
+                    if (estop_en) begin
+                        slave_estop <= 1;
+                    end
+                end
+            end
+        end
+    end
+end
 
 endmodule
 
