@@ -14,25 +14,27 @@ of the 8-bit value is in 10us.  So max value of
 RESOURCES
 
 ctrl : This get/set the control register.
-    - Bit 0 : Enable QTR0 (left).
-    - Bit 1 : Enable QTR1 (right).
-    - Bit 2 : Enable interrupt.
+    - Bit 0 : Enable QTRs (left and right)
+    - Bit 1 : Enable interrupt.
+    - Bit 2 : Interrupt Type, Period=0 or Threshold=1
+    - Bit 3 : Enable estop for cliff detection (0xff value)
 
 This resource works with hbaget and hbaset.
 The startup value is 0, with everything disabled.
 Example values:
-    - 3 : Enable both QTR0 and QTR1, no interrupt.
-    - 7 : Enable both QTR0 and QTR1, enable interrupt.
+    - 1  : Enable reading QTRs
+    - 3  : Enable reading QTRs and enable interrupts
+    - 15 : Enbale QTRs, threshold interrupt, and estop
 
-qtr0 : Reads the last qtr0 value.
-This resource works with hbaget and hbacat.
-
-qtr1 : Reads the last qtr1 value.
+qtr : Reads left and right qtr values.
 This resource works with hbaget and hbacat.
 
 period: Sets the trigger period. Granularity 50ms.
 Default/Min 50ms.  time = (period*50ms)+50ms.
 
+thresh: Value changes across this threshold cause an interrupt.
+Interrupt type must be set to Threshold for this feature.
+This resource works with hbaget and hbaset.
 
 EXAMPLES
 Set the trigger period to 100ms.
