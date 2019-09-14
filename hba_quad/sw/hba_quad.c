@@ -441,7 +441,7 @@ void core_interrupt(void *trans)
     // Read value in quadrature registers
     // Read four bytes offset by -1 (4 -1)
     pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
-    pkt[1] = HBA_QUAD_REG_ENC1_LSB;
+    pkt[1] = HBA_QUAD_REG_ENC0_LSB;
     pkt[2] = 0;                     // dummy byte (cmd)
     pkt[3] = 0;                     // dummy byte (reg)
     pkt[4] = 0;                     // dummy byte (q0 low)
@@ -450,8 +450,8 @@ void core_interrupt(void *trans)
     pkt[7] = 0;                     // dummy byte (q1 high)
     nsd = pctx->sendrecv_pkt(8, pkt);
 
-    // We sent header + six bytes so the sendrecv return value should be 8
-    if (nsd != 8) {
+    // We sent header + six bytes so the sendrecv return value should be 6
+    if (nsd != 6) {
         // error reading value from QUAD port
         edlog("Error reading value from quadrature");
         return;
@@ -473,6 +473,14 @@ void core_interrupt(void *trans)
         prsc = &(pslot->rsc[RSC_ENC1]);
         if (prsc->bkey != 0) {
             slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    // Broadcast ENC (both) if it's changed and any UI is monitoring it
+    if ((newenc0 != pctx->enc0) || (newenc1 != pctx->enc1) ) {
+        prsc = &(pslot->rsc[RSC_ENC]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%04x %04x\n", newenc0, newenc1);
             bcst_ui(msg, slen, &(prsc->bkey));
         }
     }
