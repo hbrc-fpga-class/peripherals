@@ -19,6 +19,7 @@ It also has the following additional ports.
 
 * __slave_interrupt__ (output) : Asserted when a new value(s) are available.
 * __slave_estop__ (output) : An emergency stop output. A pulse stops the motors.
+Generated when cliff detection is enabled (0xff value).
 
 * __qtr_out_en[1:0]__ (output) : Tri-state control pin.  When 1, the associated
 pin is an output, else it is an input.
@@ -31,22 +32,20 @@ the power level of the LED.
 
 ## Register Interface
 
-There are six 8-bit registers.
+There are five 8-bit registers.
 
 * __reg0__ : Control register. Enables qtr sensors and interrupts.
-    * reg0[0] : Enable qtr 0.
-    * reg0[1] : Enable qtr 1.
-    * reg0[2] : Enable interrupt.
-    * reg0[3] : Period=0, or Threshold=1, Interrupt
-    * reg0[4] : Enable estop output.  Asserted for threshold interrupts.
+    * reg0[0] : Enable QTRs (left and right)
+    * reg0[1] : Enable interrupt.
+    * reg0[2] : Interrupt Type, Period=0 or Threshold=1
+    * reg0[3] : Enable estop for cliff detection (0xff value)
 * __reg1__ : Last QTR 0 value
 * __reg2__ : Last QTR 1 value
 * __reg3__ : Trigger period.  Granularity 50ms. Default/Min 50ms.
     period = (reg3*50ms)+50ms.
-
-* __reg4__ : Max threshold, values >= generate threshold interrupt.
-* __reg5__ : Min threshold, values < generate threshold interrupt.
-
+* __reg4__ : Threshold value,  crossing the threshold value on either sensors
+causes an interrupt to be generated if the interrupt type is set to Threshold
+via reg0[2]=1.
 
 
 ## TODO

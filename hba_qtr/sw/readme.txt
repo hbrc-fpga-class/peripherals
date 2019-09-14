@@ -28,6 +28,7 @@ Example values:
 
 qtr : Reads left and right qtr values.
 This resource works with hbaget and hbacat.
+returns two 4 digit hex numbers: <left_qtr> <right_qtr>
 
 period: Sets the trigger period. Granularity 50ms.
 Default/Min 50ms.  time = (period*50ms)+50ms.
@@ -38,12 +39,12 @@ This resource works with hbaget and hbaset.
 
 EXAMPLES
 Set the trigger period to 100ms.
-Enable both qtr0 and qtr1, no interrupt
-Read back the last value of qtr0.
-Read back the last value of qtr1.
+Enable both QTRs, and interrupt
+Read back the last QTR values.
+Cat the qtr values
 
  hbaset hba_qtr period 1
  hbaset hba_qtr ctrl 3
- hbaget hba_qtr qtr0
- hbacat hba_qtr qtr1
+ hbaget hba_qtr qtr
+ hbacat hba_qtr qtr
 

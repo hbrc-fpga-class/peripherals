@@ -95,9 +95,7 @@ wire [DBUS_WIDTH-1:0] reg_qtr1_in;  // reg2: qtr1 value
 
 wire [DBUS_WIDTH-1:0] reg_period;  // reg3: Trigger period
 
-wire [DBUS_WIDTH-1:0] reg_max_thresh;  // reg4: max_threshold
-
-wire [DBUS_WIDTH-1:0] reg_min_thresh;  // reg5: min_threshold
+wire [DBUS_WIDTH-1:0] reg_thresh;  // reg4: max_threshold
 
 // Enables writing to slave registers.
 wire slv_wr_en;
@@ -109,23 +107,20 @@ wire [1:0] qtr_valid;
 reg qtr_sync;
 
 // Enable interrupt bit
-wire intr_en = reg_ctrl[2];
+wire intr_en = reg_ctrl[1];
 
 assign slv_wr_en = |qtr_valid;
 
-wire qtr0_en;
-assign qtr0_en = reg_ctrl[0] & qtr_sync;
-
-wire qtr1_en;
-assign qtr1_en = reg_ctrl[1] & qtr_sync;
+wire qtr_en;
+assign qtr_en = reg_ctrl[0] & qtr_sync;
 
 // Interrupt type, Period=0, Threshold=1
 localparam INTR_TYPE_PERIOD = 0;
 localparam INTR_TYPE_THRESH = 1;
-wire intr_type = reg_ctrl[3];
+wire intr_type = reg_ctrl[2];
 
 // Emergency Stop enable
-wire estop_en = reg_ctrl[4];
+wire estop_en = reg_ctrl[3] && (intr_type==INTR_TYPE_THRESH);
 
 // Combine the two address banks.
 wire [DBUS_WIDTH-1:0] hba_dbus_slave0;
@@ -201,8 +196,8 @@ hba_reg_bank #
                                     // Must be zero when inactive.
 
     // Access to registgers
-    .slv_reg0(reg_max_thresh),    // reg4: max_threshold (>= interrupt)
-    .slv_reg1(reg_min_thresh),    // reg5: min_theshold (< interrupt)
+    .slv_reg0(reg_thresh),    // reg4: reg_thresh (cross for interrupt)
+    //.slv_reg1(),    // reg5: min_theshold (< interrupt)
     //.slv_reg2(),
     //.slv_reg3(),
 
@@ -223,7 +218,7 @@ qtr #
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(qtr0_en),
+    .en(qtr_en),
 
     .value(reg_qtr0_in),    // [7:0]
     .valid(qtr_valid[0]),
@@ -244,7 +239,7 @@ qtr #
 (
     .clk(hba_clk),
     .reset(hba_reset),
-    .en(qtr1_en),
+    .en(qtr_en),
 
     .value(reg_qtr1_in),    // [7:0]
     .valid(qtr_valid[1]),
@@ -289,29 +284,40 @@ begin
 end
 
 // Generate slave interrupt and estop signals
+reg [1:0] thresh_side;    // 0=low side, 1=high side of thresh
 always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         slave_interrupt <= 0;
-        slave_estop <= 0;
+        thresh_side <= 0;
     end else begin
         slave_interrupt <= 0;   // default
-        slave_estop <= 0;       // default
         if ((slv_wr_en==1) && (intr_en==1)) begin
             if (intr_type == INTR_TYPE_PERIOD) begin
                 slave_interrupt <= 1;
             end else begin
                 // Threshold  interrupt type
-                if (reg_qtr0_in >= reg_max_thresh ||
-                        reg_qtr0_in < reg_min_thresh  ||
-                        reg_qtr1_in >= reg_max_thresh ||
-                        reg_qtr1_in < reg_min_thresh ) begin
+                thresh_side[0] = (reg_qtr0_in > reg_thresh);
+                thresh_side[1] = (reg_qtr1_in > reg_thresh);
+                if ( (thresh_side[0] != (reg_qtr0_in > reg_thresh)) ||
+                     (thresh_side[1] != (reg_qtr1_in > reg_thresh))
+                    ) begin
                     slave_interrupt <= 1;
-                    if (estop_en) begin
-                        slave_estop <= 1;
-                    end
                 end
             end
+        end
+    end
+end
+
+// Generate the slave_estop signal
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        slave_estop <= 0;
+    end else begin
+        slave_estop <= 0;
+        if (estop_en && (reg_qtr0_in==8'hff || reg_qtr1_in==8'hff)) begin
+            slave_estop <= 1;
         end
     end
 end
