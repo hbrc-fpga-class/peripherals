@@ -284,12 +284,16 @@ begin
 end
 
 // Generate slave interrupt and estop signals
-reg [1:0] thresh_side;    // 0=low side, 1=high side of thresh
+reg thresh_side0;    // 0=low side, 1=high side of thresh
+reg thresh_side1;    // 0=low side, 1=high side of thresh
+wire thresh_comp0 = (reg_qtr0_in > reg_thresh) ? 1 : 0;
+wire thresh_comp1 = (reg_qtr1_in > reg_thresh) ? 1 : 0;
 always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
         slave_interrupt <= 0;
-        thresh_side <= 0;
+        thresh_side0 <= 0;
+        thresh_side1 <= 0;
     end else begin
         slave_interrupt <= 0;   // default
         if ((slv_wr_en==1) && (intr_en==1)) begin
@@ -297,11 +301,10 @@ begin
                 slave_interrupt <= 1;
             end else begin
                 // Threshold  interrupt type
-                thresh_side[0] = (reg_qtr0_in > reg_thresh);
-                thresh_side[1] = (reg_qtr1_in > reg_thresh);
-                if ( (thresh_side[0] != (reg_qtr0_in > reg_thresh)) ||
-                     (thresh_side[1] != (reg_qtr1_in > reg_thresh))
-                    ) begin
+                thresh_side0 <= thresh_comp0;
+                thresh_side1 <= thresh_comp1;
+                if ( (thresh_side0 != thresh_comp0)  || 
+                     (thresh_side1 != thresh_comp1) ) begin
                     slave_interrupt <= 1;
                 end
             end

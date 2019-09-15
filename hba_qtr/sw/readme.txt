@@ -24,7 +24,7 @@ The startup value is 0, with everything disabled.
 Example values:
     - 1  : Enable reading QTRs
     - 3  : Enable reading QTRs and enable interrupts
-    - 15 : Enbale QTRs, threshold interrupt, and estop
+    - f : Enbale QTRs, threshold interrupt, and estop
 
 qtr : Reads left and right qtr values.
 This resource works with hbaget and hbacat.
@@ -46,5 +46,13 @@ Cat the qtr values
  hbaset hba_qtr period 1
  hbaset hba_qtr ctrl 3
  hbaget hba_qtr qtr
+ hbacat hba_qtr qtr
+
+Set threshold to mid value 127dec = 0x1f
+Enable both QTRs, threshold interrupt, cliff detection (estop)
+Cat the qtr values
+
+ hbaset hba_qtr thresh 1f
+ hbaset hba_qtr ctrl f
  hbacat hba_qtr qtr
 

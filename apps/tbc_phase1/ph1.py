@@ -27,9 +27,10 @@ class Tablebot:
         # Start hba_qtr cat
         self.sock_qtr_cat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock_qtr_cat.connect(('localhost', 8870))
-        self.set_cmd(b'hbaset hba_qtr period 1\n')
-        self.set_cmd(b'hbaset hba_qtr ctrl 7\n')
-        self.sock_qtr_cat.send(b'hbacat hba_qtr qtr0\n')
+        self.set_cmd(b'hbaset hba_qtr period 0\n')
+        self.set_cmd(b'hbaset hba_qtr thresh 1f\n')
+        self.set_cmd(b'hbaset hba_qtr ctrl f\n')
+        self.sock_qtr_cat.send(b'hbacat hba_qtr qtr\n')
 
         # Start hba_quad cat
         self.sock_quad_cat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -49,7 +50,8 @@ class Tablebot:
         self.done = False
 
         # Last sensor values
-        self.last_qtr = None
+        self.last_qtr0 = None
+        self.last_qtr1 = None
         self.last_quad = None
 
 
@@ -83,7 +85,9 @@ class Tablebot:
                 break
             else:
                 data = data + retval
-        self.last_qtr = int(data,16)
+        (tmp0, tmp1) = data.split()
+        self.last_qtr0 = int(tmp0,16)
+        self.last_qtr1 = int(tmp1,16)
 
     def read_quad(self):
         data = b''
@@ -121,7 +125,7 @@ class Tablebot:
 
     def robot_trans(self):
         if self.state == self.STATE_MOVE:
-            if self.last_qtr == 255:
+            if self.last_qtr0 == 255 or self.last_qtr1 == 255:
                 self.start_quad = self.last_quad
                 self.end_quad = self.last_quad - 50
                 print("start_quad: ", self.start_quad)
