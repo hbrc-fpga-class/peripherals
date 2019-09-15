@@ -71,6 +71,7 @@ module hba_motor #
     output wire slave_interrupt,   // Send interrupt back
 
     // hba_motor pins
+    input wire [15:0] slave_estop,
     output wire [1:0] motor_pwm,
     output wire [1:0] motor_dir,
     output wire [1:0] motor_float_n
@@ -105,6 +106,10 @@ wire [DBUS_WIDTH-1:0] reg_power_right;  // reg2: Right Power register
 
 // No interrupts
 assign slave_interrupt = 0;
+
+// Any of peripherals generating an estop?
+wire estop = (|slave_estop[15:0]);
+reg estop_posedge;
 
 /*
 *****************************
@@ -159,6 +164,7 @@ pmw_dir #
     .float(reg_mode[COAST_LEFT]),
     .duty_cycle(reg_power_left[6:0]),   // [6:0]
     .dir_in(reg_mode[DIR_LEFT]),
+    .estop(estop_posedge),
 
     .pwm(motor_pwm[LEFT]),
     .dir_out(motor_dir[LEFT]),
@@ -177,11 +183,26 @@ pmw_dir #
     .float(reg_mode[COAST_RIGHT]),
     .duty_cycle(reg_power_right[6:0]),   // [6:0]
     .dir_in(reg_mode[DIR_RIGHT]),
+    .estop(estop_posedge),
 
     .pwm(motor_pwm[RIGHT]),
     .dir_out(motor_dir[RIGHT]),
     .float_n(motor_float_n[RIGHT])
 );
+
+// Generate the estop pulses
+reg estop_reg;
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        estop_reg <= 0;
+        estop_posedge <= 0;
+    end else begin
+        estop_reg <= estop;
+        estop_posedge <= estop & ~estop_reg;
+    end
+end
+
 
 endmodule
 

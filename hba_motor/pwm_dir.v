@@ -51,6 +51,7 @@ module pmw_dir #
     input wire float,
     input wire [6:0] duty_cycle,
     input wire dir_in,
+    input wire estop,
 
     output reg pwm,
     output reg dir_out,
@@ -72,6 +73,46 @@ assign float_n = ~float;
 ********************************************
 */
 
+// Generate the pwm_en pulse and handle the estop
+// If estop is asserted then pwm_en <= 0.
+// Once pwm_en is 0.  Then one of the inputs must
+// change before pwm_en can be set back to 1.
+reg pwm_en;
+reg en_reg;
+reg float_reg;
+reg duty_cycle_reg;
+reg dir_in_reg;
+
+wire en_change = (en_reg == ~en) ? 1 : 0;
+wire float_change = (float_reg == ~float) ? 1 : 0;
+wire duty_cycle_change = (duty_cycle_reg == ~duty_cycle) ? 1 : 0;
+wire dir_in_change = (dir_in_reg == ~dir_in) ? 1 : 0;
+
+always @ (posedge clk)
+begin
+    if (reset) begin
+        pwm_en <= 0;
+        en_reg <= 0;
+        float_reg <= 0;
+        duty_cycle_reg <= 0;
+        dir_in_reg <= 0;
+    end else begin
+
+        en_reg <= en;
+        float_reg <= float;
+        duty_cycle_reg <= duty_cycle;
+        dir_in_reg <= dir_in;
+        
+        if (estop) begin
+            pwm_en <=0;
+        end else begin
+            if (pwm_en || en_change || float_change || duty_cycle_change || dir_in_change) begin
+                pwm_en <= en;
+            end
+        end
+    end
+end
+
 
 // Generate the 100khz pulse
 
@@ -89,7 +130,7 @@ begin
         pulse_100k <= 0;
     end else begin
         pulse_100k <= 0;    // default
-        if (en) begin
+        if (pwm_en) begin
             pulse_100k_count <= pulse_100k_count + 1;
             if (pulse_100k_count == (PERIOD_COUNT-1)) begin
                 pulse_100k_count <= 0;
@@ -98,6 +139,7 @@ begin
         end
     end
 end
+
 
 // Generate pulse width
 localparam FORWARD = 0;
@@ -119,7 +161,7 @@ begin
         pwm_count <= 0;
         duty_amount <= 0;
     end else begin
-        if (en) begin
+        if (pwm_en) begin
             //  Pass through the direction bit
             dir_out <= dir_in;
 

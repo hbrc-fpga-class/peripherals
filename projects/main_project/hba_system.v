@@ -117,6 +117,12 @@ wire [15:0] slave_interrupt;
 assign slave_interrupt[0] = 0;
 assign slave_interrupt[15:6] = 0;
 
+// The emergency stop signals.  Currently only hba_qtr has one
+wire [15:0] slave_estop;
+assign slave_estop[1:0] = 0;
+// hba_qtr -> slave_estop[2]
+assign slave_estop[15:3] = 0;
+
 // Slot 0
 wire [DBUS_WIDTH-1:0] hba_dbus_slave0;   // The output data bus.
 
@@ -246,6 +252,7 @@ hba_qtr #
                                     // Asserted when request has been completed. 
                                     // Must be zero when inactive.
     .slave_interrupt(slave_interrupt[2]),    // to interrupt controller
+    .slave_estop(slave_estop[2]),    // to hba_motor
 
     .qtr_out_en(qtr_out_en),
     .qtr_out_sig(qtr_out_sig),
@@ -277,6 +284,7 @@ hba_motor #
     .slave_interrupt(slave_interrupt[3]),   // Send interrupt back
 
     // hba_motor pins
+    .slave_estop(slave_estop[15:0]),    // input
     .motor_pwm(motor_pwm[1:0]),    // [1:0]
     .motor_dir(motor_dir[1:0]),    // [1:0]
     .motor_float_n(motor_float_n[1:0]) // [1:0]
