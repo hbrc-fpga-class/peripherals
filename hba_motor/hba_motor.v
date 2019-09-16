@@ -71,7 +71,7 @@ module hba_motor #
     output wire slave_interrupt,   // Send interrupt back
 
     // hba_motor pins
-    input wire [15:0] slave_estop,
+    input wire [15:0] motor_estop,
     output wire [1:0] motor_pwm,
     output wire [1:0] motor_dir,
     output wire [1:0] motor_float_n
@@ -108,7 +108,7 @@ wire [DBUS_WIDTH-1:0] reg_power_right;  // reg2: Right Power register
 assign slave_interrupt = 0;
 
 // Any of peripherals generating an estop?
-wire estop = (|slave_estop[15:0]);
+wire estop = (|motor_estop[15:0]);
 reg estop_posedge;
 
 /*

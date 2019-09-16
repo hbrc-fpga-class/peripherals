@@ -284,7 +284,7 @@ hba_motor #
     .slave_interrupt(slave_interrupt[3]),   // Send interrupt back
 
     // hba_motor pins
-    .slave_estop(slave_estop[15:0]),    // input
+    .motor_estop(slave_estop[15:0]),    // input
     .motor_pwm(motor_pwm[1:0]),    // [1:0]
     .motor_dir(motor_dir[1:0]),    // [1:0]
     .motor_float_n(motor_float_n[1:0]) // [1:0]
