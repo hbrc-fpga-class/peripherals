@@ -25,6 +25,7 @@ It also has the following additional ports.
 * __motor_pwm[1:0]__ (output) : The pwm signal for motor power
 * __motor_dir[1:0]__ (output) : The direction signal.
 * __motor_float_n[1:0]__ (output) : Asserting (active low) this signal puts the motor in float/coast mode.
+* __motor_estop[15:0]__ (input) : Emergency stop coming from the peripherals.
 
 
 ## Register Interface
