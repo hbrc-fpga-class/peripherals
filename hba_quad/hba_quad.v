@@ -212,7 +212,7 @@ hba_reg_bank #
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
     .slv_wr_mask(4'b0001),    // reg0+4 writable
-    .slv_autoclr_mask(4'b0010)    // reg1+4 is autoclear
+    .slv_autoclr_mask(4'b0000)    // reg1+4 is autoclear
 );
 
 quadrature left_quad_inst

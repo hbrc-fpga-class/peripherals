@@ -436,6 +436,20 @@ void usercmd(
             ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
+
+        // Write a 0 to the reset register
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_RESET;
+        pkt[2] = 0;                             // new value
+        pkt[3] = 0;                             // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
     }
 
     // Nothing to do here if edcat.  That is handled in the UI code

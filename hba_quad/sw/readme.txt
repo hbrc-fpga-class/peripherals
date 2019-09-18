@@ -39,6 +39,7 @@ enc : Reads both encoder values. Formats as 'enc0 enc1'.
 This resource works with hbaget and hbacat.
 
 reset : Resets both encoder values back to zero.
+    - Bit 0 : 1=Reset.  Autocleared by the driver.
 This resource works with hbaset.
 
 EXAMPLES
@@ -48,7 +49,7 @@ Read the the 16-bit right encoder value
 Start a stream of encoder values from the left sensor
 
  hbaset hba_quad ctrl 7
- hbaset hba_quad reset
+ hbaset hba_quad reset 1
  hbaget hba_quad enc
  hbacat hba_quad enc
 

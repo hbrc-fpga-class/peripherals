@@ -35,7 +35,7 @@ There are three 8-bit registers.
 * __reg2__ : Left encoder count, most significant byte
 * __reg3__ : Right encoder count, least significant byte
 * __reg4__ : Right encoder count, most significant byte
-* __reg5__ : Reset both encoders by writing 1.  Auto cleared.
+* __reg5__ : Reset both encoders by writing 1.
 
 ## TODO
 
