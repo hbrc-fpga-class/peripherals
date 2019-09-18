@@ -39,6 +39,7 @@
  * reg2 : Left encoder count, most significant byte
  * reg3 : Right encoder count, least significant byte
  * reg4 : Right encoder count, most significant byte
+ * reg5 : Reset both encoders by writing 1.  Auto cleared.
  *
  */
 
@@ -69,16 +70,19 @@
 #define HBA_QUAD_REG_ENC0_MSB   (2)
 #define HBA_QUAD_REG_ENC1_LSB   (3)
 #define HBA_QUAD_REG_ENC1_MSB   (4)
+#define HBA_QUAD_REG_RESET      (5)
         // resource names and numbers
 #define FN_CTRL         "ctrl"
 #define FN_ENC0         "enc0"
 #define FN_ENC1         "enc1"
 #define FN_ENC          "enc"
+#define FN_RESET        "reset"
 
 #define RSC_CTRL        0
 #define RSC_ENC0        1
 #define RSC_ENC1        2
 #define RSC_ENC         3
+#define RSC_RESET       4
 
         // What we are is a ...
 #define PLUGIN_NAME        "hba_quad"
@@ -171,6 +175,12 @@ int Initialize(
     pslot->rsc[RSC_ENC].pgscb = usercmd;
     pslot->rsc[RSC_ENC].uilock = -1;
     pslot->rsc[RSC_ENC].slot = pslot;
+    pslot->rsc[RSC_RESET].name = FN_RESET;
+    pslot->rsc[RSC_RESET].flags = IS_WRITABLE;
+    pslot->rsc[RSC_RESET].bkey = 0;
+    pslot->rsc[RSC_RESET].pgscb = usercmd;
+    pslot->rsc[RSC_RESET].uilock = -1;
+    pslot->rsc[RSC_RESET].slot = pslot;
 
     // The serial_fpga plug-in has a routine to send packets to the FPGA
     // and to return with packet data from the FPGA.  We need to look up
@@ -404,6 +414,20 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;
         pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+    } else if ((cmd == EDSET) && (rscid == RSC_RESET)) {
+        // Write a 1 to the reset register
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_RESET;
+        pkt[2] = 1;                             // new value
+        pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK

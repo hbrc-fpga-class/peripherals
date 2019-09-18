@@ -96,6 +96,8 @@ wire [DBUS_WIDTH-1:0] reg_quad0_hi_in;  // reg2: Upper 8-bit of quad0
 wire [DBUS_WIDTH-1:0] reg_quad1_low_in; // reg3: Lower 8-bits of quad1
 wire [DBUS_WIDTH-1:0] reg_quad1_hi_in;  // reg4: Upper 8-bit of quad1
 
+wire [DBUS_WIDTH-1:0] reg_reset;  // reg5: bit0, used to reset encoders.
+
 // Enables writing to slave registers.
 wire slv_wr_en;
 
@@ -129,6 +131,8 @@ wire hba_xferack_slave1;
 // Combine the two address banks.
 assign hba_dbus_slave = hba_dbus_slave0 | hba_dbus_slave1;
 assign hba_xferack_slave = hba_xferack_slave0 | hba_xferack_slave1;
+
+wire enc_reset = hba_reset | reg_reset[0];
 
 /*
 *****************************
@@ -197,7 +201,7 @@ hba_reg_bank #
 
     // Access to registgers
     //.slv_reg0(),
-    //.slv_reg1(),
+    .slv_reg1(reg_reset),
     //.slv_reg2(),
     //.slv_reg3(),
 
@@ -208,13 +212,13 @@ hba_reg_bank #
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
     .slv_wr_mask(4'b0001),    // reg0+4 writable
-    .slv_autoclr_mask(4'b0000)    // No autoclear
+    .slv_autoclr_mask(4'b0010)    // reg1+4 is autoclear
 );
 
 quadrature left_quad_inst
 (
     .clk(hba_clk),
-    .reset(hba_reset),
+    .reset(enc_reset),
 
     // hba_quad input pins
     .quad_enc_a(quad_enc_a[LEFT]),
@@ -231,7 +235,7 @@ pulse_counter #
 ) left_counter_inst
 (
     .clk(hba_clk),
-    .reset(hba_reset),
+    .reset(enc_reset),
     .en(quad0_en),
 
     .pulse_in(left_pulse),
@@ -244,7 +248,7 @@ pulse_counter #
 quadrature right_quad_inst
 (
     .clk(hba_clk),
-    .reset(hba_reset),
+    .reset(enc_reset),
 
     // hba_quad input pins
     .quad_enc_a(quad_enc_a[RIGHT]),
@@ -261,7 +265,7 @@ pulse_counter #
 ) right_counter_inst
 (
     .clk(hba_clk),
-    .reset(hba_reset),
+    .reset(enc_reset),
     .en(quad1_en),
 
     .pulse_in(right_pulse),

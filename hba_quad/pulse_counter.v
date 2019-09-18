@@ -86,7 +86,7 @@ always @ (posedge clk)
 begin
     if (reset) begin
         count <= 0;
-        valid <= 0;
+        valid <= 1;
     end else begin
         valid <= 0;
         // update count on rising edge

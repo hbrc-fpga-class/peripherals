@@ -36,6 +36,10 @@ Then restores the ctrl value back to saved value.
 This resource works with hbaget and hbacat.
 
 enc : Reads both encoder values. Formats as 'enc0 enc1'.
+This resource works with hbaget and hbacat.
+
+reset : Resets both encoder values back to zero.
+This resource works with hbaset.
 
 EXAMPLES
 Enable updates and interrupts
@@ -44,7 +48,7 @@ Read the the 16-bit right encoder value
 Start a stream of encoder values from the left sensor
 
  hbaset hba_quad ctrl 7
- hbaget hba_quad enc0
- hbaget hba_quad enc1
- hbacat hba_quad enc0
+ hbaset hba_quad reset
+ hbaget hba_quad enc
+ hbacat hba_quad enc
 
