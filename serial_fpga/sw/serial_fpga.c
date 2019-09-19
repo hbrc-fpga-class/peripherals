@@ -48,25 +48,29 @@
 /**************************************************************
  *  - Limits and defines
  **************************************************************/
+        // hardware register definitions
+#define HBA_SF_REG_INTR0       (0)
+#define HBA_SF_REG_INTR1       (1)
+#define HBA_SF_REG_RATE        (2)
         // resource names and numbers
 #define FN_PORT            "port"
 #define FN_CONFIG          "config"
 #define FN_INTRRP          "intrr_pin"
 #define FN_RAWIN           "rawin"
 #define FN_RAWOUT          "rawout"
+#define FN_INTRRT          "intrr_rate"
 #define RSC_PORT           0
 #define RSC_CONFIG         1
 #define RSC_INTRRP         2
 #define RSC_RAWIN          3
 #define RSC_RAWOUT         4
+#define RSC_INTRRT         5
         // What we are is a ...
 #define PLUGIN_NAME        "serial_fpga"
         // Default serial port
 #define DEFDEV             "/dev/ttyAMA0"
         // Default baudrate
 #define DEFBAUD            115200
-        // Interrupt status register
-#define HBA_SF_INT0       (0)
         // Default interrupt GPIO pin
 #define HBA_DEF_INTR      (25)
 
@@ -96,6 +100,7 @@ typedef struct
     int      outidx;   // index into rawoutc
     int      intrrp;   // interrupt input gpio
     int      irfd;     // interrupt pin file descriptor (-1 if closed)
+    int      intrrt;   // interrupt rate in hz
     COREINFO coreinfo[NCORE];
 } SERPORT;
 
@@ -103,6 +108,7 @@ typedef struct
 /**************************************************************
  *  - Function prototypes and external references
  **************************************************************/
+int sendrecv_pkt(int count, uint8_t *buff);
 static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 static int  portconfig(SERPORT *pctx);
@@ -140,6 +146,7 @@ int Initialize(
     (void) strncpy(pctx->port, DEFDEV, PATH_MAX);
     // no default for the interrupt pin. 
     pctx->intrrp = HBA_DEF_INTR;  // interrupt gpio
+    pctx->intrrt = 0;             // 0 rate indicates no delay.
     pctx->irfd = -1;           // interrupt pin file descriptor (-1 if closed)
 
     // Register name and private data
@@ -179,6 +186,12 @@ int Initialize(
     pslot->rsc[RSC_RAWIN].pgscb = 0;
     pslot->rsc[RSC_RAWIN].uilock = -1;
     pslot->rsc[RSC_RAWIN].slot = pslot;
+    pslot->rsc[RSC_INTRRT].name = FN_INTRRT;
+    pslot->rsc[RSC_INTRRT].flags = IS_READABLE | IS_WRITABLE;
+    pslot->rsc[RSC_INTRRT].bkey = 0;
+    pslot->rsc[RSC_INTRRT].pgscb = usercmd;
+    pslot->rsc[RSC_INTRRT].uilock = -1;
+    pslot->rsc[RSC_INTRRT].slot = pslot;
 
     pctx->ptimer = (void *) 0;
 
@@ -214,6 +227,10 @@ static void usercmd(
     char    *pbyte;    // used in parsing raw input
     int      tmp;      // used in parsing raw input
     int      intrpin;  // new interrupt GPIO pin
+    int      intrrate; // new interrupt rate in hz
+    int      intrrt_ms; // new interrupt rate in ms
+    int      nsd;      // number of bytes sent to FPGA
+    uint8_t  pkt[HBA_MXPKT];
 
     // Get this instance of the plug-in
     pctx = (SERPORT *) pslot->priv;
@@ -227,8 +244,12 @@ static void usercmd(
         ret = snprintf(buf, *plen, "%d\n", pctx->baud);
         *plen = ret;  // (errors are handled in calling routine)
     }
-    if ((cmd == EDGET) && (rscid == RSC_INTRRP)) {
+    else if ((cmd == EDGET) && (rscid == RSC_INTRRP)) {
         ret = snprintf(buf, *plen, "%d\n", pctx->intrrp);
+        *plen = ret;  // (errors are handled in calling routine)
+    }
+    else if ((cmd == EDGET) && (rscid == RSC_INTRRT)) {
+        ret = snprintf(buf, *plen, "%d\n", pctx->intrrt);
         *plen = ret;  // (errors are handled in calling routine)
     }
     else if ((cmd == EDSET) && (rscid == RSC_PORT)) {
@@ -280,6 +301,59 @@ static void usercmd(
             return;
         }
         pctx->intrrp = intrpin;
+        // close and unregister the old port
+        if (pctx->irfd >= 0) {
+            del_fd(pctx->irfd);
+            close(pctx->irfd);
+            pctx->irfd = -1;
+        }
+        pctx->irfd = gpioconfig(pctx->intrrp);
+        if (pctx->irfd < 0) {       // config failed?
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
+        // Add fd to exception list for select()
+        add_fd(pctx->irfd, ED_EXCEPT, do_interrupt, (void *) pctx);
+    }
+    else if ((cmd == EDSET) && (rscid == RSC_INTRRT)) {
+        ret = sscanf(val, "%d", &intrrate);
+        if ((ret != 1) || (intrpin < 0) || (intrpin > 1000)) {
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
+
+        // Convert hz to ms
+        if (intrrate < 4) {
+            intrrt_ms = 0;
+        } 
+        else if (intrrate > 1000) {
+            intrrt_ms = 255;
+        }
+        else {
+            intrrt_ms = ((int)((1.0/intrrate)*1000)) & 0xff;
+        }
+
+        // record the new data value
+        // XXX pctx->intrrt = intrrt_ms;    // in ms
+        pctx->intrrt = intrrate;    // in hz
+
+        // Send new value to the FPGA serial_fpga rate register(reg2)
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | 0; // serial_fpga core 0.
+        pkt[1] = HBA_SF_REG_RATE;
+        pkt[2] = intrrt_ms;                     // new value
+        pkt[3] = 0;                             // dummy for the ack
+
+        nsd = sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from SERIAL_FPGA port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+
         // close and unregister the old port
         if (pctx->irfd >= 0) {
             del_fd(pctx->irfd);
@@ -693,7 +767,7 @@ static void do_interrupt(
     // Read the two interrupt registers in serial_fpga
     //  (2-1) is # byte to read -1, and 0 is our coreID
     pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | 0;
-    pkt[1] = HBA_SF_INT0;
+    pkt[1] = HBA_SF_REG_INTR0;
     pkt[2] = 0;                     // dummy byte
     pkt[3] = 0;                     // dummy byte
     pkt[4] = 0;                     // dummy byte

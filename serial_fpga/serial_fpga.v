@@ -128,6 +128,8 @@ reg [DBUS_WIDTH-1:0] reg_intr0_in;
 wire [DBUS_WIDTH-1:0] reg_intr1;
 reg [DBUS_WIDTH-1:0] reg_intr1_in;
 
+wire [DBUS_WIDTH-1:0] reg_rate_ms;
+
 /*
 ****************************
 * Instantiations
@@ -232,6 +234,8 @@ hba_reg_bank #
 
     .slv_reg1(reg_intr1),        // read access
     .slv_reg1_in(reg_intr1_in),  // write access
+
+    .slv_reg2(reg_rate_ms),        // Max interrupt rate.
 
     .slv_wr_en(slv_wr_en),     // No write.
     .slv_wr_mask(4'b011),   // 0011, Enable writes to slv_reg0, and slv_reg1.
@@ -431,9 +435,34 @@ begin
     end
 end
 
-integer i;
+// Generate the interrupt enable at specified rate
+localparam ONE_MS_COUNT = ( CLK_FREQUENCY / 1000 );
+localparam COUNT_BITS = $clog2(ONE_MS_COUNT);
+reg [COUNT_BITS-1:0] count_to_1ms;
+reg [7:0] count_1ms;
+reg io_intr_en;
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        count_to_1ms <= 0;
+        count_1ms <= 0;
+        io_intr_en <= 0;
+    end else begin
+        io_intr_en <= 0;
+        count_to_1ms <= count_to_1ms + 1;
+        if (count_to_1ms == (ONE_MS_COUNT-1)) begin
+            count_to_1ms <= 0;
+            count_1ms <= count_1ms + 1;
+        end
+        if (count_1ms == reg_rate_ms) begin
+            count_1ms <= 0;
+            io_intr_en <= 1;
+        end
+    end
+end
 
 // Set the HBA interrupt registers
+integer i;
 always @ (posedge hba_clk)
 begin
     if (hba_reset) begin
@@ -443,7 +472,14 @@ begin
         io_intr <= 0;
     end else begin
         // Generate interrupt to CPU if any interrupt bits are set
-        io_intr <= (|reg_intr0) | (|reg_intr1);
+        if (io_intr == 0) begin
+            if (io_intr_en) begin
+                io_intr <= (|reg_intr0) | (|reg_intr1);
+            end
+        end else begin
+            // if io_intr is 1 then let the clear happen.
+            io_intr <= (|reg_intr0) | (|reg_intr1);
+        end
 
         // default
         slv_wr_en <= 0;
@@ -461,7 +497,6 @@ begin
         end
     end
 end
-
 
 endmodule
 

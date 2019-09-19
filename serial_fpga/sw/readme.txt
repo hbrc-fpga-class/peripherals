@@ -30,6 +30,11 @@ configured as an input using poll() on the pin's
 /sys/class/gpio/gpioXX/value.  A 250 ms timer polls
 the GPIO pin as a way to avoid missed interrupts.
 
+intrr_rate : Interrupt max rate in Hz.  Tells the FPGA
+the max rate to assert the interrupt pin. Valid
+rates 4 to 1000Hz.  0 is a special value that means
+assert as soon as possible.
+
 rawin : Hexadecimal values to send directly to the
 FPGA.  Use this resource to help debug your FPGA
 peripheral.  This resource is write-only and has a

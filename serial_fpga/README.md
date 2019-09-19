@@ -23,6 +23,8 @@ after they have been read by the host (or other master).
 
 * __reg0[7:0]__ : (reg_intr0) Interrupt flags for peripherals 7 .. 0.
 * __reg1[7:0]__ : (reg_intr1) Interrupt flags for peripherals 15 .. 8.
+* __reg2[7:0]__ : (reg_rate_ms) Max Interrupt Rate in ms.  Valid range 0..255ms.
+Default 0 (always enabled).
 
 ## ToDo
 
