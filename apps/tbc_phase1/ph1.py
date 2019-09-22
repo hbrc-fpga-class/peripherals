@@ -10,6 +10,14 @@ def s16(value):
     """
     return -(value & 0x8000) | (value & 0x7fff)
 
+def sign_extend(value_16bit):
+    value_16bit = value_16bit & 0xFFFF
+
+    if value_16bit > 0x7fff:
+        return value_16bit - 65536
+    else:
+        return value_16bit
+
 class Tablebot:
     STATE_IDLE = "IDLE";
     STATE_MOVE = "MOVE";
@@ -23,6 +31,9 @@ class Tablebot:
         # Start sock_cmd connection
         self.sock_cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock_cmd.connect(('localhost', 8870))
+
+        # Set the max interrupt rate to 5hz
+        self.set_cmd(b'hbaset serial_fpga intrr_rate 5\n')
 
         # Start hba_qtr cat
         self.sock_qtr_cat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -97,8 +108,9 @@ class Tablebot:
                 break
             else:
                 data = data + retval
-        self.last_quad = s16(int(data,16))
-        #print("last_quad: ", self.last_quad)
+        #self.last_quad = s16(int(data,16))
+        self.last_quad = sign_extend(int(data,16))
+        print("last_quad: ", self.last_quad)
 
 
 
@@ -126,20 +138,23 @@ class Tablebot:
     def robot_trans(self):
         if self.state == self.STATE_MOVE:
             if self.last_qtr0 == 255 or self.last_qtr1 == 255:
-                self.start_quad = self.last_quad
-                self.end_quad = self.last_quad - 50
+                self.set_cmd(b'hbaset hba_quad reset 1\n')
+                self.start_quad = 0
+                self.end_quad = -50
                 print("start_quad: ", self.start_quad)
                 print("end_quad: ", self.end_quad)
                 self.state = self.STATE_BACK
         elif self.state == self.STATE_BACK:
             if self.last_quad < self.end_quad:
                 print("end_back last_quad: ", self.last_quad)
-                self.start_quad = self.last_quad
-                self.end_quad = self.last_quad + 720
+                self.set_cmd(b'hbaset hba_quad reset 1\n')
+                self.start_quad = 0
+                self.end_quad = 720
                 self.state = self.STATE_TURN
         elif self.state == self.STATE_TURN:
             if self.last_quad > self.end_quad:
                 print("end_turn last_quad: ", self.last_quad)
+                self.set_cmd(b'hbaset hba_quad reset 1\n')
                 self.state = self.STATE_MOVE
             pass
         elif self.state == self.STATE_STOP:
