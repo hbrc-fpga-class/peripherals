@@ -1,0 +1,26 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Sun Oct 13 17:21:11 2019
+[*]
+[dumpfile] "/home/brandonb/Projects/fpga_class/peripherals/hba_quad/timer_pulse_tb/timer_pulse.vcd"
+[dumpfile_mtime] "Sun Oct 13 17:18:56 2019"
+[dumpfile_size] 74923740
+[savefile] "/home/brandonb/Projects/fpga_class/peripherals/hba_quad/timer_pulse_tb/timer_pulse.gtkw"
+[timestart] 0
+[size] 1920 995
+[pos] -461 -222
+*-31.977442 20000050000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] timer_pulse_tb.
+[sst_width] 233
+[signals_width] 218
+[sst_expanded] 1
+[sst_vpaned_height] 281
+@28
+timer_pulse_tb.clk
+timer_pulse_tb.reset
+@22
+timer_pulse_tb.rate_ms[7:0]
+@29
+timer_pulse_tb.pulse
+[pattern_trace] 1
+[pattern_trace] 0
