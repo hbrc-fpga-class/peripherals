@@ -70,19 +70,25 @@
 #define HBA_QUAD_REG_ENC0_MSB   (2)
 #define HBA_QUAD_REG_ENC1_LSB   (3)
 #define HBA_QUAD_REG_ENC1_MSB   (4)
-#define HBA_QUAD_REG_RESET      (5)
+#define HBA_QUAD_REG_SPEED_PERIOD (5)
+#define HBA_QUAD_REG_SPEED_LEFT (6)
+#define HBA_QUAD_REG_SPEED_RIGHT (7)
         // resource names and numbers
 #define FN_CTRL         "ctrl"
 #define FN_ENC0         "enc0"
 #define FN_ENC1         "enc1"
 #define FN_ENC          "enc"
 #define FN_RESET        "reset"
+#define FN_SPEED_PERIOD "speed_period"
+#define FN_SPEED        "speed"
 
 #define RSC_CTRL        0
 #define RSC_ENC0        1
 #define RSC_ENC1        2
 #define RSC_ENC         3
 #define RSC_RESET       4
+#define RSC_SPEED_PERIOD 5
+#define RSC_SPEED       6
 
         // What we are is a ...
 #define PLUGIN_NAME        "hba_quad"
@@ -102,6 +108,9 @@ typedef struct
     int      ctrl;      // most recent value to display on ctrl
     int      enc0;      // most recent enc0 value
     int      enc1;      // most recent enc1 value
+    int      speed_period; // period in ms
+    int      speed_left;   // most recent speed_left value
+    int      speed_right;  // most recent speed_right value
     int      coreid;    // FPGA core ID with this QUAD
     int      (*sendrecv_pkt)();  // routine to send data to the FPGA
 } HBA_QUAD;
@@ -139,6 +148,9 @@ int Initialize(
     pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
     pctx->enc0 = HBA_DEFVAL;    // default enc0 value.
     pctx->enc1 = HBA_DEFVAL;    // default enc1 value.
+    pctx->speed_period = HBA_DEFVAL;    // default speed_period value.
+    pctx->speed_left = HBA_DEFVAL;    // default speed_left value.
+    pctx->speed_right = HBA_DEFVAL;    // default speed_right value.
     // The following assumes that plug-ins are loaded in the
     // order they appear in the FPGA.  This is the first thing
     // to check when things go wrong.
@@ -181,6 +193,18 @@ int Initialize(
     pslot->rsc[RSC_RESET].pgscb = usercmd;
     pslot->rsc[RSC_RESET].uilock = -1;
     pslot->rsc[RSC_RESET].slot = pslot;
+    pslot->rsc[RSC_SPEED_PERIOD].name = FN_SPEED_PERIOD;
+    pslot->rsc[RSC_SPEED_PERIOD].flags = IS_WRITABLE;
+    pslot->rsc[RSC_SPEED_PERIOD].bkey = 0;
+    pslot->rsc[RSC_SPEED_PERIOD].pgscb = usercmd;
+    pslot->rsc[RSC_SPEED_PERIOD].uilock = -1;
+    pslot->rsc[RSC_SPEED_PERIOD].slot = pslot;
+    pslot->rsc[RSC_SPEED].name = FN_SPEED;
+    pslot->rsc[RSC_SPEED].flags = IS_READABLE | CAN_BROADCAST;
+    pslot->rsc[RSC_SPEED].bkey = 0;
+    pslot->rsc[RSC_SPEED].pgscb = usercmd;
+    pslot->rsc[RSC_SPEED].uilock = -1;
+    pslot->rsc[RSC_SPEED].slot = pslot;
 
     // The serial_fpga plug-in has a routine to send packets to the FPGA
     // and to return with packet data from the FPGA.  We need to look up
@@ -423,10 +447,13 @@ void usercmd(
             *plen = ret;
         }
     } else if ((cmd == EDSET) && (rscid == RSC_RESET)) {
-        // Write a 1 to the reset register
+        // Set bit 3 for encoder reset
+        pctx->ctrl = pctx->ctrl | 0x04; 
+
+        // Write a 1 to reg_ctrl[3]
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QUAD_REG_RESET;
-        pkt[2] = 1;                             // new value
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl;                             // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
@@ -437,10 +464,13 @@ void usercmd(
             *plen = ret;
         }
 
-        // Write a 0 to the reset register
+        // Clear bit 3 for encoder reset
+        pctx->ctrl = pctx->ctrl & 0xFB;
+
+        // Write a 0 to reg_ctrl[3]
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
-        pkt[1] = HBA_QUAD_REG_RESET;
-        pkt[2] = 0;                             // new value
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl;                             // new value
         pkt[3] = 0;                             // dummy for the ack
         nsd = pctx->sendrecv_pkt(4, pkt);
         // We did a write so the sendrecv return value should be 1
@@ -450,7 +480,91 @@ void usercmd(
             ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
             *plen = ret;
         }
-    }
+    } else if ((cmd == EDSET) && (rscid == RSC_SPEED_PERIOD)) {
+        ret = sscanf(val, "%d", &nval);
+        if (ret != 1) {
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
+        if ((nval < 0) || (nval > 0xff)) {
+            ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
+            *plen = ret;
+            return;
+        }
+        // record the new data value 
+        pctx->speed_period = nval;
+
+        // Send new value to FPGA QUAD ctrl register
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_SPEED_PERIOD;
+        pkt[2] = pctx->speed_period;                     // new value
+        pkt[3] = 0;                             // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+    } else if ((cmd == EDGET) && (rscid == RSC_SPEED_PERIOD)) {
+        ret = snprintf(buf, *plen, "%d\n", pctx->speed_period);
+        *plen = ret;  // (errors are handled in calling routine)
+    } else if ((cmd == EDGET) && (rscid == RSC_SPEED)) {
+
+        // Disable both encoder updates
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl & 0xfc;     // Both encoders updates disabled
+        pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+
+        // Read both speed_left and speed_right values.  2 registers in all
+        pkt[0] = HBA_READ_CMD | ((4 -2) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_SPEED_LEFT;
+        pkt[2] = 0;                     // (cmd)
+        pkt[3] = 0;                     // (reg)
+        pkt[4] = 0;                     // (speed left)
+        pkt[5] = 0;                     // (speed right)
+        nsd = pctx->sendrecv_pkt(6, pkt);
+        // We sent 2 byte header + siz bytes so the sendrecv return value should be 4
+        if (nsd != 4) {
+            // error reading speed_left from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+        else {
+            // Got the values.  Print and send to user
+            // First two bytes are echoed header.
+            pctx->speed_left  = pkt[2];   // speed_left value
+            pctx->speed_right = pkt[3];   // speed_right value
+            // XXX ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
+            ret = snprintf(buf, *plen, "%d %d\n", pctx->speed_left, pctx->speed_right);
+            *plen = ret;  // (errors are handled in calling routine)
+        }
+
+        // Put the control back the way it was.
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
+        pkt[1] = HBA_QUAD_REG_CTRL;
+        pkt[2] = pctx->ctrl;
+        pkt[3] = 0;                     // dummy for the ack
+        nsd = pctx->sendrecv_pkt(4, pkt);
+        // We did a write so the sendrecv return value should be 1
+        // and the returned byte should be an ACK
+        if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
+            // error writing value from QUAD port
+            ret = snprintf(buf, *plen, E_NORSP, pslot->rsc[rscid].name);
+            *plen = ret;
+        }
+    } 
 
     // Nothing to do here if edcat.  That is handled in the UI code
 

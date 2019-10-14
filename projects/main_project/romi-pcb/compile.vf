@@ -20,4 +20,5 @@ top.v
 ../../../hba_quad/hba_quad.v
 ../../../hba_quad/quadrature.v
 ../../../hba_quad/pulse_counter.v
+../../../hba_quad/timer_pulse.v
 

@@ -61,15 +61,17 @@ begin
         count_1ms <= 0;
         pulse <= 0;
     end else begin
-        pulse <= 0;
-        count_to_1ms <= count_to_1ms + 1;
-        if (count_to_1ms == (ONE_MS_COUNT-1)) begin
-            count_to_1ms <= 0;
-            count_1ms <= count_1ms + 1;
-        end
-        if (count_1ms == rate_ms) begin
-            count_1ms <= 0;
-            pulse <= 1;
+        if (rate_ms != 0) begin
+            pulse <= 0;
+            count_to_1ms <= count_to_1ms + 1;
+            if (count_to_1ms == (ONE_MS_COUNT-1)) begin
+                count_to_1ms <= 0;
+                count_1ms <= count_1ms + 1;
+            end
+            if (count_1ms == rate_ms) begin
+                count_1ms <= 0;
+                pulse <= 1;
+            end
         end
     end
 end

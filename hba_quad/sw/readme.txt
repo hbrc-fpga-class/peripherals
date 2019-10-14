@@ -18,6 +18,8 @@ ctrl : This get/set the control register.
     - Bit 0 : Enable left encoder register updates
     - Bit 1 : Enable right encoder register updates
     - Bit 2 : Enable interrupt.
+    - Bit 3 : Reset both encoders by writing 1. Not auto-cleared.  Suggest using the
+              reset resource below instead of setting this bit directly.
 
 This resource works with hbaget and hbaset.
 The startup value is 0, with everything disabled.
@@ -38,9 +40,17 @@ This resource works with hbaget and hbacat.
 enc : Reads both encoder values. Formats as 'enc0 enc1'.
 This resource works with hbaget and hbacat.
 
-reset : Resets both encoder values back to zero.
-    - Bit 0 : 1=Reset.  Autocleared by the driver.
+reset : Resets both encoder values back to zero. Autocleared by the driver.
 This resource works with hbaset.
+
+speed_period : A period in ms.  Valid range 0..255ms. Encoder ticks are
+counted during this period to infer speed. Default 0 (disabled).
+This resource works with hbaset.
+
+speed : Read both encoder speed values. Formats as 'speed_left speed_right'.
+This is the number of encoder ticks during the last speed_period.
+This resource works with hbaget and hbacat.
+
 
 EXAMPLES
 Enable updates and interrupts

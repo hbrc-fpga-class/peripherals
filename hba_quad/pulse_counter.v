@@ -50,6 +50,9 @@ module pulse_counter #
     input wire pulse_in,
     input wire dir_in,
 
+    input wire speed_interval_pulse,
+    output reg [7:0] speed_count,   // count between speed interval pulses
+
     output reg [15:0] count,
     output reg valid
 );
@@ -66,6 +69,8 @@ reg pulse_in_reg;
 
 wire posedge_pulse_in;
 assign posedge_pulse_in = (pulse_in==1) && (pulse_in_reg==0);
+
+reg [7:0] tmp_speed_count;
 
 /*
 ********************************************
@@ -86,16 +91,23 @@ always @ (posedge clk)
 begin
     if (reset) begin
         count <= 0;
+        speed_count <= 0;
+        tmp_speed_count <= 0;
         valid <= 1;
     end else begin
         valid <= 0;
         // update count on rising edge
         if (posedge_pulse_in) begin
             count <= (dir_in == FWD) ? (count + 1) : (count - 1);
+            tmp_speed_count <= (dir_in == FWD) ? (tmp_speed_count + 1) : (tmp_speed_count - 1);
             // Deassert en to avoid peripheral reg updates during read.
             if (en) begin
                 valid <= 1;
             end
+        end
+        if (speed_interval_pulse) begin
+            speed_count <= tmp_speed_count;
+            tmp_speed_count <= 0;
         end
     end
 end

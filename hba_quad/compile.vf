@@ -2,5 +2,6 @@
 hba_quad.v
 quadrature.v
 pulse_counter.v
+timer_pulse.v
 ../hba_reg_bank/hba_reg_bank.v
 

@@ -52,6 +52,7 @@ module hba_quad #
     // Defaults
     // DBUS_WIDTH = 8
     // ADDR_WIDTH = 12
+    parameter integer CLK_FREQUENCY = 50_000_000,
     parameter integer DBUS_WIDTH = 8,
     parameter integer PERIPH_ADDR_WIDTH = 4,
     parameter integer REG_ADDR_WIDTH = 8,
@@ -75,7 +76,10 @@ module hba_quad #
 
     // hba_quad pins
     input wire [1:0] quad_enc_a,
-    input wire [1:0] quad_enc_b
+    input wire [1:0] quad_enc_b,
+    output wire [7:0] quad_speed_left,
+    output wire [7:0] quad_speed_right,
+    output wire quad_speed_pulse
 );
 
 /*
@@ -96,7 +100,6 @@ wire [DBUS_WIDTH-1:0] reg_quad0_hi_in;  // reg2: Upper 8-bit of quad0
 wire [DBUS_WIDTH-1:0] reg_quad1_low_in; // reg3: Lower 8-bits of quad1
 wire [DBUS_WIDTH-1:0] reg_quad1_hi_in;  // reg4: Upper 8-bit of quad1
 
-wire [DBUS_WIDTH-1:0] reg_reset;  // reg5: bit0, used to reset encoders.
 
 // Enables writing to slave registers.
 wire slv_wr_en;
@@ -116,6 +119,12 @@ assign quad0_en = reg_ctrl[0];
 wire quad1_en;
 assign quad1_en = reg_ctrl[1];
 
+wire reg_reset;  // reg0[3]: Used to reset encoders.
+assign reg_reset = reg_ctrl[3];
+reg reg_reset2;
+reg reg_reset_pos_edge;
+
+
 // Left Encoder
 wire left_pulse;
 wire left_dir;
@@ -132,7 +141,10 @@ wire hba_xferack_slave1;
 assign hba_dbus_slave = hba_dbus_slave0 | hba_dbus_slave1;
 assign hba_xferack_slave = hba_xferack_slave0 | hba_xferack_slave1;
 
-wire enc_reset = hba_reset | reg_reset[0];
+wire enc_reset = hba_reset | reg_reset_pos_edge;
+
+// Timer pulse
+wire [7:0] reg_rate_ms;
 
 /*
 *****************************
@@ -201,17 +213,18 @@ hba_reg_bank #
 
     // Access to registgers
     //.slv_reg0(),
-    .slv_reg1(reg_reset),
+    .slv_reg1(reg_rate_ms),
     //.slv_reg2(),
     //.slv_reg3(),
 
     // writeable registers
     .slv_reg0_in(reg_quad1_hi_in),
     //.slv_reg1_in(),
-    //.slv_reg2_in(),
+    .slv_reg2_in(quad_speed_left),
+    .slv_reg3_in(quad_speed_right),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b0001),    // reg0+4 writable
+    .slv_wr_mask(4'b1101),    // reg0+4 writable
     .slv_autoclr_mask(4'b0000)    // reg1+4 is autoclear
 );
 
@@ -240,6 +253,9 @@ pulse_counter #
 
     .pulse_in(left_pulse),
     .dir_in(left_dir),
+
+    .speed_interval_pulse(quad_speed_pulse),
+    .speed_count(quad_speed_left),
 
     .count({reg_quad0_hi_in[7:0], reg_quad0_low_in[7:0]}),   // [15:0]
     .valid(quad_valid[LEFT])
@@ -271,9 +287,43 @@ pulse_counter #
     .pulse_in(right_pulse),
     .dir_in(right_dir),
 
+    .speed_interval_pulse(quad_speed_pulse),
+    .speed_count(quad_speed_right),
+
     .count({reg_quad1_hi_in[7:0], reg_quad1_low_in[7:0]}),   // [15:0]
     .valid(quad_valid[RIGHT])
 );
+
+timer_pulse #
+(
+    .CLK_FREQUENCY(CLK_FREQUENCY)
+) timer_pulse_inst
+(
+    .clk(hba_clk),
+    .reset(hba_reset),
+    .rate_ms(reg_rate_ms),    // [7:0]
+
+    .pulse(quad_speed_pulse)
+);
+
+/*
+*****************************
+* Main
+*****************************
+*/
+
+
+// Capture edges on reg_reset for enc_reset
+always @ (posedge hba_clk)
+begin
+    if (hba_reset) begin
+        reg_reset2 <= 0;
+        reg_reset_pos_edge <= 0;
+    end else begin
+        reg_reset2 <= reg_reset;
+        reg_reset_pos_edge <= reg_reset & ~reg_reset2;
+    end
+end
 
 endmodule
 
