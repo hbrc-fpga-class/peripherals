@@ -149,7 +149,7 @@ class Tablebot:
                 print("end_back last_quad: ", self.last_quad)
                 self.set_cmd(b'hbaset hba_quad reset 1\n')
                 self.start_quad = 0
-                self.end_quad = 720
+                self.end_quad = 715
                 self.state = self.STATE_TURN
         elif self.state == self.STATE_TURN:
             if self.last_quad > self.end_quad:

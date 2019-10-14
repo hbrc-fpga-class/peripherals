@@ -448,7 +448,7 @@ void usercmd(
         }
     } else if ((cmd == EDSET) && (rscid == RSC_RESET)) {
         // Set bit 3 for encoder reset
-        pctx->ctrl = pctx->ctrl | 0x04; 
+        pctx->ctrl = pctx->ctrl | 0x08;
 
         // Write a 1 to reg_ctrl[3]
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
@@ -465,7 +465,7 @@ void usercmd(
         }
 
         // Clear bit 3 for encoder reset
-        pctx->ctrl = pctx->ctrl & 0xFB;
+        pctx->ctrl = pctx->ctrl & 0xF7;
 
         // Write a 0 to reg_ctrl[3]
         pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | pctx->coreid;
@@ -528,7 +528,7 @@ void usercmd(
         }
 
         // Read both speed_left and speed_right values.  2 registers in all
-        pkt[0] = HBA_READ_CMD | ((4 -2) << 4) | pctx->coreid;
+        pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | pctx->coreid;
         pkt[1] = HBA_QUAD_REG_SPEED_LEFT;
         pkt[2] = 0;                     // (cmd)
         pkt[3] = 0;                     // (reg)

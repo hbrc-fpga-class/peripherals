@@ -54,12 +54,16 @@ This resource works with hbaget and hbacat.
 
 EXAMPLES
 Enable updates and interrupts
-Read the the 16-bit left encoder value
+Set the measure speed period to 10ms
+Read the the 16-bit encoder values
 Read the the 16-bit right encoder value
-Start a stream of encoder values from the left sensor
+Read the current speed in ticks per speed_period
+Start a stream of encoder values
 
  hbaset hba_quad ctrl 7
+ hbaset hba_quad speed_period 10
  hbaset hba_quad reset 1
  hbaget hba_quad enc
+ hbaget hba_quad speed
  hbacat hba_quad enc
 
