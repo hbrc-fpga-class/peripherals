@@ -12,6 +12,8 @@ encoder updates after the values are read.  The encoder
 counts will still be updated internally only the updating
 to the register bank is paused.
 
+NOTE: For this driver all values are in DECIMAL.
+
 RESOURCES
 
 ctrl : This get/set the control register.

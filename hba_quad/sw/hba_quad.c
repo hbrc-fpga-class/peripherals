@@ -256,6 +256,10 @@ void usercmd(
     int       nsd;      // number of bytes sent to FPGA
     int       ret;      // generic call return value
     uint8_t   pkt[HBA_MXPKT];
+    int       newenc0;
+    int       newenc1;
+    int       new_speed_left;
+    int       new_speed_right;
 
     // Get this instance of the plug-in
     pctx = (HBA_QUAD *) pslot->priv;
@@ -326,7 +330,13 @@ void usercmd(
         else {
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
-            pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            // XXX pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            newenc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            if (newenc0 >= 0x8000) {
+                newenc0 = newenc0 - 0x10000;
+            }
+            pctx->enc0 = newenc0;   // Reconstruct 16-bit value.
+
             // XXX ret = snprintf(buf, *plen, "%04x\n", pctx->enc0);
             ret = snprintf(buf, *plen, "%d\n", pctx->enc0);
             *plen = ret;  // (errors are handled in calling routine)
@@ -377,7 +387,14 @@ void usercmd(
         else {
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
-            pctx->enc1 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            // XXX pctx->enc1 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            newenc1 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
+            if (newenc1 >= 0x8000) {
+                newenc1 = newenc1 - 0x10000;
+            }
+            pctx->enc1 = newenc1;   // Reconstruct 16-bit value.
+
+
             // XXX ret = snprintf(buf, *plen, "%04x\n", pctx->enc1);
             ret = snprintf(buf, *plen, "%d\n", pctx->enc1);
             *plen = ret;  // (errors are handled in calling routine)
@@ -431,8 +448,19 @@ void usercmd(
         else {
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
-            pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct enc0 16-bit value.
-            pctx->enc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct enc1 16-bit value.
+            //XXX pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct enc0 16-bit value.
+            //XXX pctx->enc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct enc1 16-bit value.
+            newenc0= (pkt[3]<<8) | pkt[2];   // Reconstruct enc0 16-bit value.
+            newenc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct enc1 16-bit value.
+            if (newenc0 >= 0x8000) {
+                newenc0 = newenc0 - 0x10000;
+            }
+            if (newenc1 >= 0x8000) {
+                newenc1 = newenc1 - 0x10000;
+            }
+            pctx->enc0 = newenc0;   // Reconstruct enc0 16-bit value.
+            pctx->enc1 = newenc1;   // Reconstruct enc1 16-bit value.
+
             // XXX ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
             ret = snprintf(buf, *plen, "%d %d\n", pctx->enc0, pctx->enc1);
             *plen = ret;  // (errors are handled in calling routine)
@@ -549,8 +577,19 @@ void usercmd(
         else {
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
-            pctx->speed_left  = pkt[2];   // speed_left value
-            pctx->speed_right = pkt[3];   // speed_right value
+            // XXX pctx->speed_left  = pkt[2];   // speed_left value
+            // XXX pctx->speed_right = pkt[3];   // speed_right value
+            new_speed_left  = pkt[2];   // speed_left value
+            new_speed_right = pkt[3];   // speed_right value
+            if (new_speed_left >= 0x80) {
+                new_speed_left = new_speed_left - 0x100;
+            }
+            if (new_speed_right >= 0x80) {
+                new_speed_right = new_speed_right - 0x100;
+            }
+            pctx->speed_left  = new_speed_left;   // speed_left value
+            pctx->speed_right = new_speed_right;   // speed_right value
+
             // XXX ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
             ret = snprintf(buf, *plen, "%d %d\n", pctx->speed_left, pctx->speed_right);
             *plen = ret;  // (errors are handled in calling routine)
@@ -620,8 +659,23 @@ void core_interrupt(void *trans)
     }
     newenc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
     newenc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct 16-bit value.
+
     new_speed_left = pkt[6];
     new_speed_right = pkt[7];
+
+    // Check for negative values
+    if (newenc0 >= 0x8000) {
+        newenc0 = newenc0 - 0x10000;
+    }
+    if (newenc1 >= 0x8000) {
+        newenc1 = newenc1 - 0x10000;
+    }
+    if (new_speed_left >= 0x80) {
+        new_speed_left = new_speed_left - 0x100;
+    }
+    if (new_speed_right >= 0x80) {
+        new_speed_right = new_speed_right - 0x100;
+    }
 
     // Broadcast encoder 0 if it's changed and any UI is monitoring it
     pslot = pctx->pslot;
