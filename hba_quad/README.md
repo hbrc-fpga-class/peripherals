@@ -40,10 +40,10 @@ There are three 8-bit registers.
 * __reg3__ : Right encoder count, least significant byte
 
 * __reg4__ : Right encoder count, most significant byte
-* __reg5__ : (reg_rate_ms) speed_interval_pulse period in ms.  Valid range 0..255ms.
+* __reg5__ : (reg_speed_left) Left encoder count during speed_interval_pulse period.
+* __reg6__ : (reg_speed_right) Right encoder count during speed_interval_pulse period.
+* __reg7__ : (reg_rate_ms) speed_interval_pulse period in ms.  Valid range 0..255ms.
 Encoder ticks are counted during this period to infer speed.  Default 0 (disabled).
-* __reg6__ : (reg_speed_left) Left encoder count during speed_interval_pulse period.
-* __reg7__ : (reg_speed_right) Right encoder count during speed_interval_pulse period.
 
 ## TODO
 

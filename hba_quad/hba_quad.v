@@ -185,7 +185,7 @@ hba_reg_bank #
     .slv_reg3_in(reg_quad1_low_in),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b1110),    // reg 1,2,3 writable
+    .slv_wr_mask(4'b1110),    // reg 1,2,3 writable by this module
     .slv_autoclr_mask(4'b0000)    // No autoclear
 );
 
@@ -213,19 +213,19 @@ hba_reg_bank #
 
     // Access to registgers
     //.slv_reg0(),
-    .slv_reg1(reg_rate_ms),
+    //.slv_reg1(reg_rate_ms),
     //.slv_reg2(),
-    //.slv_reg3(),
+    .slv_reg3(reg_rate_ms), // reg7
 
     // writeable registers
-    .slv_reg0_in(reg_quad1_hi_in),
-    //.slv_reg1_in(),
-    .slv_reg2_in(quad_speed_left),
-    .slv_reg3_in(quad_speed_right),
+    .slv_reg0_in(reg_quad1_hi_in), // reg4
+    .slv_reg1_in(quad_speed_left),  // reg5
+    .slv_reg2_in(quad_speed_right), // reg6
+    //.slv_reg3_in(),
 
     .slv_wr_en(slv_wr_en),   // Assert to set slv_reg? <= slv_reg?_in
-    .slv_wr_mask(4'b1101),    // reg0+4 writable
-    .slv_autoclr_mask(4'b0000)    // reg1+4 is autoclear
+    .slv_wr_mask(4'b0111),    // reg0,1,2 writable by this module
+    .slv_autoclr_mask(4'b0000)    // no autoclear
 );
 
 quadrature left_quad_inst

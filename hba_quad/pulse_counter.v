@@ -67,8 +67,8 @@ module pulse_counter #
 // Register the pulse_in to find edges
 reg pulse_in_reg;
 
-wire posedge_pulse_in;
-assign posedge_pulse_in = (pulse_in==1) && (pulse_in_reg==0);
+wire pulse_edge;
+assign pulse_edge = pulse_in != pulse_in_reg;
 
 reg [7:0] tmp_speed_count;
 
@@ -96,8 +96,8 @@ begin
         valid <= 1;
     end else begin
         valid <= 0;
-        // update count on rising edge
-        if (posedge_pulse_in) begin
+        // update count on rising edge and falling edges.
+        if (pulse_edge) begin
             count <= (dir_in == FWD) ? (count + 1) : (count - 1);
             tmp_speed_count <= (dir_in == FWD) ? (tmp_speed_count + 1) : (tmp_speed_count - 1);
             // Deassert en to avoid peripheral reg updates during read.

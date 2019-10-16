@@ -70,9 +70,9 @@
 #define HBA_QUAD_REG_ENC0_MSB   (2)
 #define HBA_QUAD_REG_ENC1_LSB   (3)
 #define HBA_QUAD_REG_ENC1_MSB   (4)
-#define HBA_QUAD_REG_SPEED_PERIOD (5)
-#define HBA_QUAD_REG_SPEED_LEFT (6)
-#define HBA_QUAD_REG_SPEED_RIGHT (7)
+#define HBA_QUAD_REG_SPEED_LEFT (5)
+#define HBA_QUAD_REG_SPEED_RIGHT (6)
+#define HBA_QUAD_REG_SPEED_PERIOD (7)
         // resource names and numbers
 #define FN_CTRL         "ctrl"
 #define FN_ENC0         "enc0"
@@ -261,7 +261,8 @@ void usercmd(
     pctx = (HBA_QUAD *) pslot->priv;
 
     if ((cmd == EDSET) && (rscid == RSC_CTRL)) {
-        ret = sscanf(val, "%x", &nval);
+        // XXX ret = sscanf(val, "%x", &nval);
+        ret = sscanf(val, "%d", &nval);
         if (ret != 1) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             *plen = ret;
@@ -289,7 +290,8 @@ void usercmd(
             *plen = ret;
         }
     } else if ((cmd == EDGET) && (rscid == RSC_CTRL)) {
-        ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
+        // XXX ret = snprintf(buf, *plen, "%x\n", pctx->ctrl);
+        ret = snprintf(buf, *plen, "%d\n", pctx->ctrl);
         *plen = ret;  // (errors are handled in calling routine)
     } else if ((cmd == EDGET) && (rscid == RSC_ENC0)) {
 
@@ -325,7 +327,8 @@ void usercmd(
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
             pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
-            ret = snprintf(buf, *plen, "%04x\n", pctx->enc0);
+            // XXX ret = snprintf(buf, *plen, "%04x\n", pctx->enc0);
+            ret = snprintf(buf, *plen, "%d\n", pctx->enc0);
             *plen = ret;  // (errors are handled in calling routine)
         }
 
@@ -375,7 +378,8 @@ void usercmd(
             // Got the values.  Print and send to user
             // First two bytes are echoed header.
             pctx->enc1 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
-            ret = snprintf(buf, *plen, "%04x\n", pctx->enc1);
+            // XXX ret = snprintf(buf, *plen, "%04x\n", pctx->enc1);
+            ret = snprintf(buf, *plen, "%d\n", pctx->enc1);
             *plen = ret;  // (errors are handled in calling routine)
         }
 
@@ -429,7 +433,8 @@ void usercmd(
             // First two bytes are echoed header.
             pctx->enc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct enc0 16-bit value.
             pctx->enc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct enc1 16-bit value.
-            ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
+            // XXX ret = snprintf(buf, *plen, "%04x %04x\n", pctx->enc0, pctx->enc1);
+            ret = snprintf(buf, *plen, "%d %d\n", pctx->enc0, pctx->enc1);
             *plen = ret;  // (errors are handled in calling routine)
         }
 
@@ -581,18 +586,20 @@ void core_interrupt(void *trans)
     SLOT        *pslot;      // This instance of the serial plug-in
     RSC         *prsc;       // pointer to this slot's counts resource
     int          nsd;        // number of bytes sent to FPGA
-    uint8_t      pkt[HBA_MXPKT];  
+    uint8_t      pkt[HBA_MXPKT];
     char         msg[MX_MSGLEN * 3 +1]; // text to send.  +1 for newline
     int          slen;       // length of text to output
     int          newenc0;
     int          newenc1;
+    int          new_speed_left;
+    int          new_speed_right;
 
     // get pointers to this instance of the plug-in and its slot
     pctx = (HBA_QUAD *) trans; // transparent data is our context
 
     // Read value in quadrature registers
     // Read four bytes offset by -1 (4 -1)
-    pkt[0] = HBA_READ_CMD | ((4 -1) << 4) | pctx->coreid;
+    pkt[0] = HBA_READ_CMD | ((6 -1) << 4) | pctx->coreid;
     pkt[1] = HBA_QUAD_REG_ENC0_LSB;
     pkt[2] = 0;                     // dummy byte (cmd)
     pkt[3] = 0;                     // dummy byte (reg)
@@ -600,23 +607,29 @@ void core_interrupt(void *trans)
     pkt[5] = 0;                     // dummy byte (q0 high)
     pkt[6] = 0;                     // dummy byte (q1 low)
     pkt[7] = 0;                     // dummy byte (q1 high)
-    nsd = pctx->sendrecv_pkt(8, pkt);
+    pkt[8] = 0;                     // dummy byte (q0 speed)
+    pkt[9] = 0;                     // dummy byte (q1 speed)
 
-    // We sent header + six bytes so the sendrecv return value should be 6
-    if (nsd != 6) {
+    nsd = pctx->sendrecv_pkt(10, pkt);
+
+    // We sent header + eight bytes so the sendrecv return value should be 8
+    if (nsd != 8) {
         // error reading value from QUAD port
         edlog("Error reading value from quadrature");
         return;
     }
     newenc0 = (pkt[3]<<8) | pkt[2];   // Reconstruct 16-bit value.
     newenc1 = (pkt[5]<<8) | pkt[4];   // Reconstruct 16-bit value.
- 
+    new_speed_left = pkt[6];
+    new_speed_right = pkt[7];
+
     // Broadcast encoder 0 if it's changed and any UI is monitoring it
     pslot = pctx->pslot;
     if (newenc0 != pctx->enc0) {
         prsc = &(pslot->rsc[RSC_ENC0]);
         if (prsc->bkey != 0) {
-            slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc0);
+            // XXX slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc0);
+            slen = snprintf(msg, (MX_MSGLEN -1), "%d\n", newenc0);
             bcst_ui(msg, slen, &(prsc->bkey));
         }
     }
@@ -624,7 +637,8 @@ void core_interrupt(void *trans)
     if (newenc1 != pctx->enc1) {
         prsc = &(pslot->rsc[RSC_ENC1]);
         if (prsc->bkey != 0) {
-            slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc1);
+            // XXX slen = snprintf(msg, (MX_MSGLEN -1), "%04x\n", newenc1);
+            slen = snprintf(msg, (MX_MSGLEN -1), "%d\n", newenc1);
             bcst_ui(msg, slen, &(prsc->bkey));
         }
     }
@@ -632,12 +646,23 @@ void core_interrupt(void *trans)
     if ((newenc0 != pctx->enc0) || (newenc1 != pctx->enc1) ) {
         prsc = &(pslot->rsc[RSC_ENC]);
         if (prsc->bkey != 0) {
-            slen = snprintf(msg, (MX_MSGLEN -1), "%04x %04x\n", newenc0, newenc1);
+            // XXX slen = snprintf(msg, (MX_MSGLEN -1), "%04x %04x\n", newenc0, newenc1);
+            slen = snprintf(msg, (MX_MSGLEN -1), "%d %d\n", newenc0, newenc1);
+            bcst_ui(msg, slen, &(prsc->bkey));
+        }
+    }
+    // Broadcast ENC (both) if it's changed and any UI is monitoring it
+    if ((new_speed_left != pctx->speed_left) || (new_speed_right != pctx->speed_right) ) {
+        prsc = &(pslot->rsc[RSC_SPEED]);
+        if (prsc->bkey != 0) {
+            slen = snprintf(msg, (MX_MSGLEN -1), "%d %d\n", new_speed_left, new_speed_right);
             bcst_ui(msg, slen, &(prsc->bkey));
         }
     }
     pctx->enc0 = newenc0;
     pctx->enc1 = newenc1;
+    pctx->speed_left = new_speed_left;
+    pctx->speed_right = new_speed_right;
 }
 
 
