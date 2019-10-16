@@ -318,7 +318,7 @@ static void usercmd(
     }
     else if ((cmd == EDSET) && (rscid == RSC_INTRRT)) {
         ret = sscanf(val, "%d", &intrrate);
-        if ((ret != 1) || (intrpin < 0) || (intrpin > 1000)) {
+        if ((ret != 1) || (intrrate < 4) || (intrrate > 1000)) {
             ret = snprintf(buf, *plen, E_BDVAL, pslot->rsc[rscid].name);
             *plen = ret;
             return;
