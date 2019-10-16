@@ -1,0 +1,5 @@
+# iverilog -c compile.vf
+comparator.v
+up_down_counter.v
+speed_controller.v
+
