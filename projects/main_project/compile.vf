@@ -18,4 +18,9 @@ hba_system.v
 ../../hba_quad/hba_quad.v
 ../../hba_quad/quadrature.v
 ../../hba_quad/pulse_counter.v
+../../hba_quad/timer_pulse.v
+../../hba_speed_ctrl/comparator.v
+../../hba_speed_ctrl/hba_speed_ctrl.v
+../../hba_speed_ctrl/speed_controller.v
+../../hba_speed_ctrl/up_down_counter.v
 

@@ -23,9 +23,13 @@ begin
         greater_than <= 0;
     end else begin
         if (en) begin
-            equal <= (in1 == in2);
-            less_than <= (in1 < in2);
-            greater_than <= (in1 > in2);
+            if (in1 == in2) begin
+                equal <= 1;
+            end else if (in1 < in2) begin
+                less_than <= 1;
+            end else begin
+                greater_than <= 1;
+            end
         end
     end
 end

@@ -1,0 +1,7 @@
+# iverilog -c compile.vf
+hba_speed_ctrl.v
+../hba_reg_bank/hba_reg_bank.v
+speed_controller.v
+comparator.v
+up_down_counter.v
+

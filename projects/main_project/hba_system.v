@@ -14,6 +14,7 @@
 *   3  |    hba_motor
 *   4  |    hba_sonar
 *   5  |    hba_quad
+*   6  |    hba_speed_ctrl
 *
 *
 * Author: Brandon Blodget
@@ -107,15 +108,15 @@ wire hba_rnw;         // 1=Read from register. 0=Write to register.
 wire hba_select;      // Transfer in progress.
 wire hba_xferack;       // Slave ACK transfer complete.
 
-// Six slaves.  Set the others to 0.
+// Seven slaves.  Set the others to 0.
 wire [15:0] hba_xferack_slave;
-assign hba_xferack_slave[15:6] = 0;
+assign hba_xferack_slave[15:7] = 0;
 wire [DBUS_WIDTH-1:0] hba_dbus_slave;  // The combined slave dbus
 
 // Slots 1,2,3,4,5 generate interrupts, zeros for others.
 wire [15:0] slave_interrupt;
 assign slave_interrupt[0] = 0;
-assign slave_interrupt[15:6] = 0;
+assign slave_interrupt[15:7] = 0;
 
 // The emergency stop signals.  Currently only hba_qtr has one
 wire [15:0] slave_estop;
@@ -141,6 +142,9 @@ wire [DBUS_WIDTH-1:0] hba_dbus_slave4;   // The output data bus.
 // Slot 5
 wire [DBUS_WIDTH-1:0] hba_dbus_slave5;   // The output data bus.
 
+// Slot 6
+wire [DBUS_WIDTH-1:0] hba_dbus_slave6;   // The output data bus.
+
 // Master 0 (only 1)
 wire [3:0] hba_rnw_master;
 wire [3:0] hba_select_master;
@@ -153,6 +157,11 @@ wire [ADDR_WIDTH-1:0] hba_abus_master0;
 wire [3:0] hba_mrequest;
 wire [3:0] hba_mgrant;
 assign hba_mrequest[3:1] = 0;
+
+
+wire [7:0] quad_speed_left;
+wire [7:0] quad_speed_right;
+wire quad_speed_pulse;
 
 /*
 ****************************
@@ -344,7 +353,42 @@ hba_quad #
 
     // hba_quad pins
     .quad_enc_a(quad_enc_a[1:0]),
-    .quad_enc_b(quad_enc_b[1:0])
+    .quad_enc_b(quad_enc_b[1:0]),
+    .quad_speed_left(quad_speed_left),
+    .quad_speed_right(quad_speed_right),
+    .quad_speed_pulse(quad_speed_pulse)
+);
+
+
+hba_speed_ctrl #
+(
+    .DBUS_WIDTH(DBUS_WIDTH),
+    .PERIPH_ADDR_WIDTH(PERIPH_ADDR_WIDTH),
+    .REG_ADDR_WIDTH(REG_ADDR_WIDTH),
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .PERIPH_ADDR(6)
+) hba_speed_ctrl_inst
+(
+    // HBA Bus Slave Interface
+    .hba_clk(clk),
+    .hba_reset(reset),
+    .hba_rnw(hba_rnw),         // 1=Read from register. 0=Write to register.
+    .hba_select(hba_select),      // Transfer in progress.
+    .hba_abus(hba_abus), // The input address bus.
+    .hba_dbus(hba_dbus),  // The input data bus.
+
+    .hba_dbus_slave(hba_dbus_slave6),   // The output data bus.
+    .hba_xferack_slave(hba_xferack_slave[6]),     // Acknowledge transfer requested. 
+                                    // Asserted when request has been completed. 
+                                    // Must be zero when inactive.
+    .slave_interrupt(slave_interrupt[6]),   // Send interrupt back
+
+    // hba_speed_ctrl pins
+    .speed_ctrl_actual_lspeed(quad_speed_left),
+    .speed_ctrl_actual_rspeed(quad_speed_right),
+    .speed_ctrl_actual_pulse(quad_speed_pulse)
+    // XXX .speed_ctrl_lpwm,
+    // XXX .speed_ctrl_rpwm
 );
 
 hba_or_slaves #
@@ -360,7 +404,7 @@ hba_or_slaves #
     .hba_dbus_slave3(hba_dbus_slave3),
     .hba_dbus_slave4(hba_dbus_slave4),
     .hba_dbus_slave5(hba_dbus_slave5),
-    .hba_dbus_slave6(0),
+    .hba_dbus_slave6(hba_dbus_slave6),
     .hba_dbus_slave7(0),
 
     .hba_dbus_slave8(0),

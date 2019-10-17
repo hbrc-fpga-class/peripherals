@@ -107,13 +107,11 @@ begin
         init_pwm_reg <= 0;
         load <= 0;
     end else begin
-        if (en) begin
-            init_pwm_reg <= init_pwm;
-            load <= 0;
-            if (init_pwm_reg != init_pwm) begin
-                // new init_pwm value, so load it
-                load <= 1;
-            end
+        init_pwm_reg <= init_pwm;
+        load <= 0;
+        if (init_pwm_reg != init_pwm) begin
+            // new init_pwm value, so load it
+            load <= 1;
         end
     end
 end
