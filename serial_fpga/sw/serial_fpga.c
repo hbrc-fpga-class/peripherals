@@ -4,7 +4,7 @@
  *  Description: Simple interface to a Linux serial port
  *
  *  Resources:
- *    port   -  full path to serial port (/dev/ttyAMA0)
+ *    port   -  full path to serial port (/dev/serial0)
  *    config -  baudrate in range of 1200 to 921000
  *    intrr_pin -  which pin to monitor as an interrupt
  *    rawin  -  Received characters displayed in hex
@@ -68,7 +68,7 @@
         // What we are is a ...
 #define PLUGIN_NAME        "serial_fpga"
         // Default serial port
-#define DEFDEV             "/dev/ttyAMA0"
+#define DEFDEV             "/dev/serial0"
         // Default baudrate
 #define DEFBAUD            115200
         // Default interrupt GPIO pin
