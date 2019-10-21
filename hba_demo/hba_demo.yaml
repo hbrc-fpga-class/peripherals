@@ -1,0 +1,12 @@
+desc: 'This is a very cool module.
+  That does some very neat things.
+  I can''t think of what that is right now.'
+interrupt: true
+name: hba_demo
+reg_info:
+- desc: bit0 is the interrupt enable.
+  name: reg_ctrl
+  rw: r
+- desc: This is the main output.
+  name: reg_out
+  rw: w
