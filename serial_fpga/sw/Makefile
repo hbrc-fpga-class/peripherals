@@ -23,7 +23,9 @@ INC = $(EE_DIR)/plug-ins/include
 LIB = $(EE_DIR)/build/lib
 OBJ = $(EE_DIR)/build/obj
 
-includes = $(INC)/eedd.h readme.h
+HBA_INC = ../../common/include
+
+includes = $(INC)/eedd.h $(HBA_INC)/hba.h readme.h
 
 # define target plug-in driver here
 object = $(OBJ)/$(plugin_name).o
@@ -31,7 +33,7 @@ shared_object = $(LIB)/$(plugin_name).$(SO_EXT)
 
 DEBUG_FLAGS = -g
 RELEASE_FLAGS = -O3
-CFLAGS = -I$(INC) $(DEBUG_FLAGS) -fPIC -c -Wall
+CFLAGS = -I$(HBA_INC) -I$(INC) $(DEBUG_FLAGS) -fPIC -c -Wall
 
 all: $(shared_object)
 
