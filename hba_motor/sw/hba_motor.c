@@ -101,13 +101,14 @@
     // All state info for an instance of a MOTOR port
 typedef struct
 {
+    int      parent;   // Slot number of parent peripheral.
+    int      coreid;   // FPGA core ID with this MOTOR
     void    *pslot;    // handle to plug-in's's slot info
     int      mode;     // most recent value to display on mode
     char     l_mode;   // Left mode char
     char     r_mode;   // Right mode char
     int      motor0;   // most recent motor0 value
     int      motor1;   // most recent motor. value
-    int      coreid;   // FPGA core ID with this MOTOR
     int      (*sendrecv_pkt)();  // routine to send data to the FPGA
 } HBA_MOTOR;
 
@@ -138,16 +139,15 @@ int Initialize(
     }
 
     // Init our HBA_MOTOR structure
-    pctx->pslot = pslot;                // this instance of a motor controller
-    pctx->mode = HBA_DEFMODE;           // default mode value
-    pctx->l_mode =  HBA_DEFMODE_CHAR;   // default mode left char
-    pctx->r_mode =  HBA_DEFMODE_CHAR;   // default mode right char
-    pctx->motor0 = HBA_DEFMOTOR0;       // default motor0 value.
-    pctx->motor1 = HBA_DEFMOTOR1;       // default motor1 value.
-    // The following assumes that plug-ins are loaded in the
-    // order they appear in the FPGA.  This is the first thing
-    // to check when things go wrong.
-    pctx->coreid = pslot->slot_id;
+    pctx->parent = hba_parent();      // Slot number of parent peripheral.
+    pctx->coreid = HBA_MOTOR_COREID;  // Immutable.
+    pctx->pslot = pslot;              // this instance of a motor controller
+
+    pctx->mode = HBA_DEFMODE;         // default mode value
+    pctx->l_mode =  HBA_DEFMODE_CHAR; // default mode left char
+    pctx->r_mode =  HBA_DEFMODE_CHAR; // default mode right char
+    pctx->motor0 = HBA_DEFMOTOR0;     // default motor0 value.
+    pctx->motor1 = HBA_DEFMOTOR1;     // default motor1 value.
 
     // Register name and private data
     pslot->name = PLUGIN_NAME;
@@ -180,9 +180,8 @@ int Initialize(
     // this, 'sendrecv_pkt', address from within serial_fpga.so.
     // We cache the routine address so we don't need to look it up every
     // time we want to send a packet.
-    // Note the assumption that serial_fpga.so is always in slot 0.
     dlerror();                  /* Clear any existing error */
-    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[0].handle, "sendrecv_pkt");
+    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[pctx->parent].handle, "sendrecv_pkt");
     errmsg = dlerror();         /* check for errors */
     if (errmsg != NULL) {
         return(-1);
@@ -284,7 +283,7 @@ void usercmd(
         pkt[1] = HBA_MOTOR_REG_MODE;
         pkt[2] = pctx->mode;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -315,7 +314,7 @@ void usercmd(
         pkt[1] = HBA_MOTOR_REG_MOTOR0;
         pkt[2] = pctx->motor0;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -346,7 +345,7 @@ void usercmd(
         pkt[1] = HBA_MOTOR_REG_MOTOR1;
         pkt[2] = pctx->motor1;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {

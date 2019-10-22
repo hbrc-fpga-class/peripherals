@@ -25,8 +25,19 @@
 /***************************************************************************
  *  - Defines
  ***************************************************************************/
+#define HBA_PARENT_NAME    "serial_fpga"
+
         // Number of possible FPGA cores (peripherals)
 #define NCORE              16
+
+        // Immutable Hardware Core IDs.
+#define HBA_BASICIO_COREID 1
+#define HBA_QTR_COREID     2
+#define HBA_MOTOR_COREID   3
+#define HBA_SONAR_COREID   4
+#define HBA_QUAD_COREID    5
+#define HBA_GPIO_COREID    6
+
         // Maximum size of input/output string
 #define MX_MSGLEN          120
         // HBA protocol defines
@@ -37,7 +48,26 @@
 #define HBA_MXPKT         (16)
 #define HBA_ACK           (0xAC)
 
+/***************************************************************************
+ *  - Functions
+ ***************************************************************************/
+
+// Find most recently added FPGA slot number...
+int hba_parent(){
+
+    extern SLOT Slots[];
+
+    for (int i = MX_PLUGIN; i >= 0; i--) {
+        if (Slots[i].name != 0) {
+            if (!strcmp(Slots[i].name, HBA_PARENT_NAME)) {
+                return i;
+	    }
+	}
+    }
+
+    edlog("ERROR: Parent %s must be loaded before children.", HBA_PARENT_NAME);
+    return 0;
+}
 
 #endif /*HBA_H*/
-
 

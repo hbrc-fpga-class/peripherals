@@ -98,13 +98,14 @@
     // All state info for an instance of a QTR port
 typedef struct
 {
+    int      parent;    // Slot number of parent peripheral.
+    int      coreid;    // FPGA core ID with this QTR
     void    *pslot;     // handle to plug-in's's slot info
     int      ctrl;      // most recent value to display on ctrl
     int      qtr0;      // most recent qtr0 value
     int      qtr1;      // most recent qtr1 value
     int      period;    // the trigger period, resolution 50ms.
     int      thresh;    // Interrupt threshold
-    int      coreid;    // FPGA core ID with this QTR
     int      (*sendrecv_pkt)();  // routine to send data to the FPGA
 } HBA_QTR;
 
@@ -137,16 +138,15 @@ int Initialize(
     }
 
     // Init our HBA_QTR structure
-    pctx->pslot = pslot;        // this instance of the qtr sensor
-    pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
-    pctx->qtr0 = HBA_DEFVAL;    // default qtr0 value.
-    pctx->qtr1 = HBA_DEFVAL;    // default qtr1 value.
-    pctx->period = HBA_DEFVAL;  // default period value.
-    pctx->thresh = HBA_DEFVAL;  // default thresh value.
-    // The following assumes that plug-ins are loaded in the
-    // order they appear in the FPGA.  This is the first thing
-    // to check when things go wrong.
-    pctx->coreid = pslot->slot_id;
+    pctx->parent = hba_parent();   // Slot number of parent peripheral.
+    pctx->coreid = HBA_QTR_COREID; // Immutable.
+    pctx->pslot = pslot;           // this instance of the qtr sensor
+
+    pctx->ctrl = HBA_DEFVAL;       // most recent from to/from port
+    pctx->qtr0 = HBA_DEFVAL;       // default qtr0 value.
+    pctx->qtr1 = HBA_DEFVAL;       // default qtr1 value.
+    pctx->period = HBA_DEFVAL;     // default period value.
+    pctx->thresh = HBA_DEFVAL;     // default thresh value.
 
     // Register name and private data
     pslot->name = PLUGIN_NAME;
@@ -188,9 +188,8 @@ int Initialize(
     // this, 'sendrecv_pkt', address from within serial_fpga.so.
     // We cache the routine address so we don't need to look it up every
     // time we want to send a packet.
-    // Note the assumption that serial_fpga.so is always in slot 0.
     dlerror();                  /* Clear any existing error */
-    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[0].handle, "sendrecv_pkt");
+    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[pctx->parent].handle, "sendrecv_pkt");
     errmsg = dlerror();         /* check for errors */
     if (errmsg != NULL) {
         return(-1);
@@ -203,13 +202,13 @@ int Initialize(
     // The code below registers this core's interrupt handler with
     // serial_fpga.
     dlerror();                  /* Clear any existing error */
-    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    reg_intr = dlsym(Slots[pctx->parent].handle, "register_interrupt_handler");
     if (errmsg != NULL) {
         return(-1);
     }
-    // pass in the slot ID (core ID) of this plug-in
+    // Pass in the core ID of this plug-in...
     if (reg_intr != (void *) 0) {
-        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+        ((void (*)())reg_intr) (pctx->parent, pctx->coreid, &core_interrupt, (void *) pctx);
     }
 
     return (0);
@@ -257,7 +256,7 @@ void usercmd(
         pkt[1] = HBA_QTR_REG_CTRL;
         pkt[2] = pctx->ctrl;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -276,7 +275,7 @@ void usercmd(
         pkt[3] = 0;                     // (reg)
         pkt[4] = 0;                     // (qtr0)
         pkt[5] = 0;                     // (qtr1)
-        nsd = pctx->sendrecv_pkt(6, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading qtr0 from QTR port
@@ -311,7 +310,7 @@ void usercmd(
         pkt[1] = HBA_QTR_REG_PERIOD;
         pkt[2] = pctx->period;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -342,7 +341,7 @@ void usercmd(
         pkt[1] = HBA_QTR_REG_THRESH;
         pkt[2] = pctx->thresh;                     // new value
         pkt[3] = 0;                                // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -388,7 +387,7 @@ void core_interrupt(void *trans)
     pkt[4] = 0;                     // dummy byte (qtr0)
     pkt[5] = 0;                     // dummy byte (qtr1)
 
-    nsd = pctx->sendrecv_pkt(6, pkt);
+    nsd = pctx->sendrecv_pkt(pctx->parent, 6, pkt);
     // We sent header + four bytes so the sendrecv return value should be 4
     if (nsd != 4) {
         // error reading value from QTR port

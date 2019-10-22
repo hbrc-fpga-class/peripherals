@@ -36,8 +36,6 @@ only the lower 4-bit of each register is active.
 
 ## Example
 
-Assume that serial_fpga is at peripheral address 0 (slot 0) and
-hba_gpio is at peripheral address 1 (slot1).
 The the following command uses the "raw" bytes interface to set
 * reg0 = 0x0F   // reg_dir, all gpios are outputs
 * reg1 = 0x02   // reg_pins, gpio outputs 0x02
