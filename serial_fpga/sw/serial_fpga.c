@@ -340,7 +340,7 @@ static void usercmd(
         pctx->intrrt = intrrate;    // in hz
 
         // Send new value to the FPGA serial_fpga rate register(reg2)
-        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | 0; // serial_fpga core 0.
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | HBA_SERIAL_FPGA_COREID;
         pkt[1] = HBA_SF_REG_RATE;
         pkt[2] = intrrt_ms;                     // new value
         pkt[3] = 0;                             // dummy for the ack
@@ -771,8 +771,8 @@ static void do_interrupt(
     }
 
     // Read the two interrupt registers in serial_fpga
-    //  (2-1) is # byte to read -1, and 0 is our coreID
-    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | 0;
+    //  (2-1) is # byte to read -1
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | HBA_SERIAL_FPGA_COREID;
     pkt[1] = HBA_SF_REG_INTR0;
     pkt[2] = 0;                     // dummy byte
     pkt[3] = 0;                     // dummy byte

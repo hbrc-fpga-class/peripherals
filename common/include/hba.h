@@ -31,12 +31,15 @@
 #define NCORE              16
 
         // Immutable Hardware Core IDs.
-#define HBA_BASICIO_COREID 1
-#define HBA_QTR_COREID     2
-#define HBA_MOTOR_COREID   3
-#define HBA_SONAR_COREID   4
-#define HBA_QUAD_COREID    5
-#define HBA_GPIO_COREID    6
+#define HBA_SERIAL_FPGA_COREID 0
+#define HBA_BASICIO_COREID     1
+#define HBA_QTR_COREID         2
+#define HBA_MOTOR_COREID       3
+#define HBA_SONAR_COREID       4
+#define HBA_QUAD_COREID        5
+#define HBA_GPIO_COREID        6
+#define HBA_SPEED_CTRL_COREID  7
+#define HBA_SERVOS_COREID      8
 
         // Maximum size of input/output string
 #define MX_MSGLEN          120
