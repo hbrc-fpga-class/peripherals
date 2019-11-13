@@ -104,6 +104,8 @@
     // All state info for an instance of a QUAD port
 typedef struct
 {
+    int      parent;    // Slot number of parent peripheral.
+    int      coreid;    // FPGA core ID with this QUAD
     void    *pslot;     // handle to plug-in's's slot info
     int      ctrl;      // most recent value to display on ctrl
     int      enc0;      // most recent enc0 value
@@ -111,7 +113,6 @@ typedef struct
     int      speed_period; // period in ms
     int      speed_left;   // most recent speed_left value
     int      speed_right;  // most recent speed_right value
-    int      coreid;    // FPGA core ID with this QUAD
     int      (*sendrecv_pkt)();  // routine to send data to the FPGA
 } HBA_QUAD;
 
@@ -144,17 +145,16 @@ int Initialize(
     }
 
     // Init our HBA_QUAD structure
-    pctx->pslot = pslot;        // this instance of a quadrature decoder
-    pctx->ctrl = HBA_DEFVAL;    // most recent from to/from port
-    pctx->enc0 = HBA_DEFVAL;    // default enc0 value.
-    pctx->enc1 = HBA_DEFVAL;    // default enc1 value.
-    pctx->speed_period = HBA_DEFVAL;    // default speed_period value.
-    pctx->speed_left = HBA_DEFVAL;    // default speed_left value.
-    pctx->speed_right = HBA_DEFVAL;    // default speed_right value.
-    // The following assumes that plug-ins are loaded in the
-    // order they appear in the FPGA.  This is the first thing
-    // to check when things go wrong.
-    pctx->coreid = pslot->slot_id;
+    pctx->parent = hba_parent();     // Slot number of parent peripheral.
+    pctx->coreid = HBA_QUAD_COREID;  // Immutable.
+    pctx->pslot = pslot;             // this instance of a quadrature decoder
+
+    pctx->ctrl = HBA_DEFVAL;         // most recent from to/from port
+    pctx->enc0 = HBA_DEFVAL;         // default enc0 value.
+    pctx->enc1 = HBA_DEFVAL;         // default enc1 value.
+    pctx->speed_period = HBA_DEFVAL; // default speed_period value.
+    pctx->speed_left = HBA_DEFVAL;   // default speed_left value.
+    pctx->speed_right = HBA_DEFVAL;  // default speed_right value.
 
     // Register name and private data
     pslot->name = PLUGIN_NAME;
@@ -211,9 +211,8 @@ int Initialize(
     // this, 'sendrecv_pkt', address from within serial_fpga.so.
     // We cache the routine address so we don't need to look it up every
     // time we want to send a packet.
-    // Note the assumption that serial_fpga.so is always in slot 0.
     dlerror();                  /* Clear any existing error */
-    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[0].handle, "sendrecv_pkt");
+    *(void **) (&(pctx->sendrecv_pkt)) = dlsym(Slots[pctx->parent].handle, "sendrecv_pkt");
     errmsg = dlerror();         /* check for errors */
     if (errmsg != NULL) {
         return(-1);
@@ -226,13 +225,13 @@ int Initialize(
     // The code below registers this core's interrupt handler with
     // serial_fpga.
     dlerror();                  /* Clear any existing error */
-    reg_intr = dlsym(Slots[0].handle, "register_interrupt_handler");
+    reg_intr = dlsym(Slots[pctx->parent].handle, "register_interrupt_handler");
     if (errmsg != NULL) {
         return(-1);
     }
-    // pass in the slot ID (core ID) of this plug-in
+    // Pass in the core ID of this plug-in...
     if (reg_intr != (void *) 0) {
-        ((void (*)())reg_intr) (pslot->slot_id, &core_interrupt, (void *) pctx);
+        ((void (*)())reg_intr) (pctx->parent, pctx->coreid, &core_interrupt, (void *) pctx);
     }
 
     return (0);
@@ -285,7 +284,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -304,7 +303,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl & 0xfe;     // bit0 (en left enc) set to 0.
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -320,7 +319,7 @@ void usercmd(
         pkt[3] = 0;                     // (reg)
         pkt[4] = 0;                     // (quadrature low)
         pkt[5] = 0;                     // (quadrature high)
-        nsd = pctx->sendrecv_pkt(6, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading enc0 from QUAD port
@@ -347,7 +346,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -361,7 +360,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl & 0xfd;     // bit1 (en right enc) set to 0.
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -377,7 +376,7 @@ void usercmd(
         pkt[3] = 0;                     // (reg)
         pkt[4] = 0;                     // (quadrature low)
         pkt[5] = 0;                     // (quadrature high)
-        nsd = pctx->sendrecv_pkt(6, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 6, pkt);
         // We sent header + two bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading enc1 from QUAD port
@@ -405,7 +404,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -420,7 +419,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl & 0xfc;     // Both encoders updates disabled
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -438,7 +437,7 @@ void usercmd(
         pkt[5] = 0;                     // (quadrature high)
         pkt[6] = 0;                     // (quadrature low)
         pkt[7] = 0;                     // (quadrature high)
-        nsd = pctx->sendrecv_pkt(8, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 8, pkt);
         // We sent 2 byte header + siz bytes so the sendrecv return value should be 6
         if (nsd != 6) {
             // error reading enc1 from QUAD port
@@ -471,7 +470,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -488,7 +487,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;                             // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -505,7 +504,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;                             // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -533,7 +532,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_SPEED_PERIOD;
         pkt[2] = pctx->speed_period;                     // new value
         pkt[3] = 0;                             // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -551,7 +550,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl & 0xfc;     // Both encoders updates disabled
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -567,7 +566,7 @@ void usercmd(
         pkt[3] = 0;                     // (reg)
         pkt[4] = 0;                     // (speed left)
         pkt[5] = 0;                     // (speed right)
-        nsd = pctx->sendrecv_pkt(6, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 6, pkt);
         // We sent 2 byte header + siz bytes so the sendrecv return value should be 4
         if (nsd != 4) {
             // error reading speed_left from QUAD port
@@ -600,7 +599,7 @@ void usercmd(
         pkt[1] = HBA_QUAD_REG_CTRL;
         pkt[2] = pctx->ctrl;
         pkt[3] = 0;                     // dummy for the ack
-        nsd = pctx->sendrecv_pkt(4, pkt);
+        nsd = pctx->sendrecv_pkt(pctx->parent, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -649,7 +648,7 @@ void core_interrupt(void *trans)
     pkt[8] = 0;                     // dummy byte (q0 speed)
     pkt[9] = 0;                     // dummy byte (q1 speed)
 
-    nsd = pctx->sendrecv_pkt(10, pkt);
+    nsd = pctx->sendrecv_pkt(pctx->parent, 10, pkt);
 
     // We sent header + eight bytes so the sendrecv return value should be 8
     if (nsd != 8) {

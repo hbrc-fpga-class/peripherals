@@ -108,13 +108,13 @@ typedef struct
 /**************************************************************
  *  - Function prototypes and external references
  **************************************************************/
-int sendrecv_pkt(int count, uint8_t *buff);
+int sendrecv_pkt(int parent, int count, uint8_t *buff);
 static void getevents(int, void *);
 static void usercmd(int, int, char*, SLOT*, int, int*, char*);
 static int  portconfig(SERPORT *pctx);
 static int  gpioconfig(int pin);
 static void do_interrupt(int fd, void *pctx);
-void        register_interupt_handler(int, void (*)());
+void        register_interupt_handler(int parent, int, void (*)());
 extern SLOT Slots[];
 extern int  DebugMode;
 extern int  ForegroundMode;
@@ -340,12 +340,12 @@ static void usercmd(
         pctx->intrrt = intrrate;    // in hz
 
         // Send new value to the FPGA serial_fpga rate register(reg2)
-        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | 0; // serial_fpga core 0.
+        pkt[0] = HBA_WRITE_CMD | ((1 -1) << 4) | HBA_SERIAL_FPGA_COREID;
         pkt[1] = HBA_SF_REG_RATE;
         pkt[2] = intrrt_ms;                     // new value
         pkt[3] = 0;                             // dummy for the ack
 
-        nsd = sendrecv_pkt(4, pkt);
+        nsd = sendrecv_pkt(pslot->slot_id, 4, pkt);
         // We did a write so the sendrecv return value should be 1
         // and the returned byte should be an ACK
         if ((nsd != 1) || (pkt[0] != HBA_ACK)) {
@@ -592,10 +592,12 @@ static int gpioconfig(int pin)
  * serial_fpga itself for initialization and to help process interrupts.
  */
 int sendrecv_pkt(
+    int            parent,      // Slot number of parent,
     int            count,       // num bytes to send / receive
     uint8_t       *buff)        // pointer to first char to send
 {
     SERPORT      *pctx;         // our local info
+    SLOT         *pslot;        // our SLOT
     int           sntcount1;    // return from first call to write()
     int           sntcount2;    // return from second call to write()
     int           expectrd;     // number of bytes expected in FPGA response
@@ -606,11 +608,11 @@ int sendrecv_pkt(
     int           sret;         // select() return value
     int           i;
 
-    // We could search the slots for a plug-in named "serial_fpga" but
-    // for now we assume that serial_fpga is the first module loaded.
-    pctx = (SERPORT *) Slots[0].priv;
-    if (strncmp(PLUGIN_NAME, Slots[0].name, strlen(PLUGIN_NAME)) != 0) {
-        edlog("Wanted %s in Slot 0.  Exiting...\n", PLUGIN_NAME);
+    pctx = (SERPORT *) Slots[parent].priv;
+    pslot = pctx->pslot;
+
+    if (strncmp(PLUGIN_NAME, pslot->name, strlen(PLUGIN_NAME)) != 0) {
+        edlog("Wanted %s in Slot %i.  Exiting...\n", PLUGIN_NAME, parent);
         exit(1);
     }
 
@@ -701,21 +703,24 @@ int sendrecv_pkt(
 
 /* register_interrupt_handler() : Plug-in modules use this routine
  * to tell serial_fpga the address of the module's interrupt handler.
- * The plug-in passes in both the slot number (which equals the core
- * ID) as well as the address of the handler.  
+ * The plug-in passes in both the core ID, as well as the address of
+ * the handler.  
  */
 void register_interrupt_handler(
-    int           coreid,       // core ID (same as plugin slot #)
+    int           parent,       // Slot number of parent,
+    int           coreid,       // core ID.
     void        (*handler)(),   // address of interrupt handler
     void         *trans)        // transparently pass this to handler
 {
     SERPORT      *pctx;         // our local info
+    SLOT         *pslot;        // our SLOT
 
-    // We could search the slots for a plug-in named "serial_fpga" but
-    // for now we assume that serial_fpga is the first module loaded.
-    pctx = (SERPORT *) Slots[0].priv;
-    if (strncmp(PLUGIN_NAME, Slots[0].name, strlen(PLUGIN_NAME)) != 0) {
-        edlog("Wanted %s in Slot 0.  Exiting...\n", PLUGIN_NAME);
+    pctx  = (SERPORT *) Slots[parent].priv;
+    pslot = pctx->pslot;
+    edlog("%s: Registering Interupt Handler at Slot %i for Core ID %i.", pslot->name, pslot->slot_id, coreid);
+
+    if (strncmp(PLUGIN_NAME, pslot->name, strlen(PLUGIN_NAME)) != 0) {
+        edlog("Wanted %s in Slot %i.  Exiting...\n", PLUGIN_NAME, parent);
         exit(1);
     }
 
@@ -731,7 +736,7 @@ void register_interrupt_handler(
 
 
 /***************************************************************************
- * do_interrupt(): - Hnadle an interrupt request.  Read the interrupt
+ * do_interrupt(): - Handle an interrupt request.  Read the interrupt
  * pending registers in serial_fpga peripheral and invoke the appropriate
  * interrupt handlers if one is registered.  Log interrupts that do not
  * have a handler.
@@ -741,14 +746,15 @@ static void do_interrupt(
     void     *cb_data)       // callback date (==*SERPORT)
 {
     SERPORT  *pctx;          // our context
+    SLOT     *pslot;         // out SLOT
     int       nrc;           // number of bytes recieved
     int       intpending;    // a set bit means and interrupt is pending
     int       ret;           // generic return value from a system call
     int       i;             // to walk the cores
     uint8_t   pkt[HBA_MXPKT];  
 
-
     pctx = (SERPORT *) cb_data;
+    pslot = pctx->pslot;
 
     // We need to read the GPIO value to clear the interrupt
     (void) lseek(pctx->irfd, (off_t) 0, SEEK_SET);
@@ -765,14 +771,14 @@ static void do_interrupt(
     }
 
     // Read the two interrupt registers in serial_fpga
-    //  (2-1) is # byte to read -1, and 0 is our coreID
-    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | 0;
+    //  (2-1) is # byte to read -1
+    pkt[0] = HBA_READ_CMD | ((2 -1) << 4) | HBA_SERIAL_FPGA_COREID;
     pkt[1] = HBA_SF_REG_INTR0;
     pkt[2] = 0;                     // dummy byte
     pkt[3] = 0;                     // dummy byte
     pkt[4] = 0;                     // dummy byte
     pkt[5] = 0;                     // dummy byte
-    nrc = sendrecv_pkt(6, pkt);
+    nrc = sendrecv_pkt(pslot->slot_id, 6, pkt);
     // We sent header + two bytes so the sendrecv return value should be 4
     if (nrc != 4) {
         // error reading value from GPIO port
