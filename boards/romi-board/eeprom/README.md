@@ -1,0 +1,16 @@
+
+Building Hat EEPROM images requires eepmake from here...
+
+* https://github.com/raspberrypi/hats.git
+
+Hardware Description:
+
+The Romi Adapter Board connects via these devices...
+
+# SPI Flash (JEDEC Compatible) in the TinyFPGA...
+**  https://github.com/tinyfpga/TinyFPGA-BX/blob/master/board/TinyFPGA-BX-Schematic.pdf
+**  https://www.adestotech.com/wp-content/uploads/doc8715.pdf
+# Romi Power Circuit...
+**  https://www.pololu.com/file/0J1213/motor-driver-and-power-distribution-board-for-romi-chassis-schematic.pdf
+# Romi Adapter Board Button...
+**  https://github.com/hbrc-fpga-class/hardware/blob/rev-A/tinyfpga-raspi-romi-board/outputs/tinyfpga-raspi-romi-board.pdf

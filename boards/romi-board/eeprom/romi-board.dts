@@ -1,0 +1,54 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2708";
+
+	fragment@0 {
+		target = <&uart0>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&spi0>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&gpio>;
+
+		__overlay__ {
+			romi_shdn: romi_shdn {
+				brcm,pins     = <2>;
+				brcm,function = <1>;
+				brcm,pull     = <0>;
+			};
+			romi_pg: romi_pg {
+				brcm,pins     = <3>;
+				brcm,function = <0>;
+				brcm,pull     = <2>;
+			};
+			fpga_4spi: fpga_4spi {
+				brcm,pins     = <5 6>;
+				brcm,function = <1 1>;
+				brcm,pull     = <0 0>;
+			};
+			romi_btn: romi_btn {
+				brcm,pins     = <13>;
+				brcm,function = <0>;
+				brcm,pull     = <2>;
+			};
+			fpga_hba_intr: fpga_hba_intr {
+				brcm,pins     = <25>;
+				brcm,function = <0>;
+				brcm,pull     = <2>;
+			};
+		};
+	};
+};
