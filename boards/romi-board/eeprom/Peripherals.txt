@@ -1,0 +1,21 @@
+########################################
+#
+#  Homebrew Automation
+#  Romi Adapter Board
+#  Rev. A (190626)
+#
+########################################
+#
+# Peripheral Ports
+#
+#  Name             Description
+#
+0  serial_fpga      HomeBrew Automation Serial FPGA Parent
+1  hba_basicio      HomeBrew Automation BasicIO led/button
+2  hba_qtr          HomeBrew Automation QTR Sensor 2x
+3  hba_motor        HomeBrew Automation Motor 2x
+4  hba_sonar        HomeBrew Automation Sonar 2x
+5  hba_quad         HomeBrew Automation Quadature Encoder 2x
+6  hba_gpio         HomeBrew Automation GPIO
+#  hba_speed_ctrl   HomeBrew Automation Speed Control
+#  hba_servos       HomeBrew Automation Servos 8x
